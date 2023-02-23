@@ -4,13 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="07193e5b-7538-452b-907e-1dada32f10d6" name="Changes" comment="v1">
+    <list default="true" id="07193e5b-7538-452b-907e-1dada32f10d6" name="Changes" comment="fix: fix column medata bugs and reformat code structure.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/facebook/presto/influxdb/InfluxdbConnector.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/facebook/presto/influxdb/InfluxdbConnector.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/facebook/presto/influxdb/InfluxdbMetadata.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/facebook/presto/influxdb/InfluxdbMetadata.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/facebook/presto/influxdb/InfluxdbRecordCursor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/facebook/presto/influxdb/InfluxdbRecordCursor.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/facebook/presto/influxdb/InfluxdbUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/facebook/presto/influxdb/InfluxdbUtil.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -65,7 +61,7 @@
       <workItem from="1677079532329" duration="832000" />
       <workItem from="1677080396046" duration="9746000" />
       <workItem from="1677142876957" duration="6312000" />
-      <workItem from="1677150581436" duration="1545000" />
+      <workItem from="1677150581436" duration="2003000" />
     </task>
     <task id="LOCAL-00001" summary="v1">
       <created>1676986294448</created>
@@ -74,7 +70,14 @@
       <option name="project" value="LOCAL" />
       <updated>1676986294449</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="fix: fix column medata bugs and reformat code structure.">
+      <created>1677152264061</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1677152264061</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -93,6 +96,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="v1" />
-    <option name="LAST_COMMIT_MESSAGE" value="v1" />
+    <MESSAGE value="fix: fix column medata bugs and reformat code structure." />
+    <option name="LAST_COMMIT_MESSAGE" value="fix: fix column medata bugs and reformat code structure." />
   </component>
 </project>
