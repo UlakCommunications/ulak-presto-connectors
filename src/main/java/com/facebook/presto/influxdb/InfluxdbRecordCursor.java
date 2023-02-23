@@ -16,6 +16,8 @@ package com.facebook.presto.influxdb;
 import com.facebook.presto.common.type.BigintType;
 import com.facebook.presto.common.type.BooleanType;
 import com.facebook.presto.common.type.DoubleType;
+import com.facebook.presto.common.type.IntegerType;
+import com.facebook.presto.common.type.TimestampType;
 import com.facebook.presto.common.type.Type;
 import com.facebook.presto.common.type.VarcharType;
 import com.facebook.presto.spi.RecordCursor;
@@ -23,8 +25,11 @@ import com.google.common.base.Strings;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -70,7 +75,8 @@ public class InfluxdbRecordCursor
         //log.debug("getBoolean-------------------------");
         checkFieldType(field, BooleanType.BOOLEAN);
         String columnName = columnHandles.get(field).getColumnName();
-        return Boolean.parseBoolean((String) row.getColumnMap().get(columnName));
+        Object value = row.getColumnMap().get(columnName);
+        return Boolean.parseBoolean(value.toString());
     }
 
     @Override
@@ -86,18 +92,22 @@ public class InfluxdbRecordCursor
         //log.debug("getDouble-------------------------");
         checkFieldType(field, DoubleType.DOUBLE);
         String columnName = columnHandles.get(field).getColumnName();
-        String value = (String) row.getColumnMap().get(columnName);
-        return Double.parseDouble(value);
+        Object value = row.getColumnMap().get(columnName);
+        System.out.println(value.toString());
+        return Double.parseDouble(value.toString());
     }
 
     @Override
     public long getLong(int field)
     {
         //log.debug("getLong-------------------------");
-        checkFieldType(field, BigintType.BIGINT);
+        //checkFieldType(field, BigintType.BIGINT);
         String columnName = columnHandles.get(field).getColumnName();
-        String value = (String) row.getColumnMap().get(columnName);
-        return Long.parseLong(value);
+        Object value = row.getColumnMap().get(columnName);
+        if (getType(field).equals(TimestampType.TIMESTAMP)) { // timestamp type, especially
+            return ((Instant)value).toEpochMilli();
+        }
+        return Long.parseLong(value.toString()); // normal int/long
     }
 
     @Override
@@ -126,8 +136,7 @@ public class InfluxdbRecordCursor
         //log.debug("isNull-------------------------");
         checkArgument(field < columnHandles.size(), "Invalid field index");
         String columnName = columnHandles.get(field).getColumnName();
-        String value = (String) row.getColumnMap().get(columnName);
-        return Strings.isNullOrEmpty(value);
+        return Objects.isNull(row.getColumnMap().get(columnName));
     }
 
     @Override
@@ -135,7 +144,10 @@ public class InfluxdbRecordCursor
     {
         checkFieldType(field, VarcharType.createUnboundedVarcharType());
         String columnName = columnHandles.get(field).getColumnName();
-        String value = (String) row.getColumnMap().get(columnName);
-        return Slices.utf8Slice(value);
+        Object value = row.getColumnMap().get(columnName);
+        if (value instanceof String)
+            return Slices.utf8Slice((String) value);
+        else
+            return Slices.utf8Slice(String.valueOf(value));
     }
 }

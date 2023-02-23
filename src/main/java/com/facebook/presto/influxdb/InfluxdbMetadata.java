@@ -61,7 +61,6 @@ public class InfluxdbMetadata
     public List<String> listSchemaNames(ConnectorSession session)
     {
         System.out.println("influxdbMetadata--列出所有的bucket names");
-        //logger.debug("list all bucket names");
         return InfluxdbUtil.getSchemas();
     }
 

@@ -6,7 +6,8 @@
   <version>0.280-SNAPSHOT</version>
   <artifactId>presto-influxdb</artifactId>
 <!--  <packaging>presto-plugin</packaging>-->
-  <!--    <packaging>jar</packaging>-->
+      <packaging>jar</packaging>
+<!--  <packaging>pom</packaging>-->
 
   <name>presto-influxdb</name>
   <url>http://maven.apache.org</url>
@@ -49,33 +50,32 @@
       <version>6.7.0</version>
     </dependency>
 
-
     <dependency>
       <groupId>com.facebook.presto</groupId>
       <artifactId>presto-spi</artifactId>
-      <version>0.280-SNAPSHOT</version>
-<!--      <scope>provided</scope>-->
+      <version>0.279</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.facebook.presto</groupId>
       <artifactId>presto-common</artifactId>
-      <version>0.280-SNAPSHOT</version>
-<!--      <scope>provided</scope>-->
+      <version>0.279</version>
+      <scope>provided</scope>
     </dependency>
 
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-annotations</artifactId>
-      <version>2.10.0</version>
-<!--      <scope>provided</scope>-->
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>com.fasterxml.jackson.core</groupId>-->
+<!--      <artifactId>jackson-annotations</artifactId>-->
+<!--      <version>2.10.0</version>-->
+<!--&lt;!&ndash;      <scope>provided</scope>&ndash;&gt;-->
+<!--    </dependency>-->
 
-    <dependency>
-      <groupId>io.airlift</groupId>
-      <artifactId>slice</artifactId>
-      <version>0.34</version>
-<!--      <scope>provided</scope>-->
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>io.airlift</groupId>-->
+<!--      <artifactId>slice</artifactId>-->
+<!--      <version>0.34</version>-->
+<!--&lt;!&ndash;      <scope>provided</scope>&ndash;&gt;-->
+<!--    </dependency>-->
 
     <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
     <dependency>
@@ -111,6 +111,7 @@
                 <filter>
                   <artifact>*:*</artifact>
                   <excludes>
+                    <exclude>module-info.class</exclude>
                     <exclude>META-INF/*.SF</exclude>
                     <exclude>META-INF/*.DSA</exclude>
                     <exclude>META-INF/*.RSA</exclude>

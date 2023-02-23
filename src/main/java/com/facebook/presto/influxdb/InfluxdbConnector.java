@@ -37,7 +37,6 @@ public class InfluxdbConnector
     public InfluxdbConnector(String url, String catalogName)
     {
         // need to get database connection here
-        // TODO
         System.out.println("初始化connector by url: " + url);
         //logger.debug("初始化connector by url: {}", url);
         try {

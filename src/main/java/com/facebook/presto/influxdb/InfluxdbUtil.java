@@ -14,8 +14,8 @@
 
 package com.facebook.presto.influxdb;
 
+import com.facebook.presto.common.type.BigintType;
 import com.facebook.presto.common.type.DoubleType;
-import com.facebook.presto.common.type.IntegerType;
 import com.facebook.presto.common.type.TimestampType;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.influxdb.client.BucketsApi;
@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,10 +39,11 @@ import java.util.Objects;
 
 public class InfluxdbUtil
 {
-    private static Logger logger = LoggerFactory.getLogger(InfluxdbUtil.class);
     private static final String token = "zNBXClD-3rbf82GiGNGNxx0lZsJeJ3RCc7ViONhffoKfp5tfbv1UtLGFFcw7IU9i4ebllttDWzaD3899LaRQKg==";
     private static final String org = "sjtu";
     private static final String bucket = "test";
+    private static final String time_interval = "-14d";
+    private static Logger logger = LoggerFactory.getLogger(InfluxdbUtil.class);
     private static InfluxDBClient influxDBClient;
 
     private InfluxdbUtil()
@@ -94,27 +94,29 @@ public class InfluxdbUtil
         List<ColumnMetadata> res = new ArrayList<>();
         QueryApi queryApi = influxDBClient.getQueryApi();
         // all fields
-        String flux = "import \"influxdata/influxdb/schema\"\n" + "schema.measurementFieldKeys(\n" + "    bucket : \"" + bucket + "\",\n" + "    measurement : \"" + tableName + "\",\n" + "    start : -99999d\n" + ")";
+        String flux = "import \"influxdata/influxdb/schema\"\n" + "schema.measurementFieldKeys(\n" + "    bucket : \"" + bucket + "\",\n" + "    measurement : \"" + tableName + "\",\n" + "    start:" + time_interval + ")";
         List<FluxTable> tables = queryApi.query(flux);
         for (FluxTable fluxTable : tables) {
             List<FluxRecord> records = fluxTable.getRecords();
             for (FluxRecord record : records) {
                 res.add(new ColumnMetadata((String) record.getValue(), DoubleType.DOUBLE));
-                //System.out.println(record.getValue());
             }
         }
         // all tags
-        flux = "import \"influxdata/influxdb/schema\"\n" + "schema.measurementTagKeys(\n" + "    bucket : \"" + bucket + "\",\n" + "    measurement : \"" + tableName + "\",\n" + "    start : -99999d\n" + ")";
+        flux = "import \"influxdata/influxdb/schema\"\n" + "schema.measurementTagKeys(\n" + "    bucket : \"" + bucket + "\",\n" + "    measurement : \"" + tableName + "\",\n" + "    start : " + time_interval + ")";
         tables = queryApi.query(flux);
         for (FluxTable fluxTable : tables) {
             List<FluxRecord> records = fluxTable.getRecords();
             for (FluxRecord record : records) {
                 if (!((String) record.getValue()).startsWith("_")) {
-                    res.add(new ColumnMetadata((String) record.getValue(), IntegerType.INTEGER));
+                    res.add(new ColumnMetadata((String) record.getValue(), BigintType.BIGINT));
                 }
             }
         }
         res.add(new ColumnMetadata("_time", TimestampType.TIMESTAMP));
+        for (ColumnMetadata columnMetadata : res) {
+            System.out.println(columnMetadata.getName() + ":" + columnMetadata.getType().getDisplayName());
+        }
         return res;
     }
 
@@ -124,12 +126,7 @@ public class InfluxdbUtil
         //logger.debug("select all rows in table: {}", tableName);
         List<InfluxdbRow> list = new ArrayList<>();
         QueryApi queryApi = influxDBClient.getQueryApi();
-
-        BigInteger startParam = BigInteger.valueOf(1556813561);
-        BigInteger endParam = BigInteger.valueOf(1556813563);
-
-        String flux = "from(bucket: " + "\"" + bucket + "\"" + ")\n" + "|> range(start:" + startParam + ", stop:" + endParam + ")\n" + "|> filter(fn : (r) => r._measurement == " + "\"" + tableName + "\"" + ")";
-
+        String flux = "from(bucket: " + "\"" + bucket + "\"" + ")\n" + "|> range(start:" + time_interval + ")\n" + "|> filter(fn : (r) => r._measurement == " + "\"" + tableName + "\"" + ")";
         List<FluxTable> tables = queryApi.query(flux, org);
         Map<Instant, Map<String, Object>> resMap = new HashMap<>();
         for (FluxTable fluxTable : tables) {
@@ -152,7 +149,11 @@ public class InfluxdbUtil
                 }
             }
         }
+        // for debug
         for (Map.Entry<Instant, Map<String, Object>> entry : resMap.entrySet()) {
+            for (Map.Entry<String, Object> entry1 : entry.getValue().entrySet()) {
+                System.out.println("k-v pair" + entry1.getKey() + ":" + entry1.getValue().toString());
+            }
             list.add(new InfluxdbRow(entry.getValue()));
         }
         return list.iterator();
