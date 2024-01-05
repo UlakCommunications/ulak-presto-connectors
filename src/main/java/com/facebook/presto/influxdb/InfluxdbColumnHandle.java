@@ -13,12 +13,12 @@
  */
 package com.facebook.presto.influxdb;
 
-import com.facebook.presto.common.type.Type;
-import com.facebook.presto.spi.ColumnHandle;
-import com.facebook.presto.spi.ColumnMetadata;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.trino.spi.connector.ColumnHandle;
+import io.trino.spi.connector.ColumnMetadata;
 
+import io.trino.spi.type.Type;
 import java.util.Objects;
 
 import static com.google.common.base.MoreObjects.toStringHelper;

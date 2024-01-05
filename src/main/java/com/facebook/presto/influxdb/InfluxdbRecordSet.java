@@ -13,11 +13,10 @@
  */
 package com.facebook.presto.influxdb;
 
-import com.facebook.presto.common.type.Type;
-import com.facebook.presto.spi.RecordCursor;
-import com.facebook.presto.spi.RecordSet;
 import com.google.common.collect.ImmutableList;
-
+import io.trino.spi.connector.RecordCursor;
+import io.trino.spi.connector.RecordSet;
+import io.trino.spi.type.Type;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;

@@ -13,9 +13,9 @@
  */
 package com.facebook.presto.influxdb;
 
-import com.facebook.presto.spi.Plugin;
-import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.google.common.collect.ImmutableList;
+import io.trino.spi.Plugin;
+import io.trino.spi.connector.ConnectorFactory;
 
 public class InfluxdbPlugin
         implements Plugin

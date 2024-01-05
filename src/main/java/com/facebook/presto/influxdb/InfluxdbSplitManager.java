@@ -13,13 +13,8 @@
  */
 package com.facebook.presto.influxdb;
 
-import com.facebook.presto.spi.ConnectorSession;
-import com.facebook.presto.spi.ConnectorSplit;
-import com.facebook.presto.spi.ConnectorSplitSource;
-import com.facebook.presto.spi.ConnectorTableLayoutHandle;
-import com.facebook.presto.spi.FixedSplitSource;
-import com.facebook.presto.spi.connector.ConnectorSplitManager;
-import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
+
+import io.trino.spi.connector.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,12 +37,11 @@ public class InfluxdbSplitManager
     }
 
     @Override
-    public ConnectorSplitSource getSplits(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorTableLayoutHandle layout, SplitSchedulingContext splitSchedulingContext)
-    {
-        InfluxdbTableLayoutHandle layoutHandle = (InfluxdbTableLayoutHandle) layout;
-        InfluxdbTableHandle tableHandle = layoutHandle.getTable();
+    public ConnectorSplitSource getSplits(ConnectorTransactionHandle transaction, ConnectorSession session, ConnectorTableHandle table, DynamicFilter dynamicFilter, Constraint constraint) {
+        InfluxdbTableHandle tableHandle = (InfluxdbTableHandle) table;
         List<ConnectorSplit> splits = new ArrayList<>();
         splits.add(new InfluxdbSplit(tableHandle.getSchemaName(), tableHandle.getTableName()));
         return new FixedSplitSource(splits);
     }
+
 }

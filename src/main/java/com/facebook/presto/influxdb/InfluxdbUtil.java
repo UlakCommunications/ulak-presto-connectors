@@ -14,10 +14,6 @@
 
 package com.facebook.presto.influxdb;
 
-import com.facebook.presto.common.type.BigintType;
-import com.facebook.presto.common.type.DoubleType;
-import com.facebook.presto.common.type.TimestampType;
-import com.facebook.presto.spi.ColumnMetadata;
 import com.influxdb.client.BucketsApi;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
@@ -25,6 +21,10 @@ import com.influxdb.client.QueryApi;
 import com.influxdb.client.domain.Bucket;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
+import io.trino.spi.connector.ColumnMetadata;
+import io.trino.spi.type.BigintType;
+import io.trino.spi.type.DoubleType;
+import io.trino.spi.type.TimestampType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,7 +113,7 @@ public class InfluxdbUtil
                 }
             }
         }
-        res.add(new ColumnMetadata("_time", TimestampType.TIMESTAMP));
+        res.add(new ColumnMetadata("_time", TimestampType.TIMESTAMP_MILLIS));
         for (ColumnMetadata columnMetadata : res) {
             System.out.println(columnMetadata.getName() + ":" + columnMetadata.getType().getDisplayName());
         }

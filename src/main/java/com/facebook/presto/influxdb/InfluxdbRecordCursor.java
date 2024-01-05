@@ -13,18 +13,15 @@
  */
 package com.facebook.presto.influxdb;
 
-import com.facebook.presto.common.type.BigintType;
-import com.facebook.presto.common.type.BooleanType;
-import com.facebook.presto.common.type.DoubleType;
-import com.facebook.presto.common.type.IntegerType;
-import com.facebook.presto.common.type.TimestampType;
-import com.facebook.presto.common.type.Type;
-import com.facebook.presto.common.type.VarcharType;
-import com.facebook.presto.spi.RecordCursor;
 import com.google.common.base.Strings;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
-
+import io.trino.spi.connector.RecordCursor;
+import io.trino.spi.type.BooleanType;
+import io.trino.spi.type.DoubleType;
+import io.trino.spi.type.TimestampType;
+import io.trino.spi.type.VarcharType;
+import io.trino.spi.type.Type;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Iterator;
@@ -104,7 +101,7 @@ public class InfluxdbRecordCursor
         //checkFieldType(field, BigintType.BIGINT);
         String columnName = columnHandles.get(field).getColumnName();
         Object value = row.getColumnMap().get(columnName);
-        if (getType(field).equals(TimestampType.TIMESTAMP)) { // timestamp type, especially
+        if (getType(field).equals(TimestampType.TIMESTAMP_MILLIS)) { // timestamp type, especially
             return ((Instant)value).toEpochMilli();
         }
         return Long.parseLong(value.toString()); // normal int/long

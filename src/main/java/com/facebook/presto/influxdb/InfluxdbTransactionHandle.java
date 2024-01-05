@@ -13,7 +13,8 @@
  */
 package com.facebook.presto.influxdb;
 
-import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
+
+import io.trino.spi.connector.ConnectorTransactionHandle;
 
 public enum InfluxdbTransactionHandle
         implements ConnectorTransactionHandle
