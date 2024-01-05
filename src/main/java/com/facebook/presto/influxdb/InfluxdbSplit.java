@@ -13,12 +13,11 @@
  */
 package com.facebook.presto.influxdb;
 
-import com.facebook.presto.spi.ConnectorSplit;
-import com.facebook.presto.spi.HostAddress;
-import com.facebook.presto.spi.NodeProvider;
-import com.facebook.presto.spi.schedule.NodeSelectionStrategy;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.trino.spi.HostAddress;
+import io.trino.spi.SplitWeight;
+import io.trino.spi.connector.ConnectorSplit;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,22 +50,42 @@ public class InfluxdbSplit
         return tableName;
     }
 
-    @Override
-    public NodeSelectionStrategy getNodeSelectionStrategy()
-    {
-        return NodeSelectionStrategy.NO_PREFERENCE;
-    }
+//    @Override
+//    public NodeSelectionStrategy getNodeSelectionStrategy()
+//    {
+//        return NodeSelectionStrategy.NO_PREFERENCE;
+//    }
 
     // TODO
+//    @Override
+//    public List<HostAddress> getPreferredNodes(NodeProvider nodeProvider)
+//    {
+//        return new ArrayList<HostAddress>();
+//    }
+
     @Override
-    public List<HostAddress> getPreferredNodes(NodeProvider nodeProvider)
-    {
-        return new ArrayList<HostAddress>();
+    public boolean isRemotelyAccessible() {
+        return false;
+    }
+
+    @Override
+    public List<HostAddress> getAddresses() {
+        return null;
     }
 
     @Override
     public Object getInfo()
     {
         return this;
+    }
+
+    @Override
+    public SplitWeight getSplitWeight() {
+        return ConnectorSplit.super.getSplitWeight();
+    }
+
+    @Override
+    public long getRetainedSizeInBytes() {
+        return ConnectorSplit.super.getRetainedSizeInBytes();
     }
 }

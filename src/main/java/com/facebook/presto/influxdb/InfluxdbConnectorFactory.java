@@ -13,10 +13,10 @@
  */
 package com.facebook.presto.influxdb;
 
-import com.facebook.presto.spi.ConnectorHandleResolver;
-import com.facebook.presto.spi.connector.Connector;
-import com.facebook.presto.spi.connector.ConnectorContext;
-import com.facebook.presto.spi.connector.ConnectorFactory;
+
+import io.trino.spi.connector.Connector;
+import io.trino.spi.connector.ConnectorContext;
+import io.trino.spi.connector.ConnectorFactory;
 
 import java.util.Map;
 
@@ -28,11 +28,11 @@ public class InfluxdbConnectorFactory
         return "InfluxdbConnector";
     }
 
-    @Override
-    public ConnectorHandleResolver getHandleResolver()
-    {
-        return new InfluxdbHandleResolver();
-    }
+//    @Override
+//    public ConnectorHandleResolver getHandleResolver()
+//    {
+//        return new InfluxdbHandleResolver();
+//    }
 
     @Override
     public Connector create(String catalogName, Map<String, String> config, ConnectorContext context)

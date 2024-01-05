@@ -13,19 +13,8 @@
  */
 package com.facebook.presto.influxdb;
 
-import com.facebook.presto.spi.ColumnHandle;
-import com.facebook.presto.spi.ColumnMetadata;
-import com.facebook.presto.spi.ConnectorSession;
-import com.facebook.presto.spi.ConnectorTableHandle;
-import com.facebook.presto.spi.ConnectorTableLayout;
-import com.facebook.presto.spi.ConnectorTableLayoutHandle;
-import com.facebook.presto.spi.ConnectorTableLayoutResult;
-import com.facebook.presto.spi.ConnectorTableMetadata;
-import com.facebook.presto.spi.Constraint;
-import com.facebook.presto.spi.SchemaTableName;
-import com.facebook.presto.spi.SchemaTablePrefix;
-import com.facebook.presto.spi.connector.ConnectorMetadata;
 import com.google.common.collect.ImmutableList;
+import io.trino.spi.connector.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,13 +59,13 @@ public class InfluxdbMetadata
         return new InfluxdbTableHandle(connectorId, tableName.getSchemaName(), tableName.getTableName());
     }
 
-    @Override
-    public List<ConnectorTableLayoutResult> getTableLayouts(ConnectorSession session, ConnectorTableHandle table, Constraint<ColumnHandle> constraint, Optional<Set<ColumnHandle>> desiredColumns)
-    {
-        InfluxdbTableHandle tableHandle = (InfluxdbTableHandle) table;
-        ConnectorTableLayout layout = new ConnectorTableLayout(new InfluxdbTableLayoutHandle(tableHandle));
-        return ImmutableList.of(new ConnectorTableLayoutResult(layout, constraint.getSummary()));
-    }
+//    @Override
+//    public List<ConnectorTableLayoutResult> getTableLayouts(ConnectorSession session, ConnectorTableHandle table, Constraint<ColumnHandle> constraint, Optional<Set<ColumnHandle>> desiredColumns)
+//    {
+//        InfluxdbTableHandle tableHandle = (InfluxdbTableHandle) table;
+//        ConnectorTableLayout layout = new ConnectorTableLayout(new InfluxdbTableLayoutHandle(tableHandle));
+//        return ImmutableList.of(new ConnectorTableLayoutResult(layout, constraint.getSummary()));
+//    }
 
     // list all measurements in a bucket
     @Override
@@ -92,11 +81,11 @@ public class InfluxdbMetadata
         return listTable;
     }
 
-    @Override
-    public ConnectorTableLayout getTableLayout(ConnectorSession session, ConnectorTableLayoutHandle handle)
-    {
-        return new ConnectorTableLayout(handle);
-    }
+//    @Override
+//    public ConnectorTableLayout getTableLayout(ConnectorSession session, ConnectorTableLayoutHandle handle)
+//    {
+//        return new ConnectorTableLayout(handle);
+//    }
 
     @Override
     public ConnectorTableMetadata getTableMetadata(ConnectorSession session, ConnectorTableHandle table)
@@ -124,10 +113,10 @@ public class InfluxdbMetadata
     public Map<SchemaTableName, List<ColumnMetadata>> listTableColumns(ConnectorSession session, SchemaTablePrefix prefix)
     {
         Map<SchemaTableName, List<ColumnMetadata>> columns = new HashMap<>();
-        List<SchemaTableName> list = listTables(session, session.getSchema());
+        List<SchemaTableName> list = listTables(session, session.getSource());
         for (SchemaTableName tableName : list) {
-            if (tableName.getTableName().startsWith(prefix.getTableName())) {
-                columns.put(tableName, InfluxdbUtil.getColumns(session.getSchema().get(), tableName.getTableName()));
+            if (tableName.getTableName().startsWith(prefix.getTable().get())) {
+                columns.put(tableName, InfluxdbUtil.getColumns(session.getSource().get(), tableName.getTableName()));
             }
         }
         return columns;

@@ -13,12 +13,8 @@
  */
 package com.facebook.presto.influxdb;
 
-import com.facebook.presto.spi.connector.Connector;
-import com.facebook.presto.spi.connector.ConnectorMetadata;
-import com.facebook.presto.spi.connector.ConnectorRecordSetProvider;
-import com.facebook.presto.spi.connector.ConnectorSplitManager;
-import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
-import com.facebook.presto.spi.transaction.IsolationLevel;
+import io.trino.spi.connector.*;
+import io.trino.spi.transaction.IsolationLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -51,17 +51,28 @@
     </dependency>
 
     <dependency>
-      <groupId>com.facebook.presto</groupId>
-      <artifactId>presto-spi</artifactId>
-      <version>0.279</version>
+      <groupId>io.trino</groupId>
+      <artifactId>trino-spi</artifactId>
+      <version>422</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>com.facebook.presto</groupId>
-      <artifactId>presto-common</artifactId>
-      <version>0.279</version>
-      <scope>provided</scope>
+      <groupId>io.trino</groupId>
+      <artifactId>trino-cache</artifactId>
+      <version>422</version>
     </dependency>
+
+    <dependency>
+      <groupId>io.trino</groupId>
+      <artifactId>trino-plugin-toolkit</artifactId>
+      <version>422</version>
+    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>io.trino</groupId>-->
+<!--      <artifactId>trino-common</artifactId>-->
+<!--      <version>422</version>-->
+<!--      <scope>provided</scope>-->
+<!--    </dependency>-->
 
 <!--    <dependency>-->
 <!--      <groupId>com.fasterxml.jackson.core</groupId>-->
@@ -127,8 +138,8 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration combine.children="append">
           <fork>false</fork>
-          <target>1.8</target>
-          <source>1.8</source>
+<!--          <target>1.8</target>-->
+<!--          <source>1.8</source>-->
         </configuration>
 
       </plugin>

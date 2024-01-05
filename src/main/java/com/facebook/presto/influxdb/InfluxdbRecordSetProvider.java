@@ -13,13 +13,8 @@
  */
 package com.facebook.presto.influxdb;
 
-import com.facebook.presto.spi.ColumnHandle;
-import com.facebook.presto.spi.ConnectorSession;
-import com.facebook.presto.spi.ConnectorSplit;
-import com.facebook.presto.spi.RecordSet;
-import com.facebook.presto.spi.connector.ConnectorRecordSetProvider;
-import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.google.common.collect.ImmutableList;
+import io.trino.spi.connector.*;
 
 import java.util.List;
 
@@ -37,8 +32,7 @@ public class InfluxdbRecordSetProvider
     }
 
     @Override
-    public RecordSet getRecordSet(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorSplit split, List<? extends ColumnHandle> columns)
-    {
+    public RecordSet getRecordSet(ConnectorTransactionHandle transaction, ConnectorSession session, ConnectorSplit split, ConnectorTableHandle table, List<? extends ColumnHandle> columns) {
         InfluxdbSplit influxdbSplit = (InfluxdbSplit) split;
         ImmutableList.Builder<InfluxdbColumnHandle> handles = ImmutableList.builder();
         for (ColumnHandle handle : columns) {
@@ -47,4 +41,5 @@ public class InfluxdbRecordSetProvider
         }
         return new InfluxdbRecordSet(influxdbSplit, handles.build());
     }
+
 }
