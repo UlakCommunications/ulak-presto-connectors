@@ -68,10 +68,10 @@ public class InfluxdbSplit
         return true;
     }
 
-//    @Override
-//    public List<HostAddress> getAddresses() {
-//        return  new ArrayList<HostAddress>();
-//    }
+    @Override
+    public List<HostAddress> getAddresses() {
+        return  new ArrayList<HostAddress>();
+    }
 
     @Override
     public Object getInfo()
