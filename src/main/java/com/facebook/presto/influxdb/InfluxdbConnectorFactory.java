@@ -25,7 +25,7 @@ public class InfluxdbConnectorFactory
 {
     public String getName()
     {
-        return "InfluxdbConnector";
+        return "influxdb";
     }
 
 //    @Override
@@ -37,8 +37,12 @@ public class InfluxdbConnectorFactory
     @Override
     public Connector create(String catalogName, Map<String, String> config, ConnectorContext context)
     {
-        String url = config.get("url");
-        InfluxdbConnector connector = new InfluxdbConnector(url, catalogName);
+        String url = config.get("connection-url");
+        InfluxdbConnector connector = new InfluxdbConnector(url,
+                catalogName,
+                config.get("connection-org"),
+                config.get("connection-token"),
+                config.get("connection-bucket"));
         return connector;
     }
 }

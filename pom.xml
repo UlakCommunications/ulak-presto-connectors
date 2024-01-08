@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.facebook.presto</groupId>
-  <version>0.280-SNAPSHOT</version>
+  <version>0.435-SNAPSHOT</version>
   <artifactId>presto-influxdb</artifactId>
 <!--  <packaging>presto-plugin</packaging>-->
       <packaging>jar</packaging>
@@ -41,31 +41,31 @@
     <dependency>
       <groupId>com.influxdb</groupId>
       <artifactId>influxdb-client-core</artifactId>
-      <version>6.7.0</version>
+      <version>6.9.0</version>
     </dependency>
 
     <dependency>
       <groupId>com.influxdb</groupId>
       <artifactId>influxdb-client-java</artifactId>
-      <version>6.7.0</version>
+      <version>6.9.0</version>
     </dependency>
 
     <dependency>
       <groupId>io.trino</groupId>
       <artifactId>trino-spi</artifactId>
-      <version>422</version>
+      <version>435</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.trino</groupId>
       <artifactId>trino-cache</artifactId>
-      <version>422</version>
+      <version>435</version>
     </dependency>
 
     <dependency>
       <groupId>io.trino</groupId>
       <artifactId>trino-plugin-toolkit</artifactId>
-      <version>422</version>
+      <version>435</version>
     </dependency>
 <!--    <dependency>-->
 <!--      <groupId>io.trino</groupId>-->

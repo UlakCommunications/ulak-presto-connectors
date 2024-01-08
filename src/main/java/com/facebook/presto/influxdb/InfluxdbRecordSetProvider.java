@@ -38,6 +38,7 @@ public class InfluxdbRecordSetProvider
         for (ColumnHandle handle : columns) {
             InfluxdbColumnHandle influxdbColumnHandle = (InfluxdbColumnHandle) handle;
             handles.add(influxdbColumnHandle);
+            System.out.println(influxdbColumnHandle.getColumnName() + ":" + influxdbColumnHandle.getColumnType());
         }
         return new InfluxdbRecordSet(influxdbSplit, handles.build());
     }

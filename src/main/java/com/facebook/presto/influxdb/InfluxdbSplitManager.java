@@ -37,7 +37,11 @@ public class InfluxdbSplitManager
     }
 
     @Override
-    public ConnectorSplitSource getSplits(ConnectorTransactionHandle transaction, ConnectorSession session, ConnectorTableHandle table, DynamicFilter dynamicFilter, Constraint constraint) {
+    public ConnectorSplitSource getSplits(ConnectorTransactionHandle transaction,
+                                          ConnectorSession session,
+                                          ConnectorTableHandle table,
+                                          DynamicFilter dynamicFilter,
+                                          Constraint constraint) {
         InfluxdbTableHandle tableHandle = (InfluxdbTableHandle) table;
         List<ConnectorSplit> splits = new ArrayList<>();
         splits.add(new InfluxdbSplit(tableHandle.getSchemaName(), tableHandle.getTableName()));
