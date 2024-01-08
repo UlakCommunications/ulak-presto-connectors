@@ -65,13 +65,13 @@ public class InfluxdbSplit
 
     @Override
     public boolean isRemotelyAccessible() {
-        return false;
+        return true;
     }
 
-    @Override
-    public List<HostAddress> getAddresses() {
-        return null;
-    }
+//    @Override
+//    public List<HostAddress> getAddresses() {
+//        return  new ArrayList<HostAddress>();
+//    }
 
     @Override
     public Object getInfo()

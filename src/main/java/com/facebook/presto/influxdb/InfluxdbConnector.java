@@ -30,13 +30,13 @@ public class InfluxdbConnector
 
     private final InfluxdbRecordSetProvider recordSetProvider;
 
-    public InfluxdbConnector(String url, String catalogName)
+    public InfluxdbConnector(String url, String catalogName, String org, String token, String bucket)
     {
         // need to get database connection here
         System.out.println("初始化connector by url: " + url);
         //logger.debug("初始化connector by url: {}", url);
         try {
-            InfluxdbUtil.instance(url);
+            InfluxdbUtil.instance(url,org,token,bucket);
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -47,16 +47,19 @@ public class InfluxdbConnector
     }
 
     @Override
-    public ConnectorTransactionHandle beginTransaction(IsolationLevel isolationLevel, boolean readOnly)
-    {
+    public ConnectorTransactionHandle beginTransaction(IsolationLevel isolationLevel, boolean readOnly, boolean autoCommit) {
         return InfluxdbTransactionHandle.INSTANCE;
     }
 
-    @Override
-    public ConnectorMetadata getMetadata(ConnectorTransactionHandle transactionHandle)
-    {
+    public InfluxdbMetadata getMetadata() {
         return metadata;
     }
+
+    @Override
+    public ConnectorMetadata getMetadata(ConnectorSession session, ConnectorTransactionHandle transactionHandle) {
+        return metadata;
+    }
+
 
     @Override
     public ConnectorSplitManager getSplitManager()
