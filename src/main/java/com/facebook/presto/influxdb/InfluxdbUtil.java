@@ -163,9 +163,9 @@ public class InfluxdbUtil
         }
         // for debug
         for (Map.Entry<Instant, Map<String, Object>> entry : resMap.entrySet()) {
-            for (Map.Entry<String, Object> entry1 : entry.getValue().entrySet()) {
-                System.out.println("k-v pair " + entry1.getKey() + ":" + entry1.getValue().toString() + ", " + entry1.getValue().getClass());
-            }
+//            for (Map.Entry<String, Object> entry1 : entry.getValue().entrySet()) {
+//                System.out.println("k-v pair " + entry1.getKey() + ":" + entry1.getValue().toString() + ", " + entry1.getValue().getClass());
+//            }
             list.add(new InfluxdbRow(entry.getValue()));
         }
         return list.iterator();

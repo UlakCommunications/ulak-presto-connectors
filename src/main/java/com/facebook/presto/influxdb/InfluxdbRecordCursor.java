@@ -73,7 +73,7 @@ public class InfluxdbRecordCursor
         checkFieldType(field, BooleanType.BOOLEAN);
         String columnName = columnHandles.get(field).getColumnName();
         Object value = row.getColumnMap().get(columnName);
-        return Boolean.parseBoolean(value.toString());
+        return Boolean.parseBoolean(value == null ? "false" : value.toString());
     }
 
     @Override
@@ -91,7 +91,7 @@ public class InfluxdbRecordCursor
         String columnName = columnHandles.get(field).getColumnName();
         Object value = row.getColumnMap().get(columnName);
         System.out.println(value.toString());
-        return Double.parseDouble(value.toString());
+        return Double.parseDouble(value == null ? "1" : value.toString());
     }
 
     @Override
@@ -104,7 +104,7 @@ public class InfluxdbRecordCursor
         if (getType(field).equals(TimestampType.TIMESTAMP_MILLIS)) { // timestamp type, especially
             return ((Instant)value).toEpochMilli();
         }
-        return Long.parseLong(value.toString()); // normal int/long
+        return Long.parseLong(value == null ? "-1" : value.toString()); // normal int/long
     }
 
     @Override
