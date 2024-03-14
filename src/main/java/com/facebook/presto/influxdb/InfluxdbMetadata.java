@@ -93,6 +93,7 @@ public class InfluxdbMetadata
         InfluxdbTableHandle influxdbTableHandle = (InfluxdbTableHandle) table;
         List<ColumnMetadata> list = InfluxdbUtil.getColumns(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
         SchemaTableName tableName = new SchemaTableName(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
+
         return new ConnectorTableMetadata(tableName, list);
     }
 

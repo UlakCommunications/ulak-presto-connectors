@@ -15,5 +15,7 @@ It's an influxdb connector for presto, it's based on presto-0.279.
 ## Docker Local
 
 ```bash
+mvn clean package
 docker build -t 192.168.57.202:35000/trinodb/trino:432 .
+docker push 192.168.57.202:35000/trinodb/trino:432
 ```

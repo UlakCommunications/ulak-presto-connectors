@@ -32,12 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class InfluxdbUtil
 {
@@ -91,28 +86,39 @@ public class InfluxdbUtil
         }
         return res;
     }
+    public static String arrangeCase(String query){
+        return query.replaceAll("rowkey", "rowKey")
+                .replaceAll("valuecolumn", "valueColumn")
+                .replaceAll("columnkey", "columnKey");
+    }
 
-    public static List<ColumnMetadata> getColumns(String bucket, String tableName)
-    {
-        System.out.println("influxdbUtil 获取bucket:" + bucket + "table:" + tableName + "中的所有columnsMetadata");
-        //logger.debug("getColumns in bucket: {}, table : {}", bucket, tableName);
-        List<ColumnMetadata> res = new ArrayList<>();
-        QueryApi queryApi = influxDBClient.getQueryApi();
-        // all fields
+    private  static Map<Integer, List<ColumnMetadata>> columns = new LinkedHashMap<>();
+    private static Object columnsGetLock = new Object();
+    public static List<ColumnMetadata> getColumns(String bucket, String tableName) {
+        int hash = tableName.hashCode();
+        List<ColumnMetadata> cols = columns.get(hash);
+        if (cols == null) {
+            synchronized (columnsGetLock) {
+                tableName = arrangeCase(tableName);
+                System.out.println("influxdbUtil 获取bucket:" + bucket + "table:" + tableName + "中的所有columnsMetadata");
+                //logger.debug("getColumns in bucket: {}, table : {}", bucket, tableName);
+                List<ColumnMetadata> res = new ArrayList<>();
+                QueryApi queryApi = influxDBClient.getQueryApi();
+                // all fields
 //        String flux = "from(bucket: \"" + bucket + "\")\n" +
 //                "  |> range(start: " + time_interval + ")\n" +
 //                "  |> filter(fn: (r) => r[\"_measurement\"] == \"" + tableName + "\")";
-        String flux = tableName + "\n |> group() |> limit(n:1)\n ";
-        List<FluxTable> tables = queryApi.query(flux);
-        for (FluxTable fluxTable : tables) {
-            List<FluxColumn> records = fluxTable.getColumns();
-            for (FluxColumn record : records) {
-                String label = record.getLabel();
-                if(!res.stream().anyMatch(t->t.getName().equals(label))) {
-                    res.add(new ColumnMetadata((String) label, VarcharType.VARCHAR));
+                String flux = tableName + "\n |> group() |> limit(n:1)\n ";
+                List<FluxTable> tables = queryApi.query(flux);
+                for (FluxTable fluxTable : tables) {
+                    List<FluxColumn> records = fluxTable.getColumns();
+                    for (FluxColumn record : records) {
+                        String label = record.getLabel();
+                        if (!res.stream().anyMatch(t -> t.getName().equals(label))) {
+                            res.add(new ColumnMetadata((String) label, VarcharType.VARCHAR));
+                        }
+                    }
                 }
-            }
-        }
 //        // all tags
 //        flux = "import \"influxdata/influxdb/schema\"\n" + "schema.measurementTagKeys(\n"
 //                + "    bucket : \"" + bucket + "\",\n" + "    measurement : \"" + tableName + "\",\n" + "    start : " + time_interval + ")";
@@ -126,14 +132,21 @@ public class InfluxdbUtil
 //            }
 //        }
 //        res.add(new ColumnMetadata("_time", VarcharType.VARCHAR));
-        for (ColumnMetadata columnMetadata : res) {
-            System.out.println(columnMetadata.getName() + ":" + columnMetadata.getType().getDisplayName());
+                for (ColumnMetadata columnMetadata : res) {
+                    System.out.println(columnMetadata.getName() + ":" + columnMetadata.getType().getDisplayName());
+                }
+                columns.put(hash, res);
+                return res;
+            }
         }
-        return res;
+        else{
+            return cols;
+        }
     }
 
     public static Iterator<InfluxdbRow> select(String tableName)
     {
+        tableName = arrangeCase(tableName);
         System.out.println("influxdbUtil-查询一个表" + tableName + "中的所有行，返回迭代器");
         //logger.debug("select all rows in table: {}", tableName);
         List<InfluxdbRow> list = new ArrayList<>();
