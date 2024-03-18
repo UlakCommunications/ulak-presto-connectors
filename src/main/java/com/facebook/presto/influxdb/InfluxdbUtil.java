@@ -14,6 +14,7 @@
 
 package com.facebook.presto.influxdb;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.influxdb.client.BucketsApi;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
@@ -29,6 +30,8 @@ import io.trino.spi.type.TimestampType;
 import io.trino.spi.type.VarcharType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.params.SetParams;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -36,13 +39,21 @@ import java.util.*;
 
 public class InfluxdbUtil
 {
+    public static final int TTL = 60 * 60 * 24;
+    public static String redisUrl;
     private static  String token = "zNBXClD-3rbf82GiGNGNxx0lZsJeJ3RCc7ViONhffoKfp5tfbv1UtLGFFcw7IU9i4ebllttDWzaD3899LaRQKg==";
     private static  String org = "ulak";
     private static  String bucket = "collectd";
     private static final String time_interval = "-5m";
     private static Logger logger = LoggerFactory.getLogger(InfluxdbUtil.class);
     private static InfluxDBClient influxDBClient;
-
+    private static Jedis jedis = null;
+    public static Jedis getJedis(){
+        if(jedis == null){
+            jedis = new Jedis(redisUrl);
+        }
+        return jedis;
+    }
     private InfluxdbUtil()
     {
     }
@@ -93,13 +104,15 @@ public class InfluxdbUtil
     }
 
     private  static Map<Integer, List<ColumnMetadata>> columns = new LinkedHashMap<>();
+    private  static Map<Integer, String> queries = new LinkedHashMap<>();
     private static Object columnsGetLock = new Object();
+    private static Object queriesLock = new Object();
     public static List<ColumnMetadata> getColumns(String bucket, String tableName) {
+        tableName = arrangeCase(tableName);
         int hash = tableName.hashCode();
         List<ColumnMetadata> cols = columns.get(hash);
         if (cols == null) {
             synchronized (columnsGetLock) {
-                tableName = arrangeCase(tableName);
                 System.out.println("influxdbUtil 获取bucket:" + bucket + "table:" + tableName + "中的所有columnsMetadata");
                 //logger.debug("getColumns in bucket: {}, table : {}", bucket, tableName);
                 List<ColumnMetadata> res = new ArrayList<>();
@@ -143,43 +156,84 @@ public class InfluxdbUtil
             return cols;
         }
     }
-
-    public static Iterator<InfluxdbRow> select(String tableName)
-    {
+    public static <T> List<T> parseJsonArray(String json,
+                                             Class<T> classOnWhichArrayIsDefined)
+            throws IOException, ClassNotFoundException {
+        ObjectMapper mapper = new ObjectMapper();
+        Class<T[]> arrayClass = (Class<T[]>) Class.forName("[L" + classOnWhichArrayIsDefined.getName() + ";");
+        T[] objects = mapper.readValue(json, arrayClass);
+        return Arrays.asList(objects);
+    }
+    public static String getTrinoCacheString(String hash){
+        return "trino:" + hash;
+    }
+    public static String getTrinoCacheString(int hash){
+        return getTrinoCacheString(String.valueOf(hash));
+    }
+    public static Iterator<InfluxdbRow> select(String tableName) throws IOException, ClassNotFoundException {
         tableName = arrangeCase(tableName);
-        System.out.println("influxdbUtil-查询一个表" + tableName + "中的所有行，返回迭代器");
-        //logger.debug("select all rows in table: {}", tableName);
-        List<InfluxdbRow> list = new ArrayList<>();
-        QueryApi queryApi = influxDBClient.getQueryApi();
-        String flux = tableName;//"from(bucket: " + "\"" + bucket + "\"" + ")\n" + "|> range(start:" + time_interval + ")\n" + "|> filter(fn : (r) => r._measurement == " + "\"" + tableName + "\"" + ")";
-        List<FluxTable> tables = queryApi.query(flux, org);
-        Map<Instant, Map<String, Object>> resMap = new HashMap<>();
-        for (FluxTable fluxTable : tables) {
-            List<FluxRecord> records = fluxTable.getRecords();
-            for (FluxRecord fluxRecord : records) {
-                Map<String, Object> curRow = resMap.get(fluxRecord.getTime());
-                if (curRow == null) {
-                    curRow = fluxRecord.getValues();
-                    Map<String, Object> newRow = new HashMap<>();
-                    for (Map.Entry<String, Object> entry : curRow.entrySet()) {
-//                        if (!Objects.equals(entry.getKey(), "_field") && !Objects.equals(entry.getKey(), "_value")) {
-                            newRow.put(entry.getKey(), entry.getValue());
-//                        }
-                    }
-                    newRow.put(fluxRecord.getField(), fluxRecord.getValue());
-                    resMap.put(fluxRecord.getTime(), newRow);
-                }
-                else {
-                    curRow.put(fluxRecord.getField(), fluxRecord.getValue());
-                }
+        String tblNoRange = null;
+        String newLineChar = System.lineSeparator();
+        String[] splits = tableName.split(newLineChar);
+        List<String> newLines = new ArrayList<>();
+        for (int i = 0; i < splits.length; i++) {
+            String current = splits[i];
+            if(!current.matches("[ ]*\\|\\>[ ]*range[ ]*\\(")){
+                newLines.add(current);
             }
         }
-        // for debug
-        for (Map.Entry<Instant, Map<String, Object>> entry : resMap.entrySet()) {
+        tblNoRange = String.join(newLineChar,newLines);
+        int hash = tblNoRange.hashCode();
+        Jedis jedis = getJedis();
+        String json = jedis.get(getTrinoCacheString(hash));
+        List<InfluxdbRow> list =null;
+        if(json!=null){
+           list = parseJsonArray(json, InfluxdbRow.class);
+        }else {
+            synchronized (queriesLock) {
+                json = jedis.get(getTrinoCacheString(hash));
+                if(json!=null){
+                    list = parseJsonArray(json, InfluxdbRow.class);
+                }else {
+                    //logger.debug("select all rows in table: {}", tableName);
+                    list = new ArrayList<>();
+                    QueryApi queryApi = influxDBClient.getQueryApi();
+                    String flux = tableName;//"from(bucket: " + "\"" + bucket + "\"" + ")\n" + "|> range(start:" + time_interval + ")\n" + "|> filter(fn : (r) => r._measurement == " + "\"" + tableName + "\"" + ")";
+                    List<FluxTable> tables = queryApi.query(flux, org);
+                    Map<Instant, Map<String, Object>> resMap = new HashMap<>();
+                    for (FluxTable fluxTable : tables) {
+                        List<FluxRecord> records = fluxTable.getRecords();
+                        for (FluxRecord fluxRecord : records) {
+                            Map<String, Object> curRow = resMap.get(fluxRecord.getTime());
+                            if (curRow == null) {
+                                curRow = fluxRecord.getValues();
+                                Map<String, Object> newRow = new HashMap<>();
+                                for (Map.Entry<String, Object> entry : curRow.entrySet()) {
+//                        if (!Objects.equals(entry.getKey(), "_field") && !Objects.equals(entry.getKey(), "_value")) {
+                                    newRow.put(entry.getKey(), entry.getValue());
+//                        }
+                                }
+                                newRow.put(fluxRecord.getField(), fluxRecord.getValue());
+                                resMap.put(fluxRecord.getTime(), newRow);
+                            } else {
+                                curRow.put(fluxRecord.getField(), fluxRecord.getValue());
+                            }
+                        }
+                    }
+                    // for debug
+                    for (Map.Entry<Instant, Map<String, Object>> entry : resMap.entrySet()) {
 //            for (Map.Entry<String, Object> entry1 : entry.getValue().entrySet()) {
 //                System.out.println("k-v pair " + entry1.getKey() + ":" + entry1.getValue().toString() + ", " + entry1.getValue().getClass());
 //            }
-            list.add(new InfluxdbRow(entry.getValue()));
+                        list.add(new InfluxdbRow(entry.getValue()));
+                    }
+                    ObjectMapper mapper = new ObjectMapper();
+                    SetParams param = new SetParams();
+                    param.ex(TTL);
+                    jedis.set(getTrinoCacheString(hash), mapper.writeValueAsString(list), param);
+                    queries.put(hash, tableName);
+                }
+            }
         }
         return list.iterator();
     }

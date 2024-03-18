@@ -30,7 +30,7 @@ public class InfluxdbConnector
 
     private final InfluxdbRecordSetProvider recordSetProvider;
 
-    public InfluxdbConnector(String url, String catalogName, String org, String token, String bucket)
+    public InfluxdbConnector(String url, String catalogName, String org, String token, String bucket, String redisUrl)
     {
         // need to get database connection here
         System.out.println("初始化connector by url: " + url);
@@ -44,6 +44,7 @@ public class InfluxdbConnector
         this.metadata = InfluxdbMetadata.getInstance(catalogName);
         this.splitManager = InfluxdbSplitManager.getInstance();
         this.recordSetProvider = InfluxdbRecordSetProvider.getInstance();
+        InfluxdbUtil.redisUrl = redisUrl;
     }
 
     @Override

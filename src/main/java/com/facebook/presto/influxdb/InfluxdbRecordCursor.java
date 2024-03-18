@@ -22,6 +22,8 @@ import io.trino.spi.type.DoubleType;
 import io.trino.spi.type.TimestampType;
 import io.trino.spi.type.VarcharType;
 import io.trino.spi.type.Type;
+
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Iterator;
@@ -42,7 +44,13 @@ public class InfluxdbRecordCursor
     public InfluxdbRecordCursor(List<InfluxdbColumnHandle> columnHandles, InfluxdbSplit split)
     {
         this.columnHandles = columnHandles;
-        this.iterator = InfluxdbUtil.select(split.getTableName());
+        try {
+            this.iterator = InfluxdbUtil.select(split.getTableName());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
