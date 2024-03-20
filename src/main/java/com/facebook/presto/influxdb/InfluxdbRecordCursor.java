@@ -45,7 +45,7 @@ public class InfluxdbRecordCursor
     {
         this.columnHandles = columnHandles;
         try {
-            this.iterator = InfluxdbUtil.select(split.getTableName());
+            this.iterator = InfluxdbUtil.select(split.getTableName(), false);
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (ClassNotFoundException e) {
