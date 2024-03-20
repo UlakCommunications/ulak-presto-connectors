@@ -18,6 +18,7 @@ import io.trino.spi.connector.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -91,7 +92,14 @@ public class InfluxdbMetadata
     public ConnectorTableMetadata getTableMetadata(ConnectorSession session, ConnectorTableHandle table)
     {
         InfluxdbTableHandle influxdbTableHandle = (InfluxdbTableHandle) table;
-        List<ColumnMetadata> list = InfluxdbUtil.getColumns(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
+        List<ColumnMetadata> list = null;
+        try {
+            list = InfluxdbUtil.getColumns(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
+        } catch (IOException e) {
+            logger.error("IOException", e);
+        } catch (ClassNotFoundException e) {
+            logger.error("ClassNotFoundException", e);
+        }
         SchemaTableName tableName = new SchemaTableName(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
 
         return new ConnectorTableMetadata(tableName, list);
@@ -102,10 +110,19 @@ public class InfluxdbMetadata
     {
         InfluxdbTableHandle influxdbTableHandle = (InfluxdbTableHandle) tableHandle;
         Map<String, ColumnHandle> res = new HashMap<>();
-        List<ColumnMetadata> list = InfluxdbUtil.getColumns(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
-        for (int i = 0; i < list.size(); ++i) {
-            ColumnMetadata metadata = list.get(i);
-            res.put(metadata.getName(), new InfluxdbColumnHandle(connectorId, metadata.getName(), metadata.getType(), i));
+        List<ColumnMetadata> list = null;
+        try {
+            list = InfluxdbUtil.getColumns(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
+
+            for (int i = 0; i < list.size(); ++i) {
+                ColumnMetadata metadata = list.get(i);
+                res.put(metadata.getName(), new InfluxdbColumnHandle(connectorId, metadata.getName(), metadata.getType(), i));
+            }
+        } catch (IOException e) {
+            logger.error("IOException", e);
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            logger.error("ClassNotFoundException", e);
         }
         return res;
     }
@@ -117,7 +134,14 @@ public class InfluxdbMetadata
         List<SchemaTableName> list = listTables(session, session.getSource());
         for (SchemaTableName tableName : list) {
             if (tableName.getTableName().startsWith(prefix.getTable().get())) {
-                columns.put(tableName, InfluxdbUtil.getColumns(session.getSource().get(), tableName.getTableName()));
+                try {
+                    columns.put(tableName, InfluxdbUtil.getColumns(session.getSource().get(), tableName.getTableName()));
+                } catch (IOException e) {
+                    logger.error("IOException", e);
+                    throw new RuntimeException(e);
+                } catch (ClassNotFoundException e) {
+                    logger.error("ClassNotFoundException", e);
+                }
             }
         }
         return columns;
