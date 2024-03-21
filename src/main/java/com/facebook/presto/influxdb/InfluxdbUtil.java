@@ -14,6 +14,7 @@
 
 package com.facebook.presto.influxdb;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.influxdb.client.BucketsApi;
@@ -21,7 +22,6 @@ import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
 import com.influxdb.client.QueryApi;
 import com.influxdb.client.domain.Bucket;
-import com.influxdb.query.FluxColumn;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
 import io.trino.spi.connector.ColumnMetadata;
@@ -37,6 +37,8 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+
+import static com.facebook.presto.influxdb.RedisCacheWorker.addOneStat;
 
 public class InfluxdbUtil {
     public static final String SAMPLE_QUERY_2 =
@@ -100,6 +102,45 @@ public class InfluxdbUtil {
             "  |>count(column: \"link\" )\n" +
             "  |>group()\n" +
             "  |> pivot(rowKey: [], columnKey: [\"g\"], valueColumn: \"link\")";
+    private static Map<String, String> keywords = new HashMap<String, String>() {
+        {
+            put("aggregatewindow", "aggregateWindow");
+            put("createempty", "createEmpty");
+            put("columnkey", "columnKey");
+            put("nonnegative", "nonNegative");
+            put("rowkey", "rowKey");
+            put("useprevious", "usePrevious");
+            put("valuecolumn", "valueColumn");
+            put("windowperiod", "windowPeriod");
+        }
+    };
+    public static void setKeywords(String ks){
+        synchronized (inProgressLock) {
+            if (ks != null && ks.trim().equals("")) {
+                String[] splits = ks.split(";");
+                if (splits.length > 0) {
+                    for (String split : splits) {
+                        String[] kv = split.split(",");
+                        if (kv.length > 1) {
+                            if (kv.length > 2) {
+                                logger.error("Configuration Error: keyword split:" + split);
+                            }
+                            String key = kv[0].toLowerCase(Locale.ENGLISH);
+                            if (!keywords.containsKey(key)) {
+                                keywords.put(key, kv[1]);
+                            }
+                        } else {
+                            logger.error("Configuration Error: keyword split:" + split);
+                        }
+                    }
+                } else {
+                    logger.error("Configuration Error: keyword split:" + ks);
+                }
+            } else {
+                logger.info("Empty keywords :" + ks);
+            }
+        }
+    }
     static JedisPool jedisPool = null;
 
     static {
@@ -181,20 +222,26 @@ public class InfluxdbUtil {
     }
 
     public static String arrangeCase(String query) {
-        return query
-                .replaceAll("aggregatewindow", "aggregateWindow")
-                .replaceAll("createempty", "createEmpty")
-                .replaceAll("columnkey", "columnKey")
-                .replaceAll("nonnegative", "nonNegative")
-                .replaceAll("rowkey", "rowKey")
-                .replaceAll("useprevious", "usePrevious")
-                .replaceAll("valuecolumn", "valueColumn")
-                .replaceAll("windowperiod", "windowPeriod");
+        if (keywords == null || keywords.size() == 0) {
+            return query
+                    .replaceAll("aggregatewindow", "aggregateWindow")
+                    .replaceAll("createempty", "createEmpty")
+                    .replaceAll("columnkey", "columnKey")
+                    .replaceAll("nonnegative", "nonNegative")
+                    .replaceAll("rowkey", "rowKey")
+                    .replaceAll("useprevious", "usePrevious")
+                    .replaceAll("valuecolumn", "valueColumn")
+                    .replaceAll("windowperiod", "windowPeriod");
+        } else {
+            for (Map.Entry<String, String> kv: keywords.entrySet()){
+                query = query.replaceAll(kv.getKey(),kv.getValue());
+            }
+            return query;
+        }
     }
-
-    //    private  static Map<Integer, List<ColumnMetadata>> columns = new LinkedHashMap<>();
+    private  static Map<Integer, Boolean> inProgressLocks = new LinkedHashMap<>();
 //    private static Object columnsGetLock = new Object();
-    private static Object queriesLock = new Object();
+    private static Object inProgressLock = new Object();
 
     public static List<ColumnMetadata> getColumns(String bucket, String tableName) throws IOException, ClassNotFoundException {
         tableName = arrangeCase(tableName);
@@ -254,7 +301,9 @@ public class InfluxdbUtil {
     public static String getTrinoCacheString(int hash){
         return getTrinoCacheString(String.valueOf(hash));
     }
-    public static Iterator<InfluxdbRow> select(String origTableName, boolean forceRefresh) throws IOException, ClassNotFoundException {
+    public static Iterator<InfluxdbRow> select(String origTableName,
+                                               boolean forceRefresh)
+            throws IOException, ClassNotFoundException {
         String tableName = arrangeCase(origTableName);
 //        String tblNoRange = null;
 //        String newLineChar = System.lineSeparator();
@@ -270,76 +319,122 @@ public class InfluxdbUtil {
 //        int hash = tblNoRange.hashCode();
         int hash = tableName.hashCode();
         try (Jedis jedis = getJedisPool().getResource()) {
-            String json = jedis.get(getTrinoCacheString(hash));
-            List<InfluxdbRow> list = null;
-            if (!forceRefresh && json != null) {
-                InfluxdbQueryParameters influxdbQueryParameters = getObjectMapper().readValue(json, InfluxdbQueryParameters.class);
-                list = influxdbQueryParameters.getRows();
-            } else {
-                synchronized (queriesLock) {
-                    json = jedis.get(getTrinoCacheString(hash));
-                    if (!forceRefresh && json != null) {
-                        InfluxdbQueryParameters influxdbQueryParameters = getObjectMapper().readValue(json, InfluxdbQueryParameters.class);
-                        list = influxdbQueryParameters.getRows();
-                    } else {
-                        //logger.debug("select all rows in table: {}", tableName);
-                        list = new ArrayList<>();
-                        QueryApi queryApi = influxDBClient.getQueryApi();
-                        String flux = tableName;//"from(bucket: " + "\"" + bucket + "\"" + ")\n" + "|> range(start:" + time_interval + ")\n" + "|> filter(fn : (r) => r._measurement == " + "\"" + tableName + "\"" + ")";
-                        List<FluxTable> tables = queryApi.query(flux, org);
-                        Map<Instant, Map<String, Object>> resMap = new HashMap<>();
-                        for (FluxTable fluxTable : tables) {
-                            List<FluxRecord> records = fluxTable.getRecords();
-                            for (FluxRecord fluxRecord : records) {
-                                Map<String, Object> curRow = resMap.get(fluxRecord.getTime());
-                                if (curRow == null) {
-                                    curRow = fluxRecord.getValues();
-                                    Map<String, Object> newRow = new HashMap<>();
-                                    for (Map.Entry<String, Object> entry : curRow.entrySet()) {
+            Iterator<InfluxdbRow> listFromCache = getCacheResult(forceRefresh, jedis, hash);
+            if (listFromCache != null) {
+                return listFromCache;
+            }
+            synchronized (inProgressLock) {
+                listFromCache = getCacheResult(forceRefresh, jedis, hash);
+                if (listFromCache != null) {
+                    return listFromCache;
+                }
+                if (!inProgressLocks.containsKey(hash)) {
+                    inProgressLocks.put(hash, true);
+                }
+            }
+            synchronized (inProgressLocks.get(hash)) {
+                try {
+                    listFromCache = getCacheResult(forceRefresh, jedis, hash);
+                    if (listFromCache != null) {
+                        return listFromCache;
+                    }
+                    //logger.debug("select all rows in table: {}", tableName);
+                    ArrayList<InfluxdbRow> list = new ArrayList<InfluxdbRow>();
+                    QueryApi queryApi = influxDBClient.getQueryApi();
+                    String flux = tableName;//"from(bucket: " + "\"" + bucket + "\"" + ")\n" + "|> range(start:" + time_interval + ")\n" + "|> filter(fn : (r) => r._measurement == " + "\"" + tableName + "\"" + ")";
+                    List<FluxTable> tables = queryApi.query(flux, org);
+                    Map<Instant, Map<String, Object>> resMap = new HashMap<>();
+                    for (FluxTable fluxTable : tables) {
+                        List<FluxRecord> records = fluxTable.getRecords();
+                        for (FluxRecord fluxRecord : records) {
+                            Map<String, Object> curRow = resMap.get(fluxRecord.getTime());
+                            if (curRow == null) {
+                                curRow = fluxRecord.getValues();
+                                Map<String, Object> newRow = new HashMap<>();
+                                for (Map.Entry<String, Object> entry : curRow.entrySet()) {
 //                                if (!Objects.equals(entry.getKey(), "_field") && !Objects.equals(entry.getKey(), "_value")) {
-                                        newRow.put(entry.getKey(), entry.getValue());
+                                    newRow.put(entry.getKey(), entry.getValue());
 //                                }
-                                    }
-                                    String field = fluxRecord.getField();
-                                    if (field != null) {
-                                        newRow.put(field, fluxRecord.getValue());
-                                    }
-                                    Instant time = fluxRecord.getTime();
-                                    if (time == null) {
-                                        time = Instant.now();
-                                    }
-                                    resMap.put(time, newRow);
-                                } else {
-                                    String field = fluxRecord.getField();
-                                    if (field == null) {
-                                        field = "null";
-                                    }
-                                    curRow.put(field, fluxRecord.getValue());
                                 }
+                                String field = fluxRecord.getField();
+                                if (field != null) {
+                                    newRow.put(field, fluxRecord.getValue());
+                                }
+                                Instant time = fluxRecord.getTime();
+                                if (time == null) {
+                                    time = Instant.now();
+                                }
+                                resMap.put(time, newRow);
+                            } else {
+                                String field = fluxRecord.getField();
+                                if (field == null) {
+                                    field = "null";
+                                }
+                                curRow.put(field, fluxRecord.getValue());
                             }
                         }
-                        // for debug
-                        for (Map.Entry<Instant, Map<String, Object>> entry : resMap.entrySet()) {
+                    }
+                    // for debug
+                    for (Map.Entry<Instant, Map<String, Object>> entry : resMap.entrySet()) {
 //                      for (Map.Entry<String, Object> entry1 : entry.getValue().entrySet()) {
 //                          logger.debug("k-v pair " + entry1.getKey() + ":" + entry1.getValue().toString() + ", " + entry1.getValue().getClass());
 //                      }
-                            list.add(new InfluxdbRow(entry.getValue()));
+                        list.add(new InfluxdbRow(entry.getValue()));
+                    }
+                    ObjectMapper mapper = getObjectMapper();
+
+                    InfluxdbQueryParameters p = new InfluxdbQueryParameters();
+                    p.setQuery(origTableName);
+                    p.setHash(hash);
+                    p.setRows(list);
+
+                    SetParams param = new SetParams();
+                    param.ex(TTL);
+                    jedis.set(getTrinoCacheString(hash), mapper.writeValueAsString(p), param);
+                    addOneStat(hash,1);
+                    return list.iterator();
+                } finally {
+                    synchronized (inProgressLock) {
+                        if(inProgressLocks.containsKey(hash)) {
+                            inProgressLocks.remove(hash, true);
                         }
-                        ObjectMapper mapper = getObjectMapper();
-
-                        InfluxdbQueryParameters p = new InfluxdbQueryParameters();
-                        p.setQuery(origTableName);
-                        p.setHash(hash);
-                        p.setRows(list);
-
-                        SetParams param = new SetParams();
-                        param.ex(TTL);
-                        jedis.set(getTrinoCacheString(hash), mapper.writeValueAsString(p), param);
                     }
                 }
             }
+        }
+    }
+
+    public static void invalidateCache(int hash )  {
+        try (Jedis jedis = getJedisPool().getResource()) {
+            synchronized (inProgressLock) {
+                if (!inProgressLocks.containsKey(hash)) {
+                    inProgressLocks.put(hash, true);
+                }
+            }
+            synchronized (inProgressLocks.get(hash)) {
+                try {
+                    jedis.del(getTrinoCacheString(hash));
+                } finally {
+                    synchronized (inProgressLock) {
+                        if(inProgressLocks.containsKey(hash)) {
+                            inProgressLocks.remove(hash, true);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    private static Iterator<InfluxdbRow> getCacheResult(boolean forceRefresh, Jedis jedis, int hash) throws JsonProcessingException {
+        String json;
+        List<InfluxdbRow> list;
+        json = jedis.get(getTrinoCacheString(hash));
+        if (!forceRefresh && json != null) {
+            InfluxdbQueryParameters influxdbQueryParameters = getObjectMapper().readValue(json, InfluxdbQueryParameters.class);
+            list = influxdbQueryParameters.getRows();
+            addOneStat(hash,1);
             return list.iterator();
         }
+        return null;
     }
 
     public static void main(String[] args) throws IOException, ClassNotFoundException {
