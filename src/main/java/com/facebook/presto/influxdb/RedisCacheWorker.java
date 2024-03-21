@@ -58,6 +58,10 @@ public class RedisCacheWorker extends Thread{
             }
             //if not sleep worked then do not clutch
             if(sleepWorked) {
+                //do not clutch if no redis
+                if(getJedisPool() == null){
+                    continue;
+                }
                 long runningTaskCount = futures.values().stream().filter(t -> !t.isDone() && !t.isCancelled()).count();
                 if (runningTaskCount < N_THREADS) {
                     //first clean finished
