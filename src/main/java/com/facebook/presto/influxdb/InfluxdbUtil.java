@@ -149,7 +149,7 @@ public class InfluxdbUtil {
     }
 
     public static final int TTL = 60 * 60 * 24;
-    public static String redisUrl = "redis://10.20.4.53:30639";
+    public static String redisUrl = null;
     private static String token = "zNBXClD-3rbf82GiGNGNxx0lZsJeJ3RCc7ViONhffoKfp5tfbv1UtLGFFcw7IU9i4ebllttDWzaD3899LaRQKg==";
     private static String org = "ulak";
     private static String bucket = "collectd";
@@ -173,6 +173,9 @@ public class InfluxdbUtil {
     }
 
     public static JedisPool getJedisPool() {
+        if(redisUrl == null){
+            return null;
+        }
         if (jedisPool == null) {
             final JedisPoolConfig poolConfig = buildPoolConfig();
             jedisPool = new JedisPool(poolConfig, redisUrl);
@@ -318,7 +321,12 @@ public class InfluxdbUtil {
 //        tblNoRange = String.join(newLineChar,newLines);
 //        int hash = tblNoRange.hashCode();
         int hash = tableName.hashCode();
-        try (Jedis jedis = getJedisPool().getResource()) {
+        JedisPool pool = getJedisPool();
+        Jedis jedis = null;
+        if(pool !=null){
+            jedis = pool.getResource();
+        }
+        try {
             Iterator<InfluxdbRow> listFromCache = getCacheResult(forceRefresh, jedis, hash);
             if (listFromCache != null) {
                 return listFromCache;
@@ -381,17 +389,19 @@ public class InfluxdbUtil {
 //                      }
                         list.add(new InfluxdbRow(entry.getValue()));
                     }
-                    ObjectMapper mapper = getObjectMapper();
+                    if(jedis!=null) {
+                        ObjectMapper mapper = getObjectMapper();
 
-                    InfluxdbQueryParameters p = new InfluxdbQueryParameters();
-                    p.setQuery(origTableName);
-                    p.setHash(hash);
-                    p.setRows(list);
+                        InfluxdbQueryParameters p = new InfluxdbQueryParameters();
+                        p.setQuery(origTableName);
+                        p.setHash(hash);
+                        p.setRows(list);
 
-                    SetParams param = new SetParams();
-                    param.ex(TTL);
-                    jedis.set(getTrinoCacheString(hash), mapper.writeValueAsString(p), param);
-                    addOneStat(hash,1);
+                        SetParams param = new SetParams();
+                        param.ex(TTL);
+                        jedis.set(getTrinoCacheString(hash), mapper.writeValueAsString(p), param);
+                        addOneStat(hash, 1);
+                    }
                     return list.iterator();
                 } finally {
                     synchronized (inProgressLock) {
@@ -400,6 +410,10 @@ public class InfluxdbUtil {
                         }
                     }
                 }
+            }
+        }finally {
+            if(jedis!=null){
+                jedis.close();
             }
         }
     }
@@ -425,20 +439,23 @@ public class InfluxdbUtil {
         }
     }
     private static Iterator<InfluxdbRow> getCacheResult(boolean forceRefresh, Jedis jedis, int hash) throws JsonProcessingException {
-        String json;
-        List<InfluxdbRow> list;
-        json = jedis.get(getTrinoCacheString(hash));
-        if (!forceRefresh && json != null) {
-            InfluxdbQueryParameters influxdbQueryParameters = getObjectMapper().readValue(json, InfluxdbQueryParameters.class);
-            list = influxdbQueryParameters.getRows();
-            addOneStat(hash,1);
-            return list.iterator();
+        if(jedis != null) {
+            String json;
+            List<InfluxdbRow> list;
+            json = jedis.get(getTrinoCacheString(hash));
+            if (!forceRefresh && json != null) {
+                InfluxdbQueryParameters influxdbQueryParameters = getObjectMapper().readValue(json, InfluxdbQueryParameters.class);
+                list = influxdbQueryParameters.getRows();
+                addOneStat(hash, 1);
+                return list.iterator();
+            }
         }
         return null;
     }
 
     public static void main(String[] args) throws IOException, ClassNotFoundException {
         int index=0;
+        redisUrl = "redis://10.20.4.53:30639";
         long start = System.currentTimeMillis();
         instance("http://10.20.4.53:30485?readTimeout=2m&connectTimeout=2m&writeTimeout=2m",
                 "ulak",
@@ -452,5 +469,7 @@ public class InfluxdbUtil {
             index++;
         }
         logger.info(String.valueOf(System.currentTimeMillis() - start));
+        //TODO: test cache disable
+
     }
 }
