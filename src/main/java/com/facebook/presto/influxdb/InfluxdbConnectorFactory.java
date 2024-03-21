@@ -43,7 +43,8 @@ public class InfluxdbConnectorFactory
                 config.get("connection-org"),
                 config.get("connection-token"),
                 config.get("connection-bucket"),
-                config.get("redis-url"));
+                config.get("redis-url"),
+                config.get("keywords"));
         return connector;
     }
 }
