@@ -1,17 +1,29 @@
 package com.facebook.presto.influxdb;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import static com.facebook.presto.influxdb.InfluxdbUtil.*;
 
 
 public class InfluxdbQueryParameters {
-    public static final String NEW_LINE_CHAR = System.lineSeparator();
-    String query;
+    private static Logger logger = LoggerFactory.getLogger(InfluxdbQueryParameters.class);
 
+    public static final String NEW_LINE_CHAR = System.lineSeparator();
+    public static final int DEFAULT_CACHE_TTL = 60 * 60 * 24;
+    public static final int DEFAULT_TTL = 10;
+
+    private String query;
+    private int hash;
+    private List<InfluxdbRow> rows;
+    private boolean toBeCached=false;
+    private long ttlInSeconds = DEFAULT_TTL;
+    private long refreshDurationInSeconds = DEFAULT_TTL;
     public String getQuery() {
         return query;
     }
@@ -36,8 +48,6 @@ public class InfluxdbQueryParameters {
         this.rows = rows;
     }
 
-    int hash;
-    List<InfluxdbRow> rows;
     public InfluxdbQueryParameters() {
 
     }
@@ -47,9 +57,59 @@ public class InfluxdbQueryParameters {
         this.hash = hash;
         this.rows = rows;
     }
+
+    public static InfluxdbQueryParameters getQueryParameters(String tableName){
+        tableName = arrangeCase(tableName);
+        int hash = tableName.hashCode();
+
+        InfluxdbQueryParameters ret = new InfluxdbQueryParameters();
+        ret.setQuery(tableName);
+        ret.setHash(hash);
+
+        String[] splits = tableName.split(NEW_LINE_CHAR);
+        List<String> newLines = new ArrayList<>();
+        for (int i = 0; i < splits.length; i++) {
+            String current = splits[i];
+            //get query parameters
+            current = current.trim();
+            while (!current.equals("") && current.length() > 0) {
+                if (current.startsWith("/")) {
+                    current = current.substring(1).trim();
+                } else {
+                    break;
+                }
+            }
+            String[] params = current.split("=");
+            if(params.length>1) {
+                String param = params[0];
+                String value = params[1];
+                try {
+                    switch (param.toLowerCase(Locale.ENGLISH)) {
+                        case "ttl":
+                            long v = Long.parseLong(value);
+                            if (v > 0) {
+                                ret.setTtlInSeconds(v);
+                            }
+                            break;
+                        case "cache":
+                            ret.setToBeCached(Boolean.parseBoolean(value));
+                            if (ret.ttlInSeconds == DEFAULT_TTL) {
+                                ret.ttlInSeconds = DEFAULT_CACHE_TTL;
+                            }
+                            break;
+                        case "refreshin":
+                            v = Long.parseLong(value);
+                            if (v > 0) {
+                                ret.setRefreshDurationInSeconds(v);
+                            }
+                            break;
+                    }
+                } catch (Throwable e) {
+                    logger.error("getQueryParameters: " + param + "/" + value);
+                }
+            }
+        }
 //
-//    public static InfluxdbQueryParameters getQueryParameters(String tableName){
-//        tableName = arrangeCase(tableName);
 //        String tblNoRange;
 //        String[] splits = tableName.split(NEW_LINE_CHAR);
 //        List<String> newLines = new ArrayList<>();
@@ -60,23 +120,31 @@ public class InfluxdbQueryParameters {
 //            }
 //        }
 //        tblNoRange = String.join(NEW_LINE_CHAR,newLines);
-//        int hash = tblNoRange.hashCode();
-//        Jedis jedis = getJedis();
-//        String json = jedis.get(getTrinoCacheString(hash));
-//        List<InfluxdbRow> list =null;
-//
-//        InfluxdbQueryParameters ret = new InfluxdbQueryParameters();
-//        ret.setColumnsQuery(false);
-//        ret.setAbsoluteRange(false);
-//
-//        ret.setFrom(-1);
-//        ret.setTo(-1);
-//
-//        ret.setNoRangeQuery(tblNoRange);
-//        ret.setNoRangeQueryHash(hash);
-//
-//        ret.setCompleteQuery(tableName);
-//        ret.setWithRangeQueryHash(tableName.hashCode());
-//        return ret;
-//    }
+
+        return ret;
+    }
+
+    public boolean isToBeCached() {
+        return toBeCached;
+    }
+
+    public void setToBeCached(boolean toBeCached) {
+        this.toBeCached = toBeCached;
+    }
+
+    public long getTtlInSeconds() {
+        return ttlInSeconds;
+    }
+
+    public void setTtlInSeconds(long ttlInSeconds) {
+        this.ttlInSeconds = ttlInSeconds;
+    }
+
+    public long getRefreshDurationInSeconds() {
+        return refreshDurationInSeconds;
+    }
+
+    public void setRefreshDurationInSeconds(long refreshDurationInSeconds) {
+        this.refreshDurationInSeconds = refreshDurationInSeconds;
+    }
 }

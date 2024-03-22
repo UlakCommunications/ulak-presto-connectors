@@ -148,7 +148,6 @@ public class InfluxdbUtil {
         redisCacheWorker.start();
     }
 
-    public static final int TTL = 60 * 60 * 24;
     public static String redisUrl = null;
     private static String token = "zNBXClD-3rbf82GiGNGNxx0lZsJeJ3RCc7ViONhffoKfp5tfbv1UtLGFFcw7IU9i4ebllttDWzaD3899LaRQKg==";
     private static String org = "ulak";
@@ -308,6 +307,7 @@ public class InfluxdbUtil {
                                                boolean forceRefresh)
             throws IOException, ClassNotFoundException {
         String tableName = arrangeCase(origTableName);
+        InfluxdbQueryParameters influxdbQueryParameters = InfluxdbQueryParameters.getQueryParameters(tableName);
 //        String tblNoRange = null;
 //        String newLineChar = System.lineSeparator();
 //        String[] splits = tableName.split(newLineChar);
@@ -392,14 +392,11 @@ public class InfluxdbUtil {
                     if(jedis!=null) {
                         ObjectMapper mapper = getObjectMapper();
 
-                        InfluxdbQueryParameters p = new InfluxdbQueryParameters();
-                        p.setQuery(origTableName);
-                        p.setHash(hash);
-                        p.setRows(list);
+                        influxdbQueryParameters.setRows(list);
 
                         SetParams param = new SetParams();
-                        param.ex(TTL);
-                        jedis.set(getTrinoCacheString(hash), mapper.writeValueAsString(p), param);
+                        param.ex(influxdbQueryParameters.getTtlInSeconds());
+                        jedis.set(getTrinoCacheString(hash), mapper.writeValueAsString(influxdbQueryParameters), param);
                         addOneStat(hash, 1);
                     }
                     return list.iterator();
