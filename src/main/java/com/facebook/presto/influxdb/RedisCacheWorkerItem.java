@@ -21,35 +21,23 @@ public class RedisCacheWorkerItem extends Thread {
 
     private static Logger logger = LoggerFactory.getLogger(RedisCacheWorkerItem.class);
     private final String key;
+    private final InfluxdbQueryParameters influxdbQueryParameters;
 
-    public RedisCacheWorkerItem(String key) {
+    public RedisCacheWorkerItem(String key, InfluxdbQueryParameters influxdbQueryParameters) {
         this.key = key;
+        this.influxdbQueryParameters = influxdbQueryParameters;
     }
 
     @Override
     public void run() {
-        try (Jedis jedis = getJedisPool().getResource()) {
-            try {
-                try {
-                    String json = jedis.get(key);
-                    try {
-                        InfluxdbQueryParameters influxdbQueryParameters = getObjectMapper().readValue(json, InfluxdbQueryParameters.class);
-                        InfluxdbUtil.select(influxdbQueryParameters.getQuery(), true);
-                    } catch (JsonProcessingException e) {
-                        logger.error("JsonProcessingException", e);
-                    } catch (IOException e) {
-                        logger.error("IOException", e);
-                    } catch (ClassNotFoundException e) {
-                        logger.error("ClassNotFoundException", e);
-                    }
-                } catch (JedisConnectionException e) {
-                    logger.error("JedisConnectionException", e);
-                }
-            } catch (JedisConnectionException e) {
-                logger.error("JedisConnectionException", e);
-            }
-        } catch (JedisDataException e) {
-            logger.error("JedisConnectionException", e);
+        try {
+            InfluxdbUtil.select(influxdbQueryParameters.getQuery(), true);
+        } catch (JsonProcessingException e) {
+            logger.error("JsonProcessingException", e);
+        } catch (IOException e) {
+            logger.error("IOException", e);
+        } catch (ClassNotFoundException e) {
+            logger.error("ClassNotFoundException", e);
         }
     }
 }

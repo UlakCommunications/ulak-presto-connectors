@@ -1,5 +1,6 @@
 package com.facebook.presto.influxdb;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
@@ -82,11 +83,22 @@ public class RedisCacheWorker extends Thread{
                                 if (!isKeyIsRunning) {
                                     try {
                                         long ttl = jedis.ttl(s);
-                                        long passed = TTL - ttl;
-                                        if (passed > WAITING_TIME_FOR_TTL) {
-
+                                        InfluxdbQueryParameters influxdbQueryParameters = null;
+                                        try {
+                                            String json = jedis.get(s);
+                                            influxdbQueryParameters = getObjectMapper().readValue(json, InfluxdbQueryParameters.class);
+                                            if(!influxdbQueryParameters.isToBeCached()) {
+                                                continue;
+                                            }
+                                        } catch (Throwable e) {
+                                            logger.error("JsonProcessingException", e);
+                                            continue;
+                                        }
+                                        long passed = influxdbQueryParameters.getTtlInSeconds() - ttl;
+                                        if (passed > influxdbQueryParameters.getRefreshDurationInSeconds()) {
                                             logger.debug("Passed :" + passed);
-                                            futures.put(s, executor.submit(new RedisCacheWorkerItem(s)));
+                                            futures.put(s, executor.submit(new RedisCacheWorkerItem(s, influxdbQueryParameters)));
+
                                         }
                                     } catch (JedisConnectionException e) {
                                         logger.error("JedisConnectionException", e);
