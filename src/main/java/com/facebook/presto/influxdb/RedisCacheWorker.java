@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisDataException;
 
@@ -20,7 +21,6 @@ import static com.facebook.presto.influxdb.InfluxdbUtil.*;
 
 public class RedisCacheWorker extends Thread{
 
-    public static final int WAITING_TIME_FOR_TTL = 10;
     private static Logger logger = LoggerFactory.getLogger(RedisCacheWorker.class);
     private static ExecutorService executor = null;
 
@@ -60,7 +60,8 @@ public class RedisCacheWorker extends Thread{
             //if not sleep worked then do not clutch
             if(sleepWorked) {
                 //do not clutch if no redis
-                if(getJedisPool() == null){
+                JedisPool pool = getJedisPool();
+                if(pool == null){
                     continue;
                 }
                 long runningTaskCount = futures.values().stream().filter(t -> !t.isDone() && !t.isCancelled()).count();
@@ -72,7 +73,7 @@ public class RedisCacheWorker extends Thread{
                             futures.remove(key);
                         }
                     }
-                    try (Jedis jedis = getJedisPool().getResource()) {
+                    try (Jedis jedis = pool.getResource()) {
                         try {
                             Set<String> allKeys = jedis.keys(getTrinoCacheString("*"));
                             for (String s : allKeys) {
@@ -82,24 +83,42 @@ public class RedisCacheWorker extends Thread{
                                         : !future.isDone() && !future.isCancelled();
                                 if (!isKeyIsRunning) {
                                     try {
-                                        long ttl = jedis.ttl(s);
                                         InfluxdbQueryParameters influxdbQueryParameters = null;
                                         try {
                                             String json = jedis.get(s);
-                                            influxdbQueryParameters = getObjectMapper().readValue(json, InfluxdbQueryParameters.class);
-                                            if(!influxdbQueryParameters.isToBeCached()) {
-                                                continue;
+                                            if (json == null) {
+                                                logger.error("Key does not exists (ttl expired?): " + s);
                                             }
+                                            influxdbQueryParameters = getObjectMapper().readValue(json,
+                                                    InfluxdbQueryParameters.class);
                                         } catch (Throwable e) {
                                             logger.error("JsonProcessingException", e);
                                             continue;
                                         }
+
+                                        CacheUsageStats usageStats = stats.get(influxdbQueryParameters.getHash());
+//                                        if(usageStats==null){
+//                                            removeCacheFromRefreshWorker(influxdbQueryParameters.getHash());
+//                                        }else {
+                                        if (usageStats != null) {
+                                            long diff = Duration.between(usageStats.lastUsed.toInstant(),
+                                                    new Date().toInstant()).getSeconds();
+
+                                            if (!influxdbQueryParameters.isToBeCached()) {
+                                                if (diff >= influxdbQueryParameters.getTtlInSeconds()) {
+                                                    removeCacheFromRefreshWorker(influxdbQueryParameters.getHash());
+                                                }
+                                                continue;
+                                            }
+                                        }
+                                        long ttl = jedis.ttl(s);
                                         long passed = influxdbQueryParameters.getTtlInSeconds() - ttl;
                                         if (passed > influxdbQueryParameters.getRefreshDurationInSeconds()) {
                                             logger.debug("Passed :" + passed);
                                             futures.put(s, executor.submit(new RedisCacheWorkerItem(s, influxdbQueryParameters)));
 
                                         }
+//                                        }
                                     } catch (JedisConnectionException e) {
                                         logger.error("JedisConnectionException", e);
                                     }
@@ -112,22 +131,31 @@ public class RedisCacheWorker extends Thread{
                         logger.error("JedisConnectionException", e);
                     }
                 }
-                synchronized (statLock){
-                    for (CacheUsageStats s:stats.values()) {
-                        Duration diff = Duration.between(s.lastUsed.toInstant(), new Date().toInstant());
-                        long diffDays = diff.toDays();
-                        if (diffDays>0) {
-                            logger.debug("Invalidating :" + s.hash);
-                            try {
-                                invalidateCache(s.hash);
-                            }catch (Throwable e){
-                                logger.error("Unable to invalidate cache: " + s.hash, e);
-                            }
-                        }
-                    }
-                }
+//                synchronized (statLock){
+//                    for (CacheUsageStats s:stats.values()) {
+//                        Duration diff = Duration.between(s.lastUsed.toInstant(), new Date().toInstant());
+//                        long diffDays = diff.toDays();
+//                        if (diffDays>0) {
+//                            logger.debug("Invalidating :" + s.hash);
+//                            try {
+//                                invalidateCache(s.hash);
+//                            }catch (Throwable e){
+//                                logger.error("Unable to invalidate cache: " + s.hash, e);
+//                            }
+//                        }
+//                    }
+//                }
 
             }
+        }
+    }
+
+    private static void removeCacheFromRefreshWorker(int hash) {
+        logger.info("Invalidating :" + hash);
+        try {
+            invalidateCache(hash);
+        }catch (Throwable e){
+            logger.error("Unable to invalidate cache: " + hash, e);
         }
     }
 }

@@ -22,6 +22,8 @@ import io.trino.spi.type.DoubleType;
 import io.trino.spi.type.TimestampType;
 import io.trino.spi.type.VarcharType;
 import io.trino.spi.type.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -35,6 +37,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class InfluxdbRecordCursor
         implements RecordCursor
 {
+    private static Logger logger = LoggerFactory.getLogger(InfluxdbUtil.class);
     private final List<InfluxdbColumnHandle> columnHandles;
 
     private final Iterator<InfluxdbRow> iterator;
@@ -47,8 +50,10 @@ public class InfluxdbRecordCursor
         try {
             this.iterator = InfluxdbUtil.select(split.getTableName(), false);
         } catch (IOException e) {
+            logger.error("Error getting cursor: " , e);
             throw new RuntimeException(e);
         } catch (ClassNotFoundException e) {
+            logger.error("Error getting cursor: " , e);
             throw new RuntimeException(e);
         }
     }

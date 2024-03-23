@@ -39,8 +39,7 @@ public class InfluxdbConnector
                              String keywords)
     {
         // need to get database connection here
-        System.out.println("初始化connector by url: " + url);
-        //logger.debug("初始化connector by url: {}", url);
+        System.out.println("Connector by url: " + url);
         try {
             InfluxdbUtil.instance(url,org,token,bucket);
         }
