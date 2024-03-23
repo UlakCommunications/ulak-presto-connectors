@@ -39,69 +39,8 @@ import java.time.Instant;
 import java.util.*;
 
 import static com.facebook.presto.influxdb.RedisCacheWorker.addOneStat;
-
+import static com.facebook.presto.influxdb.TestQueries.*;
 public class InfluxdbUtil {
-    public static final String SAMPLE_QUERY_2 =
-            "\n" +
-                    "//import \"date\"\n" +
-                    "import \"array\"\n" +
-                    "//import \"experimental/array\"\n" +
-                    "\n" +
-                    "t1 = from(bucket: \"otlp_metric\")\n" +
-                    "|> range(start:  -5m) \n" +
-                    "|> filter(fn: (r) => r[\"_measurement\"] == \"maya_probe\" and r[\"dsname\"]==\"avg_delay\") \n" +
-                    "|> group(columns: [\"host\"])\n" +
-                    "|> mean(column: \"_value\") \n" +
-                    "|> group()\n" +
-                    "|> sort(columns:[\"_value\"], desc: true)\n" +
-                    "|> limit(n:5)\n" +
-                    "|> keep(columns: [\"host\"])\n" +
-                    "\n" +
-                    "t2= from(bucket: \"otlp_metric\")\n" +
-                    "|> range(start:  -5m) \n" +
-                    "|> filter(fn: (r) => r[\"_measurement\"] == \"maya_probe\" and r[\"dsname\"]==\"avg_delay\" ) \n" +
-                    "\n" +
-                    "\n" +
-                    "join(tables: {t1: t1, t2: t2}, on: [\"host\"])\n" +
-                    " |> aggregateWindow(every: 30s, fn: mean, createEmpty: true)\n" +
-                    " |> group(columns: [\"host\",\"_time\"])\n" +
-                    " |> mean(column: \"_value\") \n" +
-                    " |> fill(usePrevious: true)\n" +
-                    " |> group()\n" +
-                    " //|> sort(columns:[\"_time\"], desc: false)";
-    public static final String SAMPLE_QUERY = "tblBfd = from(bucket: \"otlp_metric\")\n" +
-            "  |> range(start:  -5m) \n" +
-            "  |> filter(fn: (r) => r[\"_measurement\"] == \"maya_bfd\") \n" +
-            "  |> last()\n" +
-            "  |> filter(fn: (r) => r[\"host\"] !~ /42cdeaa7-b7b6-402e-bb68-4cfde8fc7297/)\n" +
-            "  |> group(columns: [\"host\"])\n" +
-            "  |> sum(column: \"_value\")\n" +
-            "  |> map(fn: (r)=>({r with connectivity:if r[\"_value\"] == 0 then \"DOWN\" else \"UP\"}))\n" +
-            "  |> keep(columns: [\"host\", \"connectivity\"])\n" +
-            "  |> group()\n" +
-            "\n" +
-            "tblIfStatus = from(bucket: \"otlp_metric\")\n" +
-            "  |> range(start:  -5m) \n" +
-            "  |> filter(fn: (r) => r[\"_measurement\"] == \"maya_ifstatus\")\n" +
-            "  |> filter(fn: (r) => r[\"type\"] == \"maya_ifstatus\") \n" +
-            "  |> filter(fn: (r) => r[\"plugin\"] == \"maya_ifstatus\")  \n" +
-            "  |> last()\n" +
-            "  |> filter(fn: (r) => r[\"host\"] !~ /42cdeaa7-b7b6-402e-bb68-4cfde8fc7297/)\n" +
-            "  |> map(fn: (r)=>({r with link_status:if r[\"_value\"] == 6 then 1 else 0}))\n" +
-            "  |> filter(fn: (r) => contains(value: r[\"link_status\"], set:[1,0,2]))\n" +
-            "  |> group(columns: [\"host\"])\n" +
-            "  |> sum(column: \"link_status\")  \n" +
-            "  |> map(fn: (r)=>({r with link:if r[\"link_status\"] == 0 then \"DOWN\" else \"UP\"}))\n" +
-            "  |> group()\n" +
-            "\n" +
-            "\n" +
-            "\n" +
-            "  join(tables: {sql: tblBfd, ts: tblIfStatus}, on: [\"host\"]) \n" +
-            "  |> map(fn: (r)=>({r with g:r[\"connectivity\"] + \"_\" + r[\"link\"]}))\n" +
-            "  |>group(columns: [ \"g\"])\n" +
-            "  |>count(column: \"link\" )\n" +
-            "  |>group()\n" +
-            "  |> pivot(rowKey: [], columnKey: [\"g\"], valueColumn: \"link\")";
     private static Map<String, String> keywords = new HashMap<String, String>() {
         {
             put("aggregatewindow", "aggregateWindow");
@@ -112,11 +51,13 @@ public class InfluxdbUtil {
             put("useprevious", "usePrevious");
             put("valuecolumn", "valueColumn");
             put("windowperiod", "windowPeriod");
+            put("timesrc", "timeSrc");
         }
     };
     public static void setKeywords(String ks){
+        logger.error("Current keywords count :" + keywords.size());
         synchronized (inProgressLock) {
-            if (ks != null && ks.trim().equals("")) {
+            if (ks != null && !ks.trim().equals("")) {
                 String[] splits = ks.split(";");
                 if (splits.length > 0) {
                     for (String split : splits) {
@@ -142,9 +83,9 @@ public class InfluxdbUtil {
         }
     }
     static JedisPool jedisPool = null;
-
+    private static RedisCacheWorker redisCacheWorker = null;
     static {
-        RedisCacheWorker redisCacheWorker = new RedisCacheWorker();
+        redisCacheWorker = new RedisCacheWorker();
         redisCacheWorker.start();
     }
 
@@ -155,7 +96,7 @@ public class InfluxdbUtil {
     private static final String time_interval = "-5m";
     private static Logger logger = LoggerFactory.getLogger(InfluxdbUtil.class);
     private static InfluxDBClient influxDBClient;
-
+    private static ObjectMapper objectMapper = null;
     private static JedisPoolConfig buildPoolConfig() {
         final JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(128);
@@ -225,6 +166,7 @@ public class InfluxdbUtil {
 
     public static String arrangeCase(String query) {
         if (keywords == null || keywords.size() == 0) {
+            logger.debug("Current are empty :" + keywords.size());
             return query
                     .replaceAll("aggregatewindow", "aggregateWindow")
                     .replaceAll("createempty", "createEmpty")
@@ -233,10 +175,12 @@ public class InfluxdbUtil {
                     .replaceAll("rowkey", "rowKey")
                     .replaceAll("useprevious", "usePrevious")
                     .replaceAll("valuecolumn", "valueColumn")
-                    .replaceAll("windowperiod", "windowPeriod");
+                    .replaceAll("windowperiod", "windowPeriod")
+                    .replaceAll("timesrc", "timeSrc");
         } else {
             for (Map.Entry<String, String> kv: keywords.entrySet()){
                 query = query.replaceAll(kv.getKey(),kv.getValue());
+                logger.debug("Replacing keyword :" + kv.getKey() + " with " + kv.getValue() + " : Resulting in :" + query);
             }
             return query;
         }
@@ -246,7 +190,6 @@ public class InfluxdbUtil {
     private static Object inProgressLock = new Object();
 
     public static List<ColumnMetadata> getColumns(String bucket, String tableName) throws IOException, ClassNotFoundException {
-        tableName = arrangeCase(tableName);
         logger.debug("influxdbUtil bucket:" + bucket + "table:" + tableName + " columnsMetadata");
         //logger.debug("getColumns in bucket: {}, table : {}", bucket, tableName);
         List<ColumnMetadata> res = new ArrayList<>();
@@ -255,12 +198,23 @@ public class InfluxdbUtil {
 //                "  |> range(start: " + time_interval + ")\n" +
 //                "  |> filter(fn: (r) => r[\"_measurement\"] == \"" + tableName + "\")";
         Iterator<InfluxdbRow> tables = select(tableName,false);
-        for (Iterator<InfluxdbRow> it = tables; it.hasNext(); ) {
-            InfluxdbRow fluxTable = it.next();
-            Map<String, Object> records = fluxTable.getColumnMap();
-            for (String record : records.keySet()) {
-                if (!res.stream().anyMatch(t -> t.getName().equals(record))) {
-                    res.add(new ColumnMetadata( record, VarcharType.VARCHAR));
+        if(tables.hasNext()) {
+            for (Iterator<InfluxdbRow> it = tables; it.hasNext(); ) {
+                InfluxdbRow fluxTable = it.next();
+                Map<String, Object> records = fluxTable.getColumnMap();
+                for (String record : records.keySet()) {
+                    if (!res.stream().anyMatch(t -> t.getName().equals(record))) {
+                        res.add(new ColumnMetadata(record, VarcharType.VARCHAR));
+                    }
+                }
+            }
+        }else{
+            String[] cols = InfluxdbQueryParameters.getQueryParameters(tableName).getColumns();
+            if(cols.length>0) {
+                for (String record :cols) {
+                    if (!res.stream().anyMatch(t -> t.getName().equals(record))) {
+                        res.add(new ColumnMetadata(record, VarcharType.VARCHAR));
+                    }
                 }
             }
         }
@@ -292,9 +246,11 @@ public class InfluxdbUtil {
     }
 
     static ObjectMapper getObjectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule( new JavaTimeModule());
-        return mapper;
+        if(objectMapper==null) {
+            objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new JavaTimeModule());
+        }
+        return objectMapper;
     }
 
     public static String getTrinoCacheString(String hash){
@@ -303,10 +259,9 @@ public class InfluxdbUtil {
     public static String getTrinoCacheString(int hash){
         return getTrinoCacheString(String.valueOf(hash));
     }
-    public static Iterator<InfluxdbRow> select(String origTableName,
+    public static Iterator<InfluxdbRow> select(String tableName,
                                                boolean forceRefresh)
             throws IOException, ClassNotFoundException {
-        String tableName = arrangeCase(origTableName);
         InfluxdbQueryParameters influxdbQueryParameters = InfluxdbQueryParameters.getQueryParameters(tableName);
 //        String tblNoRange = null;
 //        String newLineChar = System.lineSeparator();
@@ -320,7 +275,7 @@ public class InfluxdbUtil {
 //        }
 //        tblNoRange = String.join(newLineChar,newLines);
 //        int hash = tblNoRange.hashCode();
-        int hash = tableName.hashCode();
+        int hash = influxdbQueryParameters.getHash();
         JedisPool pool = getJedisPool();
         Jedis jedis = null;
         if(pool !=null){
@@ -346,10 +301,11 @@ public class InfluxdbUtil {
                     if (listFromCache != null) {
                         return listFromCache;
                     }
+                    addOneStat(hash, 1);
                     //logger.debug("select all rows in table: {}", tableName);
                     ArrayList<InfluxdbRow> list = new ArrayList<InfluxdbRow>();
                     QueryApi queryApi = influxDBClient.getQueryApi();
-                    String flux = tableName;//"from(bucket: " + "\"" + bucket + "\"" + ")\n" + "|> range(start:" + time_interval + ")\n" + "|> filter(fn : (r) => r._measurement == " + "\"" + tableName + "\"" + ")";
+                    String flux = influxdbQueryParameters.getQuery();//"from(bucket: " + "\"" + bucket + "\"" + ")\n" + "|> range(start:" + time_interval + ")\n" + "|> filter(fn : (r) => r._measurement == " + "\"" + tableName + "\"" + ")";
                     List<FluxTable> tables = queryApi.query(flux, org);
                     Map<Instant, Map<String, Object>> resMap = new HashMap<>();
                     for (FluxTable fluxTable : tables) {
@@ -397,7 +353,6 @@ public class InfluxdbUtil {
                         SetParams param = new SetParams();
                         param.ex(influxdbQueryParameters.getTtlInSeconds());
                         jedis.set(getTrinoCacheString(hash), mapper.writeValueAsString(influxdbQueryParameters), param);
-                        addOneStat(hash, 1);
                     }
                     return list.iterator();
                 } finally {
@@ -416,21 +371,32 @@ public class InfluxdbUtil {
     }
 
     public static void invalidateCache(int hash )  {
-        try (Jedis jedis = getJedisPool().getResource()) {
-            synchronized (inProgressLock) {
-                if (!inProgressLocks.containsKey(hash)) {
-                    inProgressLocks.put(hash, true);
+        JedisPool pool = getJedisPool();
+        Jedis jedis = null;
+        if(pool !=null){
+            jedis = pool.getResource();
+        }
+        if(jedis!=null) {
+            try {
+                synchronized (inProgressLock) {
+                    if (!inProgressLocks.containsKey(hash)) {
+                        inProgressLocks.put(hash, true);
+                    }
                 }
-            }
-            synchronized (inProgressLocks.get(hash)) {
-                try {
-                    jedis.del(getTrinoCacheString(hash));
-                } finally {
-                    synchronized (inProgressLock) {
-                        if(inProgressLocks.containsKey(hash)) {
-                            inProgressLocks.remove(hash, true);
+                synchronized (inProgressLocks.get(hash)) {
+                    try {
+                        jedis.del(getTrinoCacheString(hash));
+                    } finally {
+                        synchronized (inProgressLock) {
+                            if (inProgressLocks.containsKey(hash)) {
+                                inProgressLocks.remove(hash, true);
+                            }
                         }
                     }
+                }
+            } finally {
+                if (jedis != null) {
+                    jedis.close();
                 }
             }
         }
@@ -440,33 +406,48 @@ public class InfluxdbUtil {
             String json;
             List<InfluxdbRow> list;
             json = jedis.get(getTrinoCacheString(hash));
+            if(json!=null){
+                addOneStat(hash, 1);
+            }
             if (!forceRefresh && json != null) {
                 InfluxdbQueryParameters influxdbQueryParameters = getObjectMapper().readValue(json, InfluxdbQueryParameters.class);
                 list = influxdbQueryParameters.getRows();
-                addOneStat(hash, 1);
                 return list.iterator();
             }
         }
         return null;
     }
 
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
-        int index=0;
+    public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
         redisUrl = "redis://10.20.4.53:30639";
-        long start = System.currentTimeMillis();
+//        redisUrl = "redis://:ulak@10.20.4.53:31671";
         instance("http://10.20.4.53:30485?readTimeout=2m&connectTimeout=2m&writeTimeout=2m",
                 "ulak",
                 "KbSyJTKzIuvxqpKjVMTautakGg7uPxGTF3hz878Ye4CH_UgTl0k4W2UXYy79dwrzSle9QmEt2KCde0Sf88qhSQ==",
                 "collectd");
-        while(index<100) {
-            getColumns("", SAMPLE_QUERY);
-            select(SAMPLE_QUERY, false);
-            getColumns("", SAMPLE_QUERY_2);
-            select(SAMPLE_QUERY_2, false);
-            index++;
-        }
+        setKeywords("");
+        long start = System.currentTimeMillis();
+        tryOneQuery(SAMPLE_QUERY, 1);
+        tryOneQuery(SAMPLE_QUERY_WITH_CACHE, 1);
+        tryOneQuery(SAMPLE_QUERY_2, 1);
+        tryOneQuery(SAMPLE_QUERY_2_WITH_CACHE, 1);
+        tryOneQuery(SAMPLE_QUERY_3, 1);
+        tryOneQuery(SAMPLE_QUERY_3_WITH_CACHE, 1);
         logger.info(String.valueOf(System.currentTimeMillis() - start));
         //TODO: test cache disable
+        redisCacheWorker.join();
+    }
 
+    private static void tryOneQuery(String query, int runCount) throws IOException, ClassNotFoundException {
+        int index=0;
+        query = query.toLowerCase(Locale.ENGLISH);
+        logger.info("Testing no-cache queries");
+        while(index <runCount) {
+            getColumns("", query);
+            logger.info("columns 1: " + index);
+            select(query, false);
+            logger.info("query 1: " + index);
+            index++;
+        }
     }
 }

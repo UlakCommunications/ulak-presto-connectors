@@ -12,18 +12,24 @@ import static com.facebook.presto.influxdb.InfluxdbUtil.*;
 
 
 public class InfluxdbQueryParameters {
+    public static final String TEXT_TTL = "ttl";
+    public static final String TEXT_CACHE = "cache";
+    public static final String TEXT_REFRESH = "refresh";
+    public static final String TEXT_COLUMNS = "columns";
     private static Logger logger = LoggerFactory.getLogger(InfluxdbQueryParameters.class);
 
     public static final String NEW_LINE_CHAR = System.lineSeparator();
     public static final int DEFAULT_CACHE_TTL = 60 * 60 * 24;
     public static final int DEFAULT_TTL = 10;
+    private String[] columns;
 
     private String query;
     private int hash;
     private List<InfluxdbRow> rows;
-    private boolean toBeCached=false;
+    private boolean toBeCached = false;
     private long ttlInSeconds = DEFAULT_TTL;
-    private long refreshDurationInSeconds = DEFAULT_TTL;
+    private long refreshDurationInSeconds = DEFAULT_TTL + 5;
+
     public String getQuery() {
         return query;
     }
@@ -52,13 +58,15 @@ public class InfluxdbQueryParameters {
 
     }
 
-    public InfluxdbQueryParameters(String query, int hash, List<InfluxdbRow> rows) {
+    public InfluxdbQueryParameters(String query, int hash, List<InfluxdbRow> rows, String[] columns) {
+        this();
         this.query = query;
         this.hash = hash;
         this.rows = rows;
+        this.columns = columns;
     }
 
-    public static InfluxdbQueryParameters getQueryParameters(String tableName){
+    public static InfluxdbQueryParameters getQueryParameters(String tableName) {
         tableName = arrangeCase(tableName);
         int hash = tableName.hashCode();
 
@@ -67,7 +75,6 @@ public class InfluxdbQueryParameters {
         ret.setHash(hash);
 
         String[] splits = tableName.split(NEW_LINE_CHAR);
-        List<String> newLines = new ArrayList<>();
         for (int i = 0; i < splits.length; i++) {
             String current = splits[i];
             //get query parameters
@@ -80,28 +87,32 @@ public class InfluxdbQueryParameters {
                 }
             }
             String[] params = current.split("=");
-            if(params.length>1) {
-                String param = params[0];
-                String value = params[1];
+            if (params.length > 1) {
+                String param = params[0].trim();
+                String value = params[1].trim();
                 try {
                     switch (param.toLowerCase(Locale.ENGLISH)) {
-                        case "ttl":
+                        case TEXT_TTL:
                             long v = Long.parseLong(value);
                             if (v > 0) {
                                 ret.setTtlInSeconds(v);
                             }
                             break;
-                        case "cache":
+                        case TEXT_CACHE:
                             ret.setToBeCached(Boolean.parseBoolean(value));
                             if (ret.ttlInSeconds == DEFAULT_TTL) {
                                 ret.ttlInSeconds = DEFAULT_CACHE_TTL;
                             }
                             break;
-                        case "refreshin":
+                        case TEXT_REFRESH:
                             v = Long.parseLong(value);
                             if (v > 0) {
                                 ret.setRefreshDurationInSeconds(v);
                             }
+                            break;
+                        case TEXT_COLUMNS:
+                            String[] vs = value.split(",");
+                            ret.setColumns(vs);
                             break;
                     }
                 } catch (Throwable e) {
@@ -123,7 +134,12 @@ public class InfluxdbQueryParameters {
 
         return ret;
     }
-
+    public void setColumns(String[] vs) {
+        columns = vs;
+    }
+    public String[] getColumns( ) {
+        return columns;
+    }
     public boolean isToBeCached() {
         return toBeCached;
     }
