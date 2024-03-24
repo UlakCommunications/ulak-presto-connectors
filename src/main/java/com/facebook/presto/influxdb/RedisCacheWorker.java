@@ -31,19 +31,22 @@ public class RedisCacheWorker extends Thread{
     }
     private static Map<Integer, CacheUsageStats> stats = new LinkedHashMap<>();
     private static Object statLock = new Object();
-    public static void addOneStat(int hash, int used){
+    public static CacheUsageStats addOneStat(int hash, int used){
         synchronized (statLock){
+            CacheUsageStats ret = null;
             if(!stats.containsKey(hash)){
-                stats.put(hash, new CacheUsageStats(used,new Date(),hash));
+                ret = new CacheUsageStats(used,new Date(),hash);
+                stats.put(hash, ret);
             }else{
-                CacheUsageStats c = stats.get(hash);
-                if(c.used == Integer.MAX_VALUE){
-                    c.used = 0;
+                ret = stats.get(hash);
+                if(ret.getUsed() == Integer.MAX_VALUE){
+                    ret.setUsed(0) ;
                 }
-                c.used+=used;
-                c.lastUsed=new Date();
-                stats.replace(hash, c);
+                ret.setUsed(ret.getUsed());
+                ret.setLastUsed(new Date());
+                stats.replace(hash, ret);
             }
+            return ret;
         }
     }
     @Override
@@ -97,26 +100,23 @@ public class RedisCacheWorker extends Thread{
                                         }
 
                                         CacheUsageStats usageStats = stats.get(influxdbQueryParameters.getHash());
-//                                        if(usageStats==null){
-//                                            removeCacheFromRefreshWorker(influxdbQueryParameters.getHash());
-//                                        }else {
-                                        if (usageStats != null) {
-                                            long diff = Duration.between(usageStats.lastUsed.toInstant(),
-                                                    new Date().toInstant()).getSeconds();
-
-                                            if (!influxdbQueryParameters.isToBeCached()) {
-                                                if (diff >= influxdbQueryParameters.getTtlInSeconds()) {
-                                                    removeCacheFromRefreshWorker(influxdbQueryParameters.getHash());
-                                                }
-                                                continue;
-                                            }
+                                        if(usageStats==null){
+                                            //maybe we have restarted.
+                                            usageStats = addOneStat(influxdbQueryParameters.getHash(),1);
+                                            //removeCacheFromRefreshWorker(influxdbQueryParameters.getHash());
                                         }
+                                        long diff = Duration.between(usageStats.getLastUsed().toInstant(),
+                                                new Date().toInstant()).getSeconds();
+                                        if (diff >= influxdbQueryParameters.getTtlInSeconds()) {
+                                            removeCacheFromRefreshWorker(influxdbQueryParameters.getHash());
+                                            continue;
+                                        }
+
                                         long ttl = jedis.ttl(s);
                                         long passed = influxdbQueryParameters.getTtlInSeconds() - ttl;
                                         if (passed > influxdbQueryParameters.getRefreshDurationInSeconds()) {
                                             logger.debug("Passed :" + passed);
                                             futures.put(s, executor.submit(new RedisCacheWorkerItem(s, influxdbQueryParameters)));
-
                                         }
 //                                        }
                                     } catch (JedisConnectionException e) {
