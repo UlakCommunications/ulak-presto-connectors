@@ -3,8 +3,9 @@ package com.facebook.presto.influxdb;
 import java.util.Date;
 
 public class CacheUsageStats {
-    int used;
-    Date lastUsed;
+    private int used;
+    private Date lastUsed;
+    private int hash;
 
     public CacheUsageStats(int used, Date lastUsed, int hash) {
         this.used = used;
@@ -12,7 +13,6 @@ public class CacheUsageStats {
         this.hash = hash;
     }
 
-    int hash;
     public int getUsed() {
         return used;
     }
