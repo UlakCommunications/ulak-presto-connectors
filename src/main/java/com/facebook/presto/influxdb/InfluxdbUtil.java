@@ -307,13 +307,13 @@ public class InfluxdbUtil {
                     QueryApi queryApi = influxDBClient.getQueryApi();
                     String flux = influxdbQueryParameters.getQuery();//"from(bucket: " + "\"" + bucket + "\"" + ")\n" + "|> range(start:" + time_interval + ")\n" + "|> filter(fn : (r) => r._measurement == " + "\"" + tableName + "\"" + ")";
                     List<FluxTable> tables = queryApi.query(flux, org);
-                    Map<Instant, Map<String, Object>> resMap = new HashMap<>();
+                    List<Map<String, Object>> resMap = new LinkedList<>();
                     for (FluxTable fluxTable : tables) {
                         List<FluxRecord> records = fluxTable.getRecords();
                         for (FluxRecord fluxRecord : records) {
-                            Map<String, Object> curRow = resMap.get(fluxRecord.getTime());
-                            if (curRow == null) {
-                                curRow = fluxRecord.getValues();
+//                            Map<String, Object> curRow = new LinkedHashMap<>();
+//                            if (curRow == null) {
+                                Map<String, Object> curRow = fluxRecord.getValues();
                                 Map<String, Object> newRow = new HashMap<>();
                                 for (Map.Entry<String, Object> entry : curRow.entrySet()) {
 //                                if (!Objects.equals(entry.getKey(), "_field") && !Objects.equals(entry.getKey(), "_value")) {
@@ -328,22 +328,23 @@ public class InfluxdbUtil {
                                 if (time == null) {
                                     time = Instant.now();
                                 }
-                                resMap.put(time, newRow);
-                            } else {
-                                String field = fluxRecord.getField();
-                                if (field == null) {
-                                    field = "null";
-                                }
-                                curRow.put(field, fluxRecord.getValue());
-                            }
+                                newRow.put("_time",time);
+                                resMap.add(newRow);
+//                            } else {
+//                                String field = fluxRecord.getField();
+//                                if (field == null) {
+//                                    field = "null";
+//                                }
+//                                curRow.put(field, fluxRecord.getValue());
+//                            }
                         }
                     }
                     // for debug
-                    for (Map.Entry<Instant, Map<String, Object>> entry : resMap.entrySet()) {
+                    for (Map<String, Object> entry : resMap) {
 //                      for (Map.Entry<String, Object> entry1 : entry.getValue().entrySet()) {
 //                          logger.debug("k-v pair " + entry1.getKey() + ":" + entry1.getValue().toString() + ", " + entry1.getValue().getClass());
 //                      }
-                        list.add(new InfluxdbRow(entry.getValue()));
+                        list.add(new InfluxdbRow(entry));
                     }
                     if(jedis!=null) {
                         ObjectMapper mapper = getObjectMapper();
@@ -427,6 +428,10 @@ public class InfluxdbUtil {
                 "collectd");
         setKeywords("");
         long start = System.currentTimeMillis();
+
+        tryOneQuery(SAMPLE_QUERY_4, 1);
+        tryOneQuery(SAMPLE_QUERY_4_WITH_CACHE, 1);
+
         tryOneQuery(SAMPLE_QUERY, 1);
         tryOneQuery(SAMPLE_QUERY_WITH_CACHE, 1);
         tryOneQuery(SAMPLE_QUERY_2, 1);
