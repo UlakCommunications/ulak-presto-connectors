@@ -301,7 +301,6 @@ public class InfluxdbUtil {
                     if (listFromCache != null) {
                         return listFromCache;
                     }
-                    addOneStat(hash, 1);
                     //logger.debug("select all rows in table: {}", tableName);
                     ArrayList<InfluxdbRow> list = new ArrayList<InfluxdbRow>();
                     QueryApi queryApi = influxDBClient.getQueryApi();
@@ -320,15 +319,15 @@ public class InfluxdbUtil {
                                     newRow.put(entry.getKey(), entry.getValue());
 //                                }
                                 }
-                                String field = fluxRecord.getField();
-                                if (field != null) {
-                                    newRow.put(field, fluxRecord.getValue());
-                                }
-                                Instant time = fluxRecord.getTime();
-                                if (time == null) {
-                                    time = Instant.now();
-                                }
-                                newRow.put("_time",time);
+//                                String field = fluxRecord.getField();
+//                                if (field != null) {
+//                                    newRow.put(field, fluxRecord.getValue());
+//                                }
+//                                Instant time = fluxRecord.getTime();
+//                                if (time == null) {
+//                                    time = Instant.now();
+//                                }
+//                                newRow.put("_time",time.getEpochSecond());
                                 resMap.add(newRow);
 //                            } else {
 //                                String field = fluxRecord.getField();
@@ -355,6 +354,7 @@ public class InfluxdbUtil {
                         param.ex(influxdbQueryParameters.getTtlInSeconds());
                         jedis.set(getTrinoCacheString(hash), mapper.writeValueAsString(influxdbQueryParameters), param);
                     }
+                    addOneStat(hash, 1);
                     return list.iterator();
                 } finally {
                     synchronized (inProgressLock) {
@@ -428,6 +428,10 @@ public class InfluxdbUtil {
                 "collectd");
         setKeywords("");
         long start = System.currentTimeMillis();
+
+        tryOneQuery(SAMPLE_QUERY_4, 1);
+        tryOneQuery(SAMPLE_QUERY_4_WITH_CACHE, 1);
+
 
         tryOneQuery(SAMPLE_QUERY_4, 1);
         tryOneQuery(SAMPLE_QUERY_4_WITH_CACHE, 1);

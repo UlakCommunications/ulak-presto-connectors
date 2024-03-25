@@ -54,7 +54,7 @@
       <groupId>io.trino</groupId>
       <artifactId>trino-spi</artifactId>
       <version>432</version>
-      <scope>provided</scope>
+<!--      <scope>provided</scope>-->
     </dependency>
     <dependency>
       <groupId>io.trino</groupId>

@@ -50,7 +50,7 @@ public class InfluxdbMetadata
     @Override
     public List<String> listSchemaNames(ConnectorSession session)
     {
-        System.out.println("influxdbMetadata--列出所有的bucket names");
+        logger.debug("influxdbMetadata--bucket names");
         return InfluxdbUtil.getSchemas();
     }
 
