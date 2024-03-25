@@ -106,4 +106,58 @@ public class TestQueries {
             + "//" + TEXT_TTL + "=60\n"
             + "//" + TEXT_REFRESH + "=10\n"
             + "//" + SAMPLE_QUERY_4;
+    public static final String SAMPLE_QUERY_5 =
+            "\n" +
+                    "\n" +
+                    "tblUptime=from(bucket: \"otlp_metric\")\n" +
+                    "  |> range(start:  -5m) \n" +
+                    "  |> filter(fn: (r) => r[\"_measurement\"] == \"uptime\")\n" +
+                    "  |> aggregateWindow(every: 200ms, fn: last, createEmpty: false)\n" +
+                    "  |> last()\n" +
+                    "  |> group()\n" +
+                    "  |> keep(columns: [\"host\",\"_value\"])\n" +
+                    "  |> map(fn: (r)=>({r with uptime:r[\"_value\"]}))\n" +
+                    "  |> group()\n" +
+                    "\n" +
+                    "\n" +
+                    "\n" +
+                    "  tblProbe= from(bucket: \"otlp_metric\")\n" +
+                    "  |> range(start:  -5m) \n" +
+                    "  |> filter(fn: (r) => r[\"_measurement\"] == \"maya_probe\"  ) \n" +
+                    "  |> group(columns: [\"host\",\"dsname\",\"overlay\"])\n" +
+                    "  |> mean( )\n" +
+                    "  |> group()\n" +
+                    "  |> pivot(columnKey:[\"dsname\"] , rowKey: [\"host\",\"overlay\"], valueColumn: \"_value\")\n" +
+                    "  |> drop(columns: [\"localbo\",\"sent\",\"test_duration\"])\n" +
+                    " \n" +
+                    " tblJoin2 = join(tables: {sql: tblUptime, ts:tblProbe}, on: [\"host\"]) \n" +
+                    "  |> keep(columns: [\"host\", \"uptime\", \"reset_count\",\"overlay\",\"avg_delay\",\"jitter\",\"loss_percentage\"])\n" +
+                    "\n" +
+                    "\n" +
+                    "\n" +
+                    "\n" +
+                    "tblIfStatus = from(bucket: \"otlp_metric\")\n" +
+                    "  |> range(start:  -5m) \n" +
+                    "  |> filter(fn: (r) => r[\"_measurement\"] == \"maya_ifstatus\")\n" +
+                    "  |> filter(fn: (r) => r[\"type\"] == \"maya_ifstatus\") \n" +
+                    "  |> filter(fn: (r) => r[\"plugin\"] == \"maya_ifstatus\")  \n" +
+                    "  |> map(fn: (r)=>({r with type_instance : if r[\"type_instance\"]==\"UP\" then \"UP\" else if r[\"type_instance\"]==\"UNKNOWN\" then \"UNKOWN\" else \"DOWN\", link_status : if r[\"type_instance\"]==\"UP\" then 1 else if r[\"type_instance\"]==\"UNKNOWN\" then 2 else 0})) \n" +
+                    "  |> last()\n" +
+                    "  |> filter(fn: (r) => contains(value: r[\"link_status\"], set:[1,0,2]))\n" +
+                    "  |> group(columns: [\"host\", \"plugin_instance\", \"link_status\"])\n" +
+                    "  |> count(column: \"_field\")\n" +
+                    "  |> group()\n" +
+                    "\n" +
+                    " \n" +
+                    "\n" +
+                    "  \n" +
+                    " join(tables: {sql: tblIfStatus, ts:tblJoin2}, on: [\"host\"]) \n" +
+                    "  |> map(fn: (r)=>({r with jn:r.host + \"-\" +  r.overlay + \"-\" + r.plugin_instance}))\n" +
+                    "  //|> keep(columns: [\"host\", \"uptime\", \"reset_count\",\"avg_delay\",\"jitter\",\"loss_percentage\"])\n" +
+                    " |> sort(columns: [\"host\"])";
+
+    public static final String SAMPLE_QUERY_5_WITH_CACHE= "//" + TEXT_CACHE + "=true\n"
+            + "//" + TEXT_TTL + "=60\n"
+            + "//" + TEXT_REFRESH + "=10\n"
+            + "//" + SAMPLE_QUERY_5;
 }

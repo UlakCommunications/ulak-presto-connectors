@@ -39,12 +39,13 @@ public class InfluxdbConnector
                              String keywords)
     {
         // need to get database connection here
-        System.out.println("Connector by url: " + url);
+        logger.debug("Connector by url: " + url);
         try {
             InfluxdbUtil.instance(url,org,token,bucket);
         }
         catch (IOException e) {
             e.printStackTrace();
+            logger.error("InfluxdbConnector", e);
         }
         this.metadata = InfluxdbMetadata.getInstance(catalogName);
         this.splitManager = InfluxdbSplitManager.getInstance();

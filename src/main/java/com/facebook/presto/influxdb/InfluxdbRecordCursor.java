@@ -103,7 +103,10 @@ public class InfluxdbRecordCursor
         checkFieldType(field, DoubleType.DOUBLE);
         String columnName = columnHandles.get(field).getColumnName();
         Object value = row.getColumnMap().get(columnName);
-        System.out.println(value.toString());
+        if(value==null){
+            value = 0.0;
+        }
+        logger.debug(value.toString());
         return Double.parseDouble(value == null ? "1" : value.toString());
     }
 
