@@ -91,5 +91,19 @@ public class TestQueries {
     public static final String SAMPLE_QUERY_3_WITH_CACHE= "//" + TEXT_CACHE + "=true\n"
             + "//" + TEXT_TTL + "=60\n"
             + "//" + TEXT_REFRESH + "=10\n"
-            + "//" + SAMPLE_QUERY_2;
+            + "//" + SAMPLE_QUERY_3;
+    public static final String SAMPLE_QUERY_4 =
+            "from(bucket: \"otlp_metric\")\n" +
+                    "  |> range(start:  -5m)\n" +
+                    "  |> filter(fn: (r) => r[\"_measurement\"] == \"maya_ifstatus\")\n" +
+                    "  |> aggregateWindow(every: 1s, fn: mean, createEmpty: false)\n" +
+                    "  |> last()\n" +
+                    "  |> group()\n" +
+                    "  |> map(fn: (r) => ({r with jn: r.host + \"-\" + r.plugin_instance , has_data: true  }))\n" +
+                    "  |> yield(name: \"last\")";
+
+    public static final String SAMPLE_QUERY_4_WITH_CACHE= "//" + TEXT_CACHE + "=true\n"
+            + "//" + TEXT_TTL + "=60\n"
+            + "//" + TEXT_REFRESH + "=10\n"
+            + "//" + SAMPLE_QUERY_4;
 }
