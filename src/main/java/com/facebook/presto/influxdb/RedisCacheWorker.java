@@ -24,7 +24,7 @@ public class RedisCacheWorker extends Thread{
     private static Logger logger = LoggerFactory.getLogger(RedisCacheWorker.class);
     private static ExecutorService executor = null;
 
-    public static final int N_THREADS = 5;
+    public static final int N_THREADS = 50;
 
     static {
         executor = Executors.newFixedThreadPool(N_THREADS);
@@ -76,6 +76,7 @@ public class RedisCacheWorker extends Thread{
                             futures.remove(key);
                         }
                     }
+
                     try (Jedis jedis = pool.getResource()) {
                         try {
                             Set<String> allKeys = jedis.keys(getTrinoCacheString("*"));
@@ -114,9 +115,20 @@ public class RedisCacheWorker extends Thread{
 
                                         long ttl = jedis.ttl(s);
                                         long passed = influxdbQueryParameters.getTtlInSeconds() - ttl;
-                                        if (passed > influxdbQueryParameters.getRefreshDurationInSeconds()) {
+                                        if (passed > influxdbQueryParameters.getRefreshDurationInSeconds()
+                                                || (influxdbQueryParameters.isEagerCached() && influxdbQueryParameters.getRows().size() == 0)) {
                                             logger.debug("Passed :" + passed);
                                             futures.put(s, executor.submit(new RedisCacheWorkerItem(s, influxdbQueryParameters)));
+                                            StringBuilder sb = new StringBuilder();
+                                            for (Object key : futures.keySet().toArray()) {
+                                                Future<?> c = futures.get(key);
+                                                sb.append(key + ",");
+                                            }
+                                            logger.info("Running stats: \n\tRunning Count: " + futures.size()
+                                                + "\n\tRunning keys: " + sb.toString()
+                                                + "\n\t Current is eager: " + influxdbQueryParameters.isEagerCached());
+
+
                                         }
 //                                        }
                                     } catch (JedisConnectionException e) {

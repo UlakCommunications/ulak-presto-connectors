@@ -23,6 +23,8 @@ import java.io.IOException;
 public class InfluxdbConnector
         implements Connector
 {
+    static RedisCacheWorker redisCacheWorker = null;
+
     private static Logger logger = LoggerFactory.getLogger(InfluxdbConnector.class);
     private final InfluxdbMetadata metadata;
 
@@ -36,14 +38,13 @@ public class InfluxdbConnector
                              String token,
                              String bucket,
                              String redisUrl,
-                             String keywords)
-    {
+                             String keywords,
+                             boolean isCoordinator) {
         // need to get database connection here
         logger.debug("Connector by url: " + url);
         try {
-            InfluxdbUtil.instance(url,org,token,bucket);
-        }
-        catch (IOException e) {
+            InfluxdbUtil.instance(url, org, token, bucket);
+        } catch (IOException e) {
             e.printStackTrace();
             logger.error("InfluxdbConnector", e);
         }
@@ -52,6 +53,13 @@ public class InfluxdbConnector
         this.recordSetProvider = InfluxdbRecordSetProvider.getInstance();
         InfluxdbUtil.redisUrl = redisUrl;
         InfluxdbUtil.setKeywords(keywords);
+        InfluxdbUtil.isCoordinator = true;
+        if (isCoordinator) {
+            if (redisCacheWorker == null) {
+                redisCacheWorker = new RedisCacheWorker();
+                redisCacheWorker.start();
+            }
+        }
     }
 
     @Override
