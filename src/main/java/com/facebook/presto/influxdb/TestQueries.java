@@ -73,7 +73,7 @@ public class TestQueries {
     public static final String SAMPLE_QUERY_2_WITH_CACHE= "//" + TEXT_CACHE + "=true\n"
             + "//" + TEXT_TTL + "=60\n"
             + "//" + TEXT_REFRESH + "=10\n"
-            + "//" + SAMPLE_QUERY_2;
+            + SAMPLE_QUERY_2;
     public static final String SAMPLE_QUERY_3 =
             "from(bucket: \"otlp_metric\")\n" +
                     "  |> range(start:  -5m) \n" +
@@ -91,7 +91,7 @@ public class TestQueries {
     public static final String SAMPLE_QUERY_3_WITH_CACHE= "//" + TEXT_CACHE + "=true\n"
             + "//" + TEXT_TTL + "=60\n"
             + "//" + TEXT_REFRESH + "=10\n"
-            + "//" + SAMPLE_QUERY_3;
+            + SAMPLE_QUERY_3;
     public static final String SAMPLE_QUERY_4 =
             "from(bucket: \"otlp_metric\")\n" +
                     "  |> range(start:  -5m)\n" +
@@ -105,7 +105,7 @@ public class TestQueries {
     public static final String SAMPLE_QUERY_4_WITH_CACHE= "//" + TEXT_CACHE + "=true\n"
             + "//" + TEXT_TTL + "=60\n"
             + "//" + TEXT_REFRESH + "=10\n"
-            + "//" + SAMPLE_QUERY_4;
+            + SAMPLE_QUERY_4;
     public static final String SAMPLE_QUERY_5 =
             "\n" +
                     "\n" +
@@ -159,5 +159,5 @@ public class TestQueries {
     public static final String SAMPLE_QUERY_5_WITH_CACHE= "//" + TEXT_CACHE + "=true\n"
             + "//" + TEXT_TTL + "=60\n"
             + "//" + TEXT_REFRESH + "=10\n"
-            + "//" + SAMPLE_QUERY_5;
+            + SAMPLE_QUERY_5;
 }

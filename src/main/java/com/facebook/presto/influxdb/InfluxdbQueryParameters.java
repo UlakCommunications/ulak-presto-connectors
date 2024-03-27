@@ -2,13 +2,12 @@ package com.facebook.presto.influxdb;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.Jedis;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import static com.facebook.presto.influxdb.InfluxdbUtil.*;
+import static com.facebook.presto.influxdb.InfluxdbUtil.arrangeCase;
 
 
 public class InfluxdbQueryParameters {
@@ -16,6 +15,7 @@ public class InfluxdbQueryParameters {
     public static final String TEXT_CACHE = "cache";
     public static final String TEXT_REFRESH = "refresh";
     public static final String TEXT_COLUMNS = "columns";
+    public static final String TEXT_EAGER_CACHE = "eagercache";
     private static Logger logger = LoggerFactory.getLogger(InfluxdbQueryParameters.class);
 
     public static final String NEW_LINE_CHAR = System.lineSeparator();
@@ -27,6 +27,7 @@ public class InfluxdbQueryParameters {
     private int hash;
     private List<InfluxdbRow> rows;
     private boolean toBeCached = false;
+    private boolean eagerCached = false;
     private long ttlInSeconds = DEFAULT_TTL;
     private long refreshDurationInSeconds = DEFAULT_TTL + 5;
 
@@ -66,9 +67,29 @@ public class InfluxdbQueryParameters {
         this.columns = columns;
     }
 
+    public static String getTableNameForHash(String tableName){
+        String lastTableName = tableName;
+        String beforeTableName = tableName;
+        do{
+            beforeTableName = lastTableName;
+            lastTableName = lastTableName.replaceAll("(.*)(\\/\\/.*)","");
+        }while (!lastTableName.equals(beforeTableName));
+
+        String[] splits = lastTableName.split(NEW_LINE_CHAR);
+        List<String> newLines = new ArrayList<>();
+        for (int i = 0; i < splits.length; i++) {
+            String current = splits[i].trim();
+            if(current!=""){
+                newLines.add(current);
+            }
+        }
+        return String.join(NEW_LINE_CHAR,newLines).replaceAll("[ \r\n]","");
+    }
     public static InfluxdbQueryParameters getQueryParameters(String tableName) {
         tableName = arrangeCase(tableName);
-        int hash = tableName.hashCode();
+        String tableNameForHash = getTableNameForHash(tableName);
+
+        int hash = tableNameForHash.hashCode();
 
         InfluxdbQueryParameters ret = new InfluxdbQueryParameters();
         ret.setQuery(tableName);
@@ -114,15 +135,19 @@ public class InfluxdbQueryParameters {
                             String[] vs = value.split(",");
                             ret.setColumns(vs);
                             break;
+                        case TEXT_EAGER_CACHE:
+                            ret.setEagerCached(Boolean.parseBoolean(value));
+                            break;
                     }
                 } catch (Throwable e) {
                     logger.error("getQueryParameters: " + param + "/" + value);
                 }
             }
         }
-//
-//        String tblNoRange;
-//        String[] splits = tableName.split(NEW_LINE_CHAR);
+
+//        String tblNoRange = null;
+//        String newLineChar = System.lineSeparator();
+//        String[] splits = tableName.split(newLineChar);
 //        List<String> newLines = new ArrayList<>();
 //        for (int i = 0; i < splits.length; i++) {
 //            String current = splits[i];
@@ -130,7 +155,8 @@ public class InfluxdbQueryParameters {
 //                newLines.add(current);
 //            }
 //        }
-//        tblNoRange = String.join(NEW_LINE_CHAR,newLines);
+//        tblNoRange = String.join(newLineChar,newLines);
+//        int hash = tblNoRange.hashCode();
 
         return ret;
     }
@@ -162,5 +188,13 @@ public class InfluxdbQueryParameters {
 
     public void setRefreshDurationInSeconds(long refreshDurationInSeconds) {
         this.refreshDurationInSeconds = refreshDurationInSeconds;
+    }
+
+    public boolean isEagerCached() {
+        return eagerCached;
+    }
+
+    public void setEagerCached(boolean eagerCached) {
+        this.eagerCached = eagerCached;
     }
 }
