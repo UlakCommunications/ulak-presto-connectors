@@ -30,6 +30,9 @@ public class InfluxdbQueryParameters {
     private boolean eagerCached = false;
     private long ttlInSeconds = DEFAULT_TTL;
     private long refreshDurationInSeconds = DEFAULT_TTL + 5;
+    private long start;
+    private long finish;
+    private String error;
 
     public String getQuery() {
         return query;
@@ -196,5 +199,30 @@ public class InfluxdbQueryParameters {
 
     public void setEagerCached(boolean eagerCached) {
         this.eagerCached = eagerCached;
+    }
+
+
+    public long getStart() {
+        return start;
+    }
+
+    public void setStart(long start) {
+        this.start = start;
+    }
+
+    public long getFinish() {
+        return finish;
+    }
+
+    public void setFinish(long finish) {
+        this.finish = finish;
+    }
+
+    public String getError() {
+        return error;
+    }
+
+    public void setError(String error) {
+        this.error = error;
     }
 }

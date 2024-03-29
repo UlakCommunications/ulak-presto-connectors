@@ -252,21 +252,43 @@ public class InfluxdbUtil {
     }
     private  static void setCacheItem(Jedis jedis,
                                       InfluxdbQueryParameters influxdbQueryParameters) throws JsonProcessingException {
+        influxdbQueryParameters.setFinish(System.currentTimeMillis());
         SetParams param = new SetParams();
         param.ex(influxdbQueryParameters.getTtlInSeconds());
         jedis.set(getTrinoCacheString(influxdbQueryParameters.getHash()), getObjectMapper().writeValueAsString(influxdbQueryParameters), param);
     }
+//    private  static void setCacheItem(InfluxdbQueryParameters influxdbQueryParameters) {
+//        try {
+//            JedisPool pool = getJedisPool();
+//            if (pool != null) {
+//                try(Jedis jedis = pool.getResource()){
+//                    setCacheItem(jedis, influxdbQueryParameters);
+//                }
+//            }else{
+//                logger.error("setCacheItem: Cannot access redis to set " + influxdbQueryParameters.getHash());
+//            }
+//        }catch (Throwable e){
+//            logger.error("setCacheItem ", e);
+//        }
+//    }
     public static String getTrinoCacheString(String hash){
         return "trino:" + hash;
     }
     public static String getTrinoCacheString(int hash){
         return getTrinoCacheString(String.valueOf(hash));
     }
+
     public static Iterator<InfluxdbRow> select(String tableName,
-                                               boolean forceRefresh)
-            throws IOException, ClassNotFoundException {
+                                               boolean forceRefresh) throws IOException, ClassNotFoundException {
+
         InfluxdbQueryParameters influxdbQueryParameters = InfluxdbQueryParameters.getQueryParameters(tableName);
+        return select(influxdbQueryParameters,forceRefresh);
+    }
+    public static Iterator<InfluxdbRow> select(InfluxdbQueryParameters influxdbQueryParameters,
+                                               boolean forceRefresh) throws IOException, ClassNotFoundException{
         int hash = influxdbQueryParameters.getHash();
+        influxdbQueryParameters.setStart(System.currentTimeMillis());
+
         JedisPool pool = getJedisPool();
         Jedis jedis = null;
         if(pool !=null){
@@ -306,6 +328,8 @@ public class InfluxdbUtil {
                             return rows.iterator();
                         }
                     }
+
+                    influxdbQueryParameters.setError("");
                     //logger.debug("select all rows in table: {}", tableName);
                     ArrayList<InfluxdbRow> list = new ArrayList<InfluxdbRow>();
                     QueryApi queryApi = influxDBClient.getQueryApi();
@@ -353,6 +377,7 @@ public class InfluxdbUtil {
                     }
                     if (jedis != null) {
                         influxdbQueryParameters.setRows(list);
+                        influxdbQueryParameters.setFinish(System.currentTimeMillis());
                         setCacheItem(jedis, influxdbQueryParameters);
                     }
                     addOneStat(hash, 1);

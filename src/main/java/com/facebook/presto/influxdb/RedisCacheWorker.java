@@ -24,13 +24,15 @@ public class RedisCacheWorker extends Thread{
     private static Logger logger = LoggerFactory.getLogger(RedisCacheWorker.class);
     private static ExecutorService executor = null;
 
-    public static final int N_THREADS = 50;
+    public static final int N_THREADS = 15;
 
     static {
         executor = Executors.newFixedThreadPool(N_THREADS);
     }
     private static Map<Integer, CacheUsageStats> stats = new LinkedHashMap<>();
     private static Object statLock = new Object();
+    private long lastAllPrint = System.currentTimeMillis();
+
     public static CacheUsageStats addOneStat(int hash, int used){
         synchronized (statLock){
             CacheUsageStats ret = null;
@@ -49,6 +51,35 @@ public class RedisCacheWorker extends Thread{
             return ret;
         }
     }
+    private static void printUsage(Jedis jedis, Object[] array)  {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for (Object key : array) {
+            String json = jedis.get((String) key);
+            if (json == null) {
+                logger.error("Key does not exists to be printed: " + key);
+                continue;
+            }
+            InfluxdbQueryParameters influxdbQueryParameters = null;
+            try {
+                influxdbQueryParameters = getObjectMapper().readValue(json, InfluxdbQueryParameters.class);
+            } catch (JsonProcessingException e) {
+                logger.error("JsonProcessingException" + key);
+                continue;
+            }
+
+            sb.append("{\"key\":\"" + key
+                    + "\",\"start\":"+ influxdbQueryParameters.getStart()
+                    + ",\"startSeconds\":"+ ((System.currentTimeMillis() - influxdbQueryParameters.getStart())/1000)
+                    +",\"stop\":"+ influxdbQueryParameters.getFinish()
+                    +",\"stopSeconds\":"+ ((System.currentTimeMillis() - influxdbQueryParameters.getFinish())/1000)
+                    +",\"ttl\":"+ influxdbQueryParameters.getTtlInSeconds()
+                    +",\"refresh\":"+ influxdbQueryParameters.getRefreshDurationInSeconds()
+                    +",\"eager\":"+ influxdbQueryParameters.isEagerCached() +"},");
+        }
+        sb.append("]");
+        logger.info("Running stats: \n\t" + sb.toString());
+    }
     @Override
     public void run() {
         Map<String,Future<?>> futures = new LinkedHashMap<>();
@@ -63,8 +94,13 @@ public class RedisCacheWorker extends Thread{
             //if not sleep worked then do not clutch
             if(sleepWorked) {
                 //do not clutch if no redis
-                JedisPool pool = getJedisPool();
-                if(pool == null){
+                JedisPool pool = null;
+                try {
+                    pool = getJedisPool();
+                }catch (Throwable e){
+                    logger.error("JedisConnectionException", e);
+                }
+                if (pool == null) {
                     continue;
                 }
                 long runningTaskCount = futures.values().stream().filter(t -> !t.isDone() && !t.isCancelled()).count();
@@ -80,21 +116,25 @@ public class RedisCacheWorker extends Thread{
                     try (Jedis jedis = pool.getResource()) {
                         try {
                             Set<String> allKeys = jedis.keys(getTrinoCacheString("*"));
-                            for (String s : allKeys) {
-                                Future<?> future = futures.get(s);
+                            for (String currentRedisKey : allKeys) {
+                                Future<?> future = futures.get(currentRedisKey);
                                 boolean isKeyIsRunning = future == null
                                         ? false
-                                        : !future.isDone() && !future.isCancelled();
+                                        : !(future.isDone() || future.isCancelled());
                                 if (!isKeyIsRunning) {
                                     try {
                                         InfluxdbQueryParameters influxdbQueryParameters = null;
                                         try {
-                                            String json = jedis.get(s);
+                                            String json = jedis.get(currentRedisKey);
                                             if (json == null) {
-                                                logger.error("Key does not exists (ttl expired?): " + s);
+                                                logger.error("Key does not exists (ttl expired?): " + currentRedisKey);
                                             }
                                             influxdbQueryParameters = getObjectMapper().readValue(json,
                                                     InfluxdbQueryParameters.class);
+                                            if(stats.equals((influxdbQueryParameters.getHash()))){
+                                                logger.error("Hash does not match: " + currentRedisKey + "/"
+                                                        + influxdbQueryParameters.getHash());
+                                            }
                                         } catch (Throwable e) {
                                             logger.error("JsonProcessingException", e);
                                             continue;
@@ -113,24 +153,30 @@ public class RedisCacheWorker extends Thread{
                                             continue;
                                         }
 
-                                        long ttl = jedis.ttl(s);
+                                        long ttl = jedis.ttl(currentRedisKey);
                                         long passed = influxdbQueryParameters.getTtlInSeconds() - ttl;
                                         if (passed > influxdbQueryParameters.getRefreshDurationInSeconds()
-                                                || (influxdbQueryParameters.isEagerCached() && influxdbQueryParameters.getRows().size() == 0)) {
-                                            logger.debug("Passed :" + passed);
-                                            futures.put(s, executor.submit(new RedisCacheWorkerItem(s, influxdbQueryParameters)));
+                                                || (influxdbQueryParameters.getRows().size() == 0
+                                                    && influxdbQueryParameters.isEagerCached())) {
+
+                                            logger.debug("Seconds passed : " + passed + " for " + influxdbQueryParameters.getHash());
+
+                                            futures.put(currentRedisKey, executor.submit(new RedisCacheWorkerItem(currentRedisKey, influxdbQueryParameters)));
+
                                             StringBuilder sb = new StringBuilder();
-                                            for (Object key : futures.keySet().toArray()) {
-                                                Future<?> c = futures.get(key);
+                                            for (Object key : futures.keySet()) {
                                                 sb.append(key + ",");
                                             }
                                             logger.info("Running stats: \n\tRunning Count: " + futures.size()
                                                 + "\n\tRunning keys: " + sb.toString()
                                                 + "\n\t Current is eager: " + influxdbQueryParameters.isEagerCached());
 
-
+                                            printUsage(jedis,futures.keySet().toArray());
+                                            if(System.currentTimeMillis() - lastAllPrint>10000) {
+                                                lastAllPrint = System.currentTimeMillis();
+                                                printUsage(jedis, allKeys.toArray());
+                                            }
                                         }
-//                                        }
                                     } catch (JedisConnectionException e) {
                                         logger.error("JedisConnectionException", e);
                                     }
