@@ -31,7 +31,7 @@ public class RedisCacheWorkerItem extends Thread {
     @Override
     public void run() {
         try {
-            InfluxdbUtil.select(influxdbQueryParameters.getQuery(), true);
+            InfluxdbUtil.select(influxdbQueryParameters, true);
         } catch (JsonProcessingException e) {
             logger.error("JsonProcessingException", e);
         } catch (IOException e) {
