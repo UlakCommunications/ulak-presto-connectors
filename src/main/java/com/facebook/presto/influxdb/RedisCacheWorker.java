@@ -24,7 +24,7 @@ public class RedisCacheWorker extends Thread{
     private static Logger logger = LoggerFactory.getLogger(RedisCacheWorker.class);
     private static ExecutorService executor = null;
 
-    public static final int N_THREADS = 15;
+    public static final int N_THREADS = 10;
 
     static {
         executor = Executors.newFixedThreadPool(N_THREADS);
@@ -73,6 +73,7 @@ public class RedisCacheWorker extends Thread{
                     + ",\"startSeconds\":"+ ((System.currentTimeMillis() - influxdbQueryParameters.getStart())/1000)
                     +",\"stop\":"+ influxdbQueryParameters.getFinish()
                     +",\"stopSeconds\":"+ ((System.currentTimeMillis() - influxdbQueryParameters.getFinish())/1000)
+                    +",\"duration\":"+ ((influxdbQueryParameters.getFinish() - influxdbQueryParameters.getStart())/1000)
                     +",\"ttl\":"+ influxdbQueryParameters.getTtlInSeconds()
                     +",\"refresh\":"+ influxdbQueryParameters.getRefreshDurationInSeconds()
                     +",\"eager\":"+ influxdbQueryParameters.isEagerCached() +"},");
