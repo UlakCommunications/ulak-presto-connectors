@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.influxdb;
 
+import com.facebook.presto.pg.PGUtil;
 import io.trino.spi.connector.*;
 import io.trino.spi.transaction.IsolationLevel;
 import org.slf4j.Logger;
@@ -20,9 +21,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
+import static com.facebook.presto.influxdb.RedisCacheWorker.setNumThreads;
+
 public class InfluxdbConnector
         implements Connector
 {
+    private DBType dbType=DBType.INFLUXDB2;
     static RedisCacheWorker redisCacheWorker = null;
 
     private static Logger logger = LoggerFactory.getLogger(InfluxdbConnector.class);
@@ -32,29 +36,58 @@ public class InfluxdbConnector
 
     private final InfluxdbRecordSetProvider recordSetProvider;
 
-    public InfluxdbConnector(String url,
+    public InfluxdbConnector(DBType dbType,
+                             String url,
                              String catalogName,
                              String org,
                              String token,
                              String bucket,
                              String redisUrl,
                              String keywords,
-                             boolean isCoordinator) {
+                             boolean runInCoordinatorOnly,
+                             String workerId,
+                             String workerIndexToRunIn,
+                             boolean isCoordinator,
+                             int numThreads,
+                             String pgUrl,
+                             String pgUsername,
+                             String pgPassword) {
         // need to get database connection here
         logger.debug("Connector by url: " + url);
-        try {
-            InfluxdbUtil.instance(url, org, token, bucket);
-        } catch (IOException e) {
-            e.printStackTrace();
-            logger.error("InfluxdbConnector", e);
+        switch (dbType) {
+            case INFLUXDB2:
+                try {
+                    InfluxdbUtil.instance(url, org, token, bucket);
+                } catch (IOException e) {
+                    logger.error("InfluxdbConnector", e);
+                }
+                if(pgUrl != null && !pgUrl.trim().equals("")) {
+                    try {
+                        PGUtil.instance(pgUrl, pgUsername, pgPassword);
+                    } catch (IOException e) {
+                        logger.error("InfluxdbConnector", e);
+                    }
+                }
+                break;
+            case PG:
+                try {
+                    PGUtil.instance(pgUrl, pgUsername, pgPassword);
+                } catch (IOException e) {
+                    logger.error("InfluxdbConnector", e);
+                }
+                break;
         }
-        this.metadata = InfluxdbMetadata.getInstance(catalogName);
+
+        this.metadata = InfluxdbMetadata.getInstance(dbType, catalogName);
         this.splitManager = InfluxdbSplitManager.getInstance();
         this.recordSetProvider = InfluxdbRecordSetProvider.getInstance();
         InfluxdbUtil.redisUrl = redisUrl;
+        InfluxdbUtil.workerId = workerId;
+        InfluxdbUtil.workerIndexToRunIn = workerIndexToRunIn;
         InfluxdbUtil.setKeywords(keywords);
+        setNumThreads(numThreads);
         InfluxdbUtil.isCoordinator = true;
-        if (isCoordinator) {
+        if (isCoordinator && runInCoordinatorOnly) {
             if (redisCacheWorker == null) {
                 redisCacheWorker = new RedisCacheWorker();
                 redisCacheWorker.start();

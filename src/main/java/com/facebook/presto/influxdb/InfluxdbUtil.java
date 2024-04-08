@@ -14,6 +14,7 @@
 
 package com.facebook.presto.influxdb;
 
+import com.facebook.presto.pg.PGUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -34,6 +35,7 @@ import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.params.SetParams;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -43,6 +45,8 @@ import static com.facebook.presto.influxdb.RedisCacheWorker.addOneStat;
 import static com.facebook.presto.influxdb.TestQueries.*;
 public class InfluxdbUtil {
     public static boolean isCoordinator;
+    public static String workerId;
+    public static String workerIndexToRunIn;
     private static Map<String, String> keywords = new HashMap<String, String>() {
         {
             put("aggregatewindow", "aggregateWindow");
@@ -183,19 +187,40 @@ public class InfluxdbUtil {
             return query;
         }
     }
-    private  static Map<Integer, Integer> inProgressLocks = new LinkedHashMap<>();
+    public static Map<Integer, Integer> inProgressLocks = new LinkedHashMap<>();
 //    private static Object columnsGetLock = new Object();
-    private static Object inProgressLock = new Object();
+    public static Object inProgressLock = new Object();
 
-    public static List<ColumnMetadata> getColumns(String bucket, String tableName) throws IOException, ClassNotFoundException {
+    public static List<ColumnMetadata> getColumns(DBType dbType, String bucket, String tableName) throws IOException, ClassNotFoundException {
         logger.debug("influxdbUtil bucket:" + bucket + "table:" + tableName + " columnsMetadata");
-        //logger.debug("getColumns in bucket: {}, table : {}", bucket, tableName);
         List<ColumnMetadata> res = new ArrayList<>();
-        // all fields
-//        String flux = "from(bucket: \"" + bucket + "\")\n" +
-//                "  |> range(start: " + time_interval + ")\n" +
-//                "  |> filter(fn: (r) => r[\"_measurement\"] == \"" + tableName + "\")";
-        Iterator<InfluxdbRow> tables = select(tableName,false);
+
+        Iterator<InfluxdbRow> tables =null;
+        switch (dbType){
+            case  INFLUXDB2:
+                try {
+                    tables = InfluxdbUtil.select(tableName,false);
+                } catch (IOException e) {
+                    logger.error("IOException", e);
+                } catch (ClassNotFoundException e) {
+                    logger.error("ClassNotFoundException", e);
+                } catch (SQLException e) {
+                    logger.error("ClassNotFoundException", e);
+                }
+            case  PG:
+                try {
+                    tables = PGUtil.select(tableName,false);;
+                } catch (IOException e) {
+                    logger.error("IOException", e);
+                } catch (ClassNotFoundException e) {
+                    logger.error("ClassNotFoundException", e);
+                } catch (SQLException e) {
+                    logger.error("ClassNotFoundException", e);
+                    throw new RuntimeException(e);
+                }
+        }
+
+
         if(tables.hasNext()) {
             for (Iterator<InfluxdbRow> it = tables; it.hasNext(); ) {
                 InfluxdbRow fluxTable = it.next();
@@ -250,27 +275,14 @@ public class InfluxdbUtil {
         }
         return objectMapper;
     }
-    private  static void setCacheItem(Jedis jedis,
-                                      InfluxdbQueryParameters influxdbQueryParameters) throws JsonProcessingException {
+    public static void setCacheItem(Jedis jedis,
+                                    InfluxdbQueryParameters influxdbQueryParameters) throws JsonProcessingException {
         influxdbQueryParameters.setFinish(System.currentTimeMillis());
         SetParams param = new SetParams();
         param.ex(influxdbQueryParameters.getTtlInSeconds());
         jedis.set(getTrinoCacheString(influxdbQueryParameters.getHash()), getObjectMapper().writeValueAsString(influxdbQueryParameters), param);
     }
-//    private  static void setCacheItem(InfluxdbQueryParameters influxdbQueryParameters) {
-//        try {
-//            JedisPool pool = getJedisPool();
-//            if (pool != null) {
-//                try(Jedis jedis = pool.getResource()){
-//                    setCacheItem(jedis, influxdbQueryParameters);
-//                }
-//            }else{
-//                logger.error("setCacheItem: Cannot access redis to set " + influxdbQueryParameters.getHash());
-//            }
-//        }catch (Throwable e){
-//            logger.error("setCacheItem ", e);
-//        }
-//    }
+
     public static String getTrinoCacheString(String hash){
         return "trino:" + hash;
     }
@@ -279,13 +291,16 @@ public class InfluxdbUtil {
     }
 
     public static Iterator<InfluxdbRow> select(String tableName,
-                                               boolean forceRefresh) throws IOException, ClassNotFoundException {
+                                               boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException {
 
         InfluxdbQueryParameters influxdbQueryParameters = InfluxdbQueryParameters.getQueryParameters(tableName);
         return select(influxdbQueryParameters,forceRefresh);
     }
     public static Iterator<InfluxdbRow> select(InfluxdbQueryParameters influxdbQueryParameters,
-                                               boolean forceRefresh) throws IOException, ClassNotFoundException{
+                                               boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException {
+        if(influxdbQueryParameters.dbType == DBType.PG) {
+            return PGUtil.select(influxdbQueryParameters,forceRefresh);
+        }
         int hash = influxdbQueryParameters.getHash();
         influxdbQueryParameters.setStart(System.currentTimeMillis());
 
@@ -330,49 +345,24 @@ public class InfluxdbUtil {
                     }
 
                     influxdbQueryParameters.setError("");
-                    //logger.debug("select all rows in table: {}", tableName);
                     ArrayList<InfluxdbRow> list = new ArrayList<InfluxdbRow>();
                     QueryApi queryApi = influxDBClient.getQueryApi();
-                    String flux = influxdbQueryParameters.getQuery();//"from(bucket: " + "\"" + bucket + "\"" + ")\n" + "|> range(start:" + time_interval + ")\n" + "|> filter(fn : (r) => r._measurement == " + "\"" + tableName + "\"" + ")";
+                    String flux = influxdbQueryParameters.getQuery();
                     logger.info("Running: " + hash);
                     List<FluxTable> tables = queryApi.query(flux, org);
                     List<Map<String, Object>> resMap = new LinkedList<>();
                     for (FluxTable fluxTable : tables) {
                         List<FluxRecord> records = fluxTable.getRecords();
                         for (FluxRecord fluxRecord : records) {
-//                            Map<String, Object> curRow = new LinkedHashMap<>();
-//                            if (curRow == null) {
                             Map<String, Object> curRow = fluxRecord.getValues();
                             Map<String, Object> newRow = new HashMap<>();
                             for (Map.Entry<String, Object> entry : curRow.entrySet()) {
-//                                if (!Objects.equals(entry.getKey(), "_field") && !Objects.equals(entry.getKey(), "_value")) {
                                 newRow.put(entry.getKey(), entry.getValue());
-//                                }
                             }
-//                                String field = fluxRecord.getField();
-//                                if (field != null) {
-//                                    newRow.put(field, fluxRecord.getValue());
-//                                }
-//                                Instant time = fluxRecord.getTime();
-//                                if (time == null) {
-//                                    time = Instant.now();
-//                                }
-//                                newRow.put("_time",time.getEpochSecond());
                             resMap.add(newRow);
-//                            } else {
-//                                String field = fluxRecord.getField();
-//                                if (field == null) {
-//                                    field = "null";
-//                                }
-//                                curRow.put(field, fluxRecord.getValue());
-//                            }
                         }
                     }
-                    // for debug
                     for (Map<String, Object> entry : resMap) {
-//                      for (Map.Entry<String, Object> entry1 : entry.getValue().entrySet()) {
-//                          logger.debug("k-v pair " + entry1.getKey() + ":" + entry1.getValue().toString() + ", " + entry1.getValue().getClass());
-//                      }
                         list.add(new InfluxdbRow(entry));
                     }
                     if (jedis != null) {
@@ -438,9 +428,9 @@ public class InfluxdbUtil {
         return null;
     }
 
-    private static List<InfluxdbRow> getCacheResultAsList(boolean forceRefresh,
-                                                        Jedis jedis,
-                                                        int hash) throws JsonProcessingException {
+    public static List<InfluxdbRow> getCacheResultAsList(boolean forceRefresh,
+                                                         Jedis jedis,
+                                                         int hash) throws JsonProcessingException {
         if(jedis != null) {
             String json;
             List<InfluxdbRow> list;
@@ -455,43 +445,68 @@ public class InfluxdbUtil {
         }
         return null;
     }
-    public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
-        redisUrl = "redis://10.20.4.53:30639";
-//        redisUrl = "redis://:ulak@10.20.4.53:31671";
-        instance("http://10.20.4.53:30485?readTimeout=2m&connectTimeout=2m&writeTimeout=2m",
-                "ulak",
-                "KbSyJTKzIuvxqpKjVMTautakGg7uPxGTF3hz878Ye4CH_UgTl0k4W2UXYy79dwrzSle9QmEt2KCde0Sf88qhSQ==",
-                "collectd");
-        setKeywords("");
+    public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException, SQLException {
+        DBType dbType= DBType.INFLUXDB2;
         long start = System.currentTimeMillis();
-        String name = getTableNameForHash(SAMPLE_QUERY_3_WITH_CACHE);
-        tryOneQuery(SAMPLE_QUERY_4, 1);
-        tryOneQuery(SAMPLE_QUERY_4_WITH_CACHE, 1);
 
+//        redisUrl = "http://10.20.4.53:30485?readTimeout=2m&connectTimeout=2m&writeTimeout=2m";
+////        redisUrl = "redis://:ulak@10.20.4.53:31671";
+//        instance(redisUrl,
+//                "ulak",
+//                "KbSyJTKzIuvxqpKjVMTautakGg7uPxGTF3hz878Ye4CH_UgTl0k4W2UXYy79dwrzSle9QmEt2KCde0Sf88qhSQ==",
+//                "collectd");
+//        setKeywords("");
+//        String name = getTableNameForHash(SAMPLE_QUERY_3_WITH_CACHE);
+//        tryOneQuery(dbType, SAMPLE_QUERY_4, 1);
+//        tryOneQuery(dbType, SAMPLE_QUERY_4_WITH_CACHE, 1);
+//
+//
+//        tryOneQuery(dbType, SAMPLE_QUERY_4, 1);
+//        tryOneQuery(dbType, SAMPLE_QUERY_4_WITH_CACHE, 1);
+//
+//        tryOneQuery(dbType, SAMPLE_QUERY, 1);
+//        tryOneQuery(dbType, SAMPLE_QUERY_WITH_CACHE, 1);
+//        tryOneQuery(dbType, SAMPLE_QUERY_2, 1);
+//        tryOneQuery(dbType, SAMPLE_QUERY_2_WITH_CACHE, 1);
+//        tryOneQuery(dbType, SAMPLE_QUERY_3, 1);
+//        tryOneQuery(dbType, SAMPLE_QUERY_3_WITH_CACHE, 1);
 
-        tryOneQuery(SAMPLE_QUERY_4, 1);
-        tryOneQuery(SAMPLE_QUERY_4_WITH_CACHE, 1);
+        dbType = DBType.PG;
+        PGUtil.pgUrl = "jdbc:postgresql://10.20.4.53:30758/grafana";
+        PGUtil.pgUser = "postgres";
+        PGUtil.pgPwd = "m1latDB";
+//        redisUrl = "redis://:ulak@10.20.4.53:31671";
+        PGUtil.instance(PGUtil.pgUrl,
+                PGUtil.pgUser,
+                PGUtil.pgPwd);
+        setKeywords("");
+//        tryOneQuery(dbType, SAMPLE_QUERY_6, 1);
+        tryOneQuery(dbType, SAMPLE_QUERY_6_WITH_CACHE, 1);
 
-        tryOneQuery(SAMPLE_QUERY, 1);
-        tryOneQuery(SAMPLE_QUERY_WITH_CACHE, 1);
-        tryOneQuery(SAMPLE_QUERY_2, 1);
-        tryOneQuery(SAMPLE_QUERY_2_WITH_CACHE, 1);
-        tryOneQuery(SAMPLE_QUERY_3, 1);
-        tryOneQuery(SAMPLE_QUERY_3_WITH_CACHE, 1);
         logger.info(String.valueOf(System.currentTimeMillis() - start));
         //TODO: test cache disable
-        InfluxdbConnector.redisCacheWorker.join();
+        if(InfluxdbConnector.redisCacheWorker!=null) {
+            InfluxdbConnector.redisCacheWorker.join();
+        }
     }
 
-    private static void tryOneQuery(String query, int runCount) throws IOException, ClassNotFoundException {
+    private static void tryOneQuery(DBType dbType, String query, int runCount) throws IOException, ClassNotFoundException, SQLException {
         int index=0;
         query = query.toLowerCase(Locale.ENGLISH);
         logger.info("Testing no-cache queries");
         while(index <runCount) {
-            getColumns("", query);
+            getColumns(dbType, "", query);
             logger.info("columns 1: " + index);
-            select(query, false);
-            logger.info("query 1: " + index);
+            switch (dbType){
+                case INFLUXDB2:
+                    select(query, false);
+                    logger.info("query 1: " + index);
+                    break;
+                case PG:
+                    PGUtil.select(query, true);
+                    logger.info("query 1: " + index);
+                    break;
+            }
             index++;
         }
     }

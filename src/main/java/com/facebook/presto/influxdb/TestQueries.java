@@ -160,4 +160,77 @@ public class TestQueries {
             + "//" + TEXT_TTL + "=60\n"
             + "//" + TEXT_REFRESH + "=10\n"
             + SAMPLE_QUERY_5;
+
+
+    public static final String SAMPLE_QUERY_6 =
+            "\n\n" +
+                    "with atmp as (\n" +
+                    "select rule_uid,\n" +
+                    "\t\tcurrent_state,\n" +
+                    "\t\tlabels_hash,\n" +
+                    "\t\ttrim(both '\"' from (jsonb_array_elements(ai.labels::jsonb)->0)::text) as k, \n" +
+                    "\t\ttrim(both '\"' from (jsonb_array_elements(ai.labels::jsonb)->1)::text) as v\n" +
+                    "from alert_instance ai\n" +
+                    "),silence as (           \n" +
+                    "select distinct *,\n" +
+                    "\t\ttrim(both '\"' from ((ms.status::jsonb)->'state')::text) as state ,\n" +
+                    "\t\ttrim(both '\"' from (a.value::text)) as silenced \n" +
+                    "from maya_silence ms  \n" +
+                    "left join jsonb_array_elements(ms.silenced_alerts::jsonb) a on true \n" +
+                    "\n" +
+                    ") ,silence_history as (           \n" +
+                    "select distinct *,\n" +
+                    "\t\ttrim(both '\"' from ((ms.status::jsonb)->'state')::text) as state ,\n" +
+                    "\t\ttrim(both '\"' from (a.value::text)) as silenced \n" +
+                    "from maya_silence_history ms  \n" +
+                    "left join jsonb_array_elements(ms.silenced_alerts::jsonb) a on true \n" +
+                    "\n" +
+                    ") ,\n" +
+                    "anno_tmp as (\n" +
+                    "\tselect * \n" +
+                    "\tfrom annotation a \n" +
+                    ")\n" +
+                    "\n" +
+                    "select --sum(resolve_count) resolve_count,\n" +
+                    "\t   -- sum(alarm_count) alarm_count ,\n" +
+                    "\t   -- sum(nodata_count) nodata_count,\n" +
+                    "\t   ((select count(prev_state) from anno_tmp a where  prev_state='Normal')) as resolve_count,\n" +
+                    "\t\t((select count(prev_state) from anno_tmp a where  prev_state='Alerting')) as alarm_count,\n" +
+                    "\t\t((select count(prev_state) from anno_tmp a where prev_state='NoData')) as nodata_count,\n" +
+                    "\t\tcount(distinct host) as site_count,\n" +
+                    "\t\tcount(case when silenced then 1 else 0 end) as silence_count,\n" +
+                    "\t\tsum(case when resolve_count>0 then 1 else 0 end )resolve_host_count,\n" +
+                    "\t\tsum(case when alarm_count>0 then 1 else 0 end )alarm_host_count,\n" +
+                    "\t\tsum(case when nodata_count>0 then 1 else 0 end )nodata_host_count,\n" +
+                    "\t\tsum(case when silenced_count then 1 else 0 end )silenced_host_count,\n" +
+                    "\t\tcount(distinct case when severity = 'Alerting' then title else '' end ) distinct_alert_sensor_count,\n" +
+                    "\t\tcount(distinct case when severity != 'Alerting' then title else '' end ) distinct_invalid_sensor_count\n" +
+                    "from(\n" +
+                    "\n" +
+                    "select current_state  as severity,\n" +
+                    "\t\tar.title ,\n" +
+                    "\t\t(select v from atmp where k = 'grafana_folder' and atmp.rule_uid = ai.rule_uid  and atmp.labels_hash = ai.labels_hash)  as sensor, \n" +
+                    "\t\t(select v from atmp where k = 'host'           and atmp.rule_uid = ai.rule_uid  and atmp.labels_hash = ai.labels_hash)  as host, \n" +
+                    "\t\ttrim(both '\"' from (ar.annotations::jsonb->'alarm_id')::text)alarm_id, \n" +
+                    "\t\tTO_TIMESTAMP(ai.last_eval_time/1000)  time,\n" +
+                    "\t\t(select True from silence   where silence.state = 'active' and silence.silenced = ai.labels_hash  limit 1)  as silenced,\n" +
+                    "\t\t(select True from silence_history   where silence_history.state = 'active' and silence_history.silenced = ai.labels_hash  limit 1)  as silenced_count,\n" +
+                    "\t\t((select count(prev_state) from anno_tmp a where a.alert_id = ar.id and prev_state='Normal')) as resolve_count,\n" +
+                    "\t\t((select count(prev_state) from anno_tmp a where a.alert_id = ar.id and prev_state='Alerting')) as alarm_count,\n" +
+                    "\t\t((select count(prev_state) from anno_tmp a where a.alert_id = ar.id and prev_state='NoData')) as nodata_count,\n" +
+                    "\t\tar.id as main_alert_id,\n" +
+                    "\t\tar.uid as main_alert_uid\n" +
+                    "from alert_instance ai\n" +
+                    "left join alert_rule ar  on ai.rule_uid = ar.uid \n" +
+                    "\n" +
+                    ")r";
+
+    public static final String SAMPLE_QUERY_6_WITH_CACHE=
+            "--" + TEXT_CACHE + "=true\n"
+            + "--" + TEXT_TTL + "=60\n"
+            + "--" + TEXT_REFRESH + "=10\n"
+            //+ "--"+ TEXT_CACHE + "=true\n" +
+            + "--" + TEXT_DBTYPE + "=pg\n"
+            + "--columns=resolve_count,alarm_count,nodata_count,site_count,silence_count,resolve_host_count,alarm_host_count,nodata_host_count,silenced_host_count,distinct_alert_sensor_count,distinct_invalid_sensor_count"
+            + SAMPLE_QUERY_6;
 }

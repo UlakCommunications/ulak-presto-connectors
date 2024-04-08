@@ -17,6 +17,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import java.util.concurrent.CompletableFuture;
+
 import static com.facebook.presto.influxdb.InfluxdbUtil.*;
 
 public class RedisCacheWorker extends Thread{
@@ -24,10 +26,14 @@ public class RedisCacheWorker extends Thread{
     private static Logger logger = LoggerFactory.getLogger(RedisCacheWorker.class);
     private static ExecutorService executor = null;
 
-    public static final int N_THREADS = 10;
-
-    static {
+    public static int DEFAULT_N_THREADS = 10;
+    public static int N_THREADS = DEFAULT_N_THREADS;
+    public static void setNumThreads(int numThreads){
+        N_THREADS = numThreads;
         executor = Executors.newFixedThreadPool(N_THREADS);
+    }
+    public static int getNumThreads(){
+        return N_THREADS ;
     }
     private static Map<Integer, CacheUsageStats> stats = new LinkedHashMap<>();
     private static Object statLock = new Object();
@@ -83,7 +89,7 @@ public class RedisCacheWorker extends Thread{
     }
     @Override
     public void run() {
-        Map<String,Future<?>> futures = new LinkedHashMap<>();
+        Map<String,CompletableFuture<?>> futures = new LinkedHashMap<>();
         while(true) {
             boolean sleepWorked = false;
             try {
@@ -160,9 +166,22 @@ public class RedisCacheWorker extends Thread{
                                                 || (influxdbQueryParameters.getRows().size() == 0
                                                     && influxdbQueryParameters.isEagerCached())) {
 
-                                            logger.debug("Seconds passed : " + passed + " for " + influxdbQueryParameters.getHash());
+                                            logger.debug("Seconds passed : " + passed
+                                                    + " for " + influxdbQueryParameters.getHash());
 
-                                            futures.put(currentRedisKey, executor.submit(new RedisCacheWorkerItem(currentRedisKey, influxdbQueryParameters)));
+
+
+
+
+                                            futures.put(currentRedisKey,
+                                                    CompletableFuture.supplyAsync(
+                                                        new RedisCacheWorkerItem(currentRedisKey,
+                                                                influxdbQueryParameters), executor));
+
+//                                            futures.put(currentRedisKey,
+//                                                    executor.submit(
+//                                                            new RedisCacheWorkerItem(currentRedisKey,
+//                                                                    influxdbQueryParameters)));
 
                                             StringBuilder sb = new StringBuilder();
                                             for (Object key : futures.keySet()) {
