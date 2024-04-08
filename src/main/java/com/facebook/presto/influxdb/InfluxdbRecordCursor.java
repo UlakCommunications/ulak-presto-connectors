@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Iterator;
@@ -53,6 +54,9 @@ public class InfluxdbRecordCursor
             logger.error("Error getting cursor: " , e);
             throw new RuntimeException(e);
         } catch (ClassNotFoundException e) {
+            logger.error("Error getting cursor: " , e);
+            throw new RuntimeException(e);
+        } catch (SQLException e) {
             logger.error("Error getting cursor: " , e);
             throw new RuntimeException(e);
         }

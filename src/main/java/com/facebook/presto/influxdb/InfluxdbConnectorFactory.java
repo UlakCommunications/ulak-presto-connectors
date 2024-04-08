@@ -17,15 +17,25 @@ package com.facebook.presto.influxdb;
 import io.trino.spi.connector.Connector;
 import io.trino.spi.connector.ConnectorContext;
 import io.trino.spi.connector.ConnectorFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.Locale;
 import java.util.Map;
+
+import static com.facebook.presto.influxdb.RedisCacheWorker.DEFAULT_N_THREADS;
 
 public class InfluxdbConnectorFactory
         implements ConnectorFactory
 {
+    public static final String TEXT_CONNECTOR_INFLUXDB = "influxdb";
+    public static final String TEXT_CONNECTOR_PG = "mayapg";
+    private static Logger logger = LoggerFactory.getLogger(RedisCacheWorker.class);
+
     public String getName()
     {
-        return "influxdb";
+        return TEXT_CONNECTOR_INFLUXDB;
+//        return TEXT_CONNECTOR_PG;
     }
 
 //    @Override
@@ -38,14 +48,59 @@ public class InfluxdbConnectorFactory
     public Connector create(String catalogName, Map<String, String> config, ConnectorContext context)
     {
         String url = config.get("connection-url");
-        InfluxdbConnector connector = new InfluxdbConnector(url,
-                catalogName,
-                config.get("connection-org"),
-                config.get("connection-token"),
-                config.get("connection-bucket"),
-                config.get("redis-url"),
-                config.get("keywords"),
-                context.getNodeManager().getCurrentNode().isCoordinator());
+        String sNumThreads = config.get("number_of_worker_threads");
+        int numThreads = DEFAULT_N_THREADS;
+        if(sNumThreads != null && !sNumThreads.trim().equals("")){
+            try {
+                numThreads = Integer.parseInt(sNumThreads);
+            }catch (Throwable e){
+                logger.error("Unable to parse sNumThreads: " + sNumThreads,e);
+            }
+        }
+        String sRunInCoordinatorOnly = config.get("run_in_coordinator_only");
+        boolean runInCoordinatorOnly = false;
+        if(sRunInCoordinatorOnly != null && !sRunInCoordinatorOnly.trim().equals(""))
+        {
+            runInCoordinatorOnly = sRunInCoordinatorOnly.trim().toLowerCase(Locale.ENGLISH).equals("true");
+        }
+        String sWorkerIndexToRunIn = config.get("worker_id_to_run_in");
+        InfluxdbConnector connector = null;
+        switch ( getName()){
+            case TEXT_CONNECTOR_INFLUXDB:
+                connector = new InfluxdbConnector(DBType.INFLUXDB2,
+                        url,
+                        catalogName,
+                        config.get("connection-org"),
+                        config.get("connection-token"),
+                        config.get("connection-bucket"),
+                        config.get("redis-url"),
+                        config.get("keywords"),
+                        runInCoordinatorOnly,
+                        context.getNodeManager().getCurrentNode().getNodeIdentifier(),
+                        sWorkerIndexToRunIn,
+                        context.getNodeManager().getCurrentNode().isCoordinator(),
+                        numThreads,
+                        config.get("pg-connection-url"),
+                        config.get("pg-connection-user"),
+                        config.get("pg-connection-password"));
+            case TEXT_CONNECTOR_PG:
+                connector = new InfluxdbConnector(DBType.PG,
+                        url,
+                        catalogName,
+                        config.get("connection-org"),
+                        config.get("connection-token"),
+                        config.get("connection-bucket"),
+                        config.get("redis-url"),
+                        config.get("keywords"),
+                        runInCoordinatorOnly,
+                        context.getNodeManager().getCurrentNode().getNodeIdentifier(),
+                        sWorkerIndexToRunIn,
+                        context.getNodeManager().getCurrentNode().isCoordinator(),
+                        numThreads,
+                        config.get("pg-connection-url"),
+                        config.get("pg-connection-user"),
+                        config.get("pg-connection-password"));
+        }
 
         return connector;
     }

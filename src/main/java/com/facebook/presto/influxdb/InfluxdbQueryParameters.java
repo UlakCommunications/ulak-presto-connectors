@@ -15,6 +15,7 @@ public class InfluxdbQueryParameters {
     public static final String TEXT_CACHE = "cache";
     public static final String TEXT_REFRESH = "refresh";
     public static final String TEXT_COLUMNS = "columns";
+    public static final String TEXT_DBTYPE = "dbtype";
     public static final String TEXT_EAGER_CACHE = "eagercache";
     private static Logger logger = LoggerFactory.getLogger(InfluxdbQueryParameters.class);
 
@@ -33,6 +34,16 @@ public class InfluxdbQueryParameters {
     private long start;
     private long finish;
     private String error;
+
+    public DBType getDbType() {
+        return dbType;
+    }
+
+    public void setDbType(DBType dbType) {
+        this.dbType = dbType;
+    }
+
+    DBType dbType = DBType.INFLUXDB2;
 
     public String getQuery() {
         return query;
@@ -62,12 +73,13 @@ public class InfluxdbQueryParameters {
 
     }
 
-    public InfluxdbQueryParameters(String query, int hash, List<InfluxdbRow> rows, String[] columns) {
+    public InfluxdbQueryParameters(String query, int hash, List<InfluxdbRow> rows, String[] columns, DBType dbType) {
         this();
         this.query = query;
         this.hash = hash;
         this.rows = rows;
         this.columns = columns;
+        this.dbType = dbType;
     }
 
     public static String getTableNameForHash(String tableName){
@@ -104,7 +116,7 @@ public class InfluxdbQueryParameters {
             //get query parameters
             current = current.trim();
             while (!current.equals("") && current.length() > 0) {
-                if (current.startsWith("/")) {
+                if (current.startsWith("/") || current.startsWith("-")) {
                     current = current.substring(1).trim();
                 } else {
                     break;
@@ -137,6 +149,9 @@ public class InfluxdbQueryParameters {
                         case TEXT_COLUMNS:
                             String[] vs = value.split(",");
                             ret.setColumns(vs);
+                            break;
+                        case TEXT_DBTYPE:
+                            ret.setDbType(DBType.valueOf(value.toUpperCase(Locale.ENGLISH)));
                             break;
                         case TEXT_EAGER_CACHE:
                             ret.setEagerCached(Boolean.parseBoolean(value));

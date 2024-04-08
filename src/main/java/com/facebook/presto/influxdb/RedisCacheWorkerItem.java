@@ -8,21 +8,22 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisDataException;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 
 import static com.facebook.presto.influxdb.InfluxdbUtil.*;
 
-public class RedisCacheWorkerItem extends Thread {
+public class RedisCacheWorkerItem extends Thread implements Supplier<String> {
 
     private static Logger logger = LoggerFactory.getLogger(RedisCacheWorkerItem.class);
     private final String key;
     private final InfluxdbQueryParameters influxdbQueryParameters;
-
     public RedisCacheWorkerItem(String key, InfluxdbQueryParameters influxdbQueryParameters) {
         this.key = key;
         this.influxdbQueryParameters = influxdbQueryParameters;
@@ -38,6 +39,15 @@ public class RedisCacheWorkerItem extends Thread {
             logger.error("IOException", e);
         } catch (ClassNotFoundException e) {
             logger.error("ClassNotFoundException", e);
+        } catch (SQLException e) {
+            logger.error("SQLException" , e);
+            throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public String get() {
+        run();
+        return "finished";
     }
 }
