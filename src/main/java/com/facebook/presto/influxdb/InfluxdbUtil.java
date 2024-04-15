@@ -58,6 +58,8 @@ public class InfluxdbUtil {
             put("valuecolumn", "valueColumn");
             put("windowperiod", "windowPeriod");
             put("timesrc", "timeSrc");
+            put("tolower", "toLower");
+            put("toupper", "toUpper");
         }
     };
     public static void setKeywords(String ks){

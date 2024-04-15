@@ -1,20 +1,10 @@
 package com.facebook.presto.influxdb;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.exceptions.JedisConnectionException;
-import redis.clients.jedis.exceptions.JedisDataException;
+import redis.clients.jedis.JedisPool;
 
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 import static com.facebook.presto.influxdb.InfluxdbUtil.*;
@@ -23,25 +13,36 @@ public class RedisCacheWorkerItem extends Thread implements Supplier<String> {
 
     private static Logger logger = LoggerFactory.getLogger(RedisCacheWorkerItem.class);
     private final String key;
-    private final InfluxdbQueryParameters influxdbQueryParameters;
-    public RedisCacheWorkerItem(String key, InfluxdbQueryParameters influxdbQueryParameters) {
+    public RedisCacheWorkerItem(String key) {
         this.key = key;
-        this.influxdbQueryParameters = influxdbQueryParameters;
     }
 
     @Override
     public void run() {
+
+        InfluxdbQueryParameters influxdbQueryParameters = null;
+        //do not clutch if no redis
+        JedisPool pool = null;
+
         try {
-            InfluxdbUtil.select(influxdbQueryParameters, true);
-        } catch (JsonProcessingException e) {
-            logger.error("JsonProcessingException", e);
-        } catch (IOException e) {
-            logger.error("IOException", e);
-        } catch (ClassNotFoundException e) {
-            logger.error("ClassNotFoundException", e);
-        } catch (SQLException e) {
-            logger.error("SQLException" , e);
-            throw new RuntimeException(e);
+            pool = getJedisPool();
+
+            try (Jedis jedis = pool.getResource()) {
+                try {
+                    String json = jedis.get(key);
+                    if (json == null) {
+                        logger.error("Key does not exists (ttl expired?): {}", key);
+                    }
+                    influxdbQueryParameters = getObjectMapper().readValue(json,
+                            InfluxdbQueryParameters.class);
+
+                    InfluxdbUtil.select(influxdbQueryParameters, true);
+                } catch (Throwable e) {
+                    logger.error("Query Execution Error: {}/{}", this.key, influxdbQueryParameters != null ? influxdbQueryParameters.getName() : "", e);
+                }
+            }
+        } catch (Throwable e) {
+            logger.error("Query Execution Error: {}/{}", this.key, influxdbQueryParameters != null ? influxdbQueryParameters.getName() : "", e);
         }
     }
 
