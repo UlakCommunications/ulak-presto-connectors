@@ -75,6 +75,7 @@ public class RedisCacheWorker extends Thread{
             }
 
             sb.append("{\"key\":\"" + key
+                    + "\",\"name\":\""+ influxdbQueryParameters.getName()
                     + "\",\"start\":"+ influxdbQueryParameters.getStart()
                     + ",\"startSeconds\":"+ ((System.currentTimeMillis() - influxdbQueryParameters.getStart())/1000)
                     +",\"stop\":"+ influxdbQueryParameters.getFinish()
@@ -169,14 +170,10 @@ public class RedisCacheWorker extends Thread{
                                             logger.debug("Seconds passed : " + passed
                                                     + " for " + influxdbQueryParameters.getHash());
 
-
-
-
-
                                             futures.put(currentRedisKey,
                                                     CompletableFuture.supplyAsync(
-                                                        new RedisCacheWorkerItem(currentRedisKey,
-                                                                influxdbQueryParameters), executor));
+                                                        new RedisCacheWorkerItem(currentRedisKey ),
+                                                            executor));
 
 //                                            futures.put(currentRedisKey,
 //                                                    executor.submit(

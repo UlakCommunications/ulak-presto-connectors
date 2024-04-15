@@ -17,6 +17,7 @@ public class InfluxdbQueryParameters {
     public static final String TEXT_COLUMNS = "columns";
     public static final String TEXT_DBTYPE = "dbtype";
     public static final String TEXT_EAGER_CACHE = "eagercache";
+    public static final String TEXT_NAME = "name";
     private static Logger logger = LoggerFactory.getLogger(InfluxdbQueryParameters.class);
 
     public static final String NEW_LINE_CHAR = System.lineSeparator();
@@ -44,6 +45,9 @@ public class InfluxdbQueryParameters {
     }
 
     DBType dbType = DBType.INFLUXDB2;
+
+
+    String name = "";
 
     public String getQuery() {
         return query;
@@ -156,6 +160,9 @@ public class InfluxdbQueryParameters {
                         case TEXT_EAGER_CACHE:
                             ret.setEagerCached(Boolean.parseBoolean(value));
                             break;
+                        case TEXT_NAME:
+                            ret.setName(value);
+                            break;
                     }
                 } catch (Throwable e) {
                     logger.error("getQueryParameters: " + param + "/" + value);
@@ -239,5 +246,13 @@ public class InfluxdbQueryParameters {
 
     public void setError(String error) {
         this.error = error;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }
