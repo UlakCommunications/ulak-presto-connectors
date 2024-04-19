@@ -47,7 +47,7 @@ public class InfluxdbUtil {
     public static boolean isCoordinator;
     public static String workerId;
     public static String workerIndexToRunIn;
-    private static Map<String, String> keywords = new HashMap<String, String>() {
+    private final static Map<String, String> const_keywords = new HashMap<String, String>() {
         {
             put("aggregatewindow", "aggregateWindow");
             put("createempty", "createEmpty");
@@ -62,6 +62,7 @@ public class InfluxdbUtil {
             put("toupper", "toUpper");
         }
     };
+    private static Map<String, String> keywords =new LinkedHashMap<>(const_keywords);
     public static void setKeywords(String ks){
         logger.error("Current keywords count :" + keywords.size());
         synchronized (inProgressLock) {
@@ -169,25 +170,15 @@ public class InfluxdbUtil {
     }
 
     public static String arrangeCase(String query) {
-        if (keywords == null || keywords.size() == 0) {
-            logger.debug("Current are empty :" + keywords.size());
-            return query
-                    .replaceAll("aggregatewindow", "aggregateWindow")
-                    .replaceAll("createempty", "createEmpty")
-                    .replaceAll("columnkey", "columnKey")
-                    .replaceAll("nonnegative", "nonNegative")
-                    .replaceAll("rowkey", "rowKey")
-                    .replaceAll("useprevious", "usePrevious")
-                    .replaceAll("valuecolumn", "valueColumn")
-                    .replaceAll("windowperiod", "windowPeriod")
-                    .replaceAll("timesrc", "timeSrc");
-        } else {
-            for (Map.Entry<String, String> kv: keywords.entrySet()){
-                query = query.replaceAll(kv.getKey(),kv.getValue());
-                logger.debug("Replacing keyword :" + kv.getKey() + " with " + kv.getValue() + " : Resulting in :" + query);
-            }
-            return query;
+        Map<String, String> ktr = keywords;
+        if (ktr == null || ktr.size() == 0) {
+            ktr = const_keywords;
         }
+        for (Map.Entry<String, String> kv: ktr.entrySet()){
+            query = query.replaceAll(kv.getKey(),kv.getValue());
+            logger.debug("Replacing keyword :" + kv.getKey() + " with " + kv.getValue() + " : Resulting in :" + query);
+        }
+        return query;
     }
     public static Map<Integer, Integer> inProgressLocks = new LinkedHashMap<>();
 //    private static Object columnsGetLock = new Object();
