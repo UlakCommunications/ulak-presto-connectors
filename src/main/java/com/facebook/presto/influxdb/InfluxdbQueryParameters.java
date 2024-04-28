@@ -77,14 +77,14 @@ public class InfluxdbQueryParameters {
 
     }
 
-    public InfluxdbQueryParameters(String query, int hash, List<InfluxdbRow> rows, String[] columns, DBType dbType) {
-        this();
-        this.query = query;
-        this.hash = hash;
-        this.rows = rows;
-        this.columns = columns;
-        this.dbType = dbType;
-    }
+//    public InfluxdbQueryParameters(String query, int hash, List<InfluxdbRow> rows, String[] columns, DBType dbType) {
+//        this();
+//        this.query = query;
+//        this.hash = hash;
+//        this.rows = rows;
+//        this.columns = columns;
+//        this.dbType = dbType;
+//    }
 
     public static String getTableNameForHash(String tableName){
         String lastTableName = tableName;

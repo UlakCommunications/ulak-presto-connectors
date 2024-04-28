@@ -29,7 +29,7 @@ public class InfluxdbConnectorFactory
         implements ConnectorFactory
 {
     public static final String TEXT_CONNECTOR_INFLUXDB = "influxdb";
-    public static final String TEXT_CONNECTOR_PG = "mayapg";
+//    public static final String TEXT_CONNECTOR_PG = "mayapg";
     private static Logger logger = LoggerFactory.getLogger(RedisCacheWorker.class);
 
     public String getName()
@@ -67,7 +67,7 @@ public class InfluxdbConnectorFactory
         InfluxdbConnector connector = null;
         switch ( getName()){
             case TEXT_CONNECTOR_INFLUXDB:
-                connector = new InfluxdbConnector(DBType.INFLUXDB2,
+                connector = new InfluxdbConnector(
                         url,
                         catalogName,
                         config.get("connection-org"),
@@ -83,23 +83,23 @@ public class InfluxdbConnectorFactory
                         config.get("pg-connection-url"),
                         config.get("pg-connection-user"),
                         config.get("pg-connection-password"));
-            case TEXT_CONNECTOR_PG:
-                connector = new InfluxdbConnector(DBType.PG,
-                        url,
-                        catalogName,
-                        config.get("connection-org"),
-                        config.get("connection-token"),
-                        config.get("connection-bucket"),
-                        config.get("redis-url"),
-                        config.get("keywords"),
-                        runInCoordinatorOnly,
-                        context.getNodeManager().getCurrentNode().getNodeIdentifier(),
-                        sWorkerIndexToRunIn,
-                        context.getNodeManager().getCurrentNode().isCoordinator(),
-                        numThreads,
-                        config.get("pg-connection-url"),
-                        config.get("pg-connection-user"),
-                        config.get("pg-connection-password"));
+//            case TEXT_CONNECTOR_PG:
+//                connector = new InfluxdbConnector(DBType.PG,
+//                        url,
+//                        catalogName,
+//                        config.get("connection-org"),
+//                        config.get("connection-token"),
+//                        config.get("connection-bucket"),
+//                        config.get("redis-url"),
+//                        config.get("keywords"),
+//                        runInCoordinatorOnly,
+//                        context.getNodeManager().getCurrentNode().getNodeIdentifier(),
+//                        sWorkerIndexToRunIn,
+//                        context.getNodeManager().getCurrentNode().isCoordinator(),
+//                        numThreads,
+//                        config.get("pg-connection-url"),
+//                        config.get("pg-connection-user"),
+//                        config.get("pg-connection-password"));
         }
 
         return connector;

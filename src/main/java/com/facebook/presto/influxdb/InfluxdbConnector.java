@@ -26,7 +26,7 @@ import static com.facebook.presto.influxdb.RedisCacheWorker.setNumThreads;
 public class InfluxdbConnector
         implements Connector
 {
-    private DBType dbType=DBType.INFLUXDB2;
+//    private DBType dbType=DBType.INFLUXDB2;
     static RedisCacheWorker redisCacheWorker = null;
 
     private static Logger logger = LoggerFactory.getLogger(InfluxdbConnector.class);
@@ -36,8 +36,7 @@ public class InfluxdbConnector
 
     private final InfluxdbRecordSetProvider recordSetProvider;
 
-    public InfluxdbConnector(DBType dbType,
-                             String url,
+    public InfluxdbConnector(String url,
                              String catalogName,
                              String org,
                              String token,
@@ -54,8 +53,8 @@ public class InfluxdbConnector
                              String pgPassword) {
         // need to get database connection here
         logger.debug("Connector by url: " + url);
-        switch (dbType) {
-            case INFLUXDB2:
+//        switch (dbType) {
+//            case INFLUXDB2:
                 try {
                     InfluxdbUtil.instance(url, org, token, bucket);
                 } catch (IOException e) {
@@ -68,17 +67,17 @@ public class InfluxdbConnector
                         logger.error("InfluxdbConnector", e);
                     }
                 }
-                break;
-            case PG:
-                try {
-                    PGUtil.instance(pgUrl, pgUsername, pgPassword);
-                } catch (IOException e) {
-                    logger.error("InfluxdbConnector", e);
-                }
-                break;
-        }
+//                break;
+//            case PG:
+//                try {
+//                    PGUtil.instance(pgUrl, pgUsername, pgPassword);
+//                } catch (IOException e) {
+//                    logger.error("InfluxdbConnector", e);
+//                }
+//                break;
+//        }
 
-        this.metadata = InfluxdbMetadata.getInstance(dbType, catalogName);
+        this.metadata = InfluxdbMetadata.getInstance(catalogName);
         this.splitManager = InfluxdbSplitManager.getInstance();
         this.recordSetProvider = InfluxdbRecordSetProvider.getInstance();
         InfluxdbUtil.redisUrl = redisUrl;
