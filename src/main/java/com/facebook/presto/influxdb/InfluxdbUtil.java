@@ -184,13 +184,13 @@ public class InfluxdbUtil {
 //    private static Object columnsGetLock = new Object();
     public static Object inProgressLock = new Object();
 
-    public static List<ColumnMetadata> getColumns(DBType dbType, String bucket, String tableName) throws IOException, ClassNotFoundException {
+    public static List<ColumnMetadata> getColumns(String bucket, String tableName) throws IOException, ClassNotFoundException {
         logger.debug("influxdbUtil bucket:" + bucket + "table:" + tableName + " columnsMetadata");
         List<ColumnMetadata> res = new ArrayList<>();
 
         Iterator<InfluxdbRow> tables =null;
-        switch (dbType){
-            case  INFLUXDB2:
+//        switch (dbType){
+//            case  INFLUXDB2:
                 try {
                     tables = InfluxdbUtil.select(tableName,false);
                 } catch (IOException e) {
@@ -200,18 +200,18 @@ public class InfluxdbUtil {
                 } catch (SQLException e) {
                     logger.error("ClassNotFoundException", e);
                 }
-            case  PG:
-                try {
-                    tables = PGUtil.select(tableName,false);;
-                } catch (IOException e) {
-                    logger.error("IOException", e);
-                } catch (ClassNotFoundException e) {
-                    logger.error("ClassNotFoundException", e);
-                } catch (SQLException e) {
-                    logger.error("ClassNotFoundException", e);
-                    throw new RuntimeException(e);
-                }
-        }
+//            case  PG:
+//                try {
+//                    tables = PGUtil.select(tableName,false);;
+//                } catch (IOException e) {
+//                    logger.error("IOException", e);
+//                } catch (ClassNotFoundException e) {
+//                    logger.error("ClassNotFoundException", e);
+//                } catch (SQLException e) {
+//                    logger.error("ClassNotFoundException", e);
+//                    throw new RuntimeException(e);
+//                }
+//        }
 
 
         if(tables.hasNext()) {
@@ -488,7 +488,7 @@ public class InfluxdbUtil {
         query = query.toLowerCase(Locale.ENGLISH);
         logger.info("Testing no-cache queries");
         while(index <runCount) {
-            getColumns(dbType, "", query);
+            getColumns("", query);
             logger.info("columns 1: " + index);
             switch (dbType){
                 case INFLUXDB2:

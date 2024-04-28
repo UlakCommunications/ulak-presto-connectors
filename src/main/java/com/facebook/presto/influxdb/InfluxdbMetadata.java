@@ -35,18 +35,16 @@ public class InfluxdbMetadata
     private static Logger logger = LoggerFactory.getLogger(InfluxdbMetadata.class);
     private static InfluxdbMetadata single;
     private static String connectorId;
-    private final DBType dbType;
 
-    private InfluxdbMetadata(DBType dbType, String catalogName)
+    private InfluxdbMetadata(String catalogName)
     {
-        this.dbType = dbType;
         connectorId = new InfluxdbConnectorId(catalogName).toString();
     }
 
-    public static InfluxdbMetadata getInstance(DBType dbType, String catalogName)
+    public static InfluxdbMetadata getInstance(String catalogName)
     {
         if (single == null) {
-            single = new InfluxdbMetadata(dbType, catalogName);
+            single = new InfluxdbMetadata(catalogName);
         }
         return single;
     }
@@ -56,21 +54,21 @@ public class InfluxdbMetadata
     public List<String> listSchemaNames(ConnectorSession session)
     {
         logger.debug("influxdbMetadata--bucket names");
-        switch (dbType){
-            case  INFLUXDB2:
+//        switch (dbType){
+//            case  INFLUXDB2:
                 return InfluxdbUtil.getSchemas();
-            case  PG:
-                try {
-                    return PGUtil.getSchemas();
-                } catch (SQLException e) {
-                    logger.error("InfluxdbConnector", e);
-                    throw new RuntimeException(e);
-                } catch (JsonProcessingException e) {
-                    logger.error("InfluxdbConnector", e);
-                    throw new RuntimeException(e);
-                }
-        }
-        throw new RuntimeException("Invalid dbType: " + dbType);
+//            case  PG:
+//                try {
+//                    return PGUtil.getSchemas();
+//                } catch (SQLException e) {
+//                    logger.error("InfluxdbConnector", e);
+//                    throw new RuntimeException(e);
+//                } catch (JsonProcessingException e) {
+//                    logger.error("InfluxdbConnector", e);
+//                    throw new RuntimeException(e);
+//                }
+//        }
+//        throw new RuntimeException("Invalid dbType: " + dbType);
     }
 
     @Override
@@ -97,20 +95,20 @@ public class InfluxdbMetadata
         }
         List<String> tables = null;
         String schema = schemaName.get();
-        switch (dbType){
-            case  INFLUXDB2:
+//        switch (dbType){
+//            case  INFLUXDB2:
                 tables = InfluxdbUtil.getTableNames(schema);
-            case  PG:
-                try {
-                    tables =  PGUtil.getTableNames(schema);
-                } catch (SQLException e) {
-                    logger.error("InfluxdbConnector", e);
-                    throw new RuntimeException(e);
-                } catch (JsonProcessingException e) {
-                    logger.error("InfluxdbConnector", e);
-                    throw new RuntimeException(e);
-                }
-        }
+//            case  PG:
+//                try {
+//                    tables =  PGUtil.getTableNames(schema);
+//                } catch (SQLException e) {
+//                    logger.error("InfluxdbConnector", e);
+//                    throw new RuntimeException(e);
+//                } catch (JsonProcessingException e) {
+//                    logger.error("InfluxdbConnector", e);
+//                    throw new RuntimeException(e);
+//                }
+//        }
         for (String table : tables) {
             listTable.add(new SchemaTableName(schema, table));
         }
@@ -129,7 +127,7 @@ public class InfluxdbMetadata
         InfluxdbTableHandle influxdbTableHandle = (InfluxdbTableHandle) table;
         List<ColumnMetadata> list = null;
         try {
-            list = InfluxdbUtil.getColumns(dbType, influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
+            list = InfluxdbUtil.getColumns(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
         } catch (IOException e) {
             logger.error("IOException", e);
         } catch (ClassNotFoundException e) {
@@ -147,7 +145,7 @@ public class InfluxdbMetadata
         Map<String, ColumnHandle> res = new HashMap<>();
         List<ColumnMetadata> list = null;
         try {
-            list = InfluxdbUtil.getColumns(dbType, influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
+            list = InfluxdbUtil.getColumns(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
 
             for (int i = 0; i < list.size(); ++i) {
                 ColumnMetadata metadata = list.get(i);
@@ -170,7 +168,7 @@ public class InfluxdbMetadata
         for (SchemaTableName tableName : list) {
             if (tableName.getTableName().startsWith(prefix.getTable().get())) {
                 try {
-                    columns.put(tableName, InfluxdbUtil.getColumns(dbType, session.getSource().get(), tableName.getTableName()));
+                    columns.put(tableName, InfluxdbUtil.getColumns(session.getSource().get(), tableName.getTableName()));
                 } catch (IOException e) {
                     logger.error("IOException", e);
                     throw new RuntimeException(e);
