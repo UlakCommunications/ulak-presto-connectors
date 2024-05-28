@@ -15,12 +15,15 @@ package com.facebook.presto.influxdb;
 
 import com.google.common.collect.ImmutableList;
 import io.trino.spi.connector.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 public class InfluxdbRecordSetProvider
         implements ConnectorRecordSetProvider
 {
+    private static Logger logger = LoggerFactory.getLogger(InfluxdbConnector.class);
     private static InfluxdbRecordSetProvider single;
 
     public static InfluxdbRecordSetProvider getInstance()
@@ -38,7 +41,7 @@ public class InfluxdbRecordSetProvider
         for (ColumnHandle handle : columns) {
             InfluxdbColumnHandle influxdbColumnHandle = (InfluxdbColumnHandle) handle;
             handles.add(influxdbColumnHandle);
-            System.out.println(influxdbColumnHandle.getColumnName() + ":" + influxdbColumnHandle.getColumnType());
+           logger.debug(influxdbColumnHandle.getColumnName() + ":" + influxdbColumnHandle.getColumnType());
         }
         return new InfluxdbRecordSet(influxdbSplit, handles.build());
     }

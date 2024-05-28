@@ -22,6 +22,11 @@ import io.trino.spi.type.DoubleType;
 import io.trino.spi.type.TimestampType;
 import io.trino.spi.type.VarcharType;
 import io.trino.spi.type.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Iterator;
@@ -33,6 +38,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class InfluxdbRecordCursor
         implements RecordCursor
 {
+    private static Logger logger = LoggerFactory.getLogger(InfluxdbUtil.class);
     private final List<InfluxdbColumnHandle> columnHandles;
 
     private final Iterator<InfluxdbRow> iterator;
@@ -42,7 +48,18 @@ public class InfluxdbRecordCursor
     public InfluxdbRecordCursor(List<InfluxdbColumnHandle> columnHandles, InfluxdbSplit split)
     {
         this.columnHandles = columnHandles;
-        this.iterator = InfluxdbUtil.select(split.getTableName());
+        try {
+            this.iterator = InfluxdbUtil.select(split.getTableName(), false);
+        } catch (IOException e) {
+            logger.error("Error getting cursor: " , e);
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            logger.error("Error getting cursor: " , e);
+            throw new RuntimeException(e);
+        } catch (SQLException e) {
+            logger.error("Error getting cursor: " , e);
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -90,7 +107,10 @@ public class InfluxdbRecordCursor
         checkFieldType(field, DoubleType.DOUBLE);
         String columnName = columnHandles.get(field).getColumnName();
         Object value = row.getColumnMap().get(columnName);
-        System.out.println(value.toString());
+        if(value==null){
+            value = 0.0;
+        }
+        logger.debug(value.toString());
         return Double.parseDouble(value == null ? "1" : value.toString());
     }
 
