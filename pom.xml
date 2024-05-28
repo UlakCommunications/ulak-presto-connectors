@@ -67,7 +67,21 @@
       <artifactId>trino-plugin-toolkit</artifactId>
       <version>432</version>
     </dependency>
-<!--    <dependency>-->
+
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>42.7.2</version>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/commons-dbcp/commons-dbcp -->
+    <dependency>
+      <groupId>commons-dbcp</groupId>
+      <artifactId>commons-dbcp</artifactId>
+      <version>1.4</version>
+    </dependency>
+
+    <!--    <dependency>-->
 <!--      <groupId>io.trino</groupId>-->
 <!--      <artifactId>trino-common</artifactId>-->
 <!--      <version>422</version>-->
@@ -95,7 +109,17 @@
       <version>2.0.0</version>
     </dependency>
 
-
+    <dependency>
+      <groupId>redis.clients</groupId>
+      <artifactId>jedis</artifactId>
+      <version>5.1.2</version>
+    </dependency>
+<!--    Java 8 date/time type `java.time.Instant` not supported by default: add Module "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" to enable handling-->
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+      <version>2.16.1</version>
+    </dependency>
   </dependencies>
 
   <build>
