@@ -15,6 +15,7 @@
 package com.facebook.presto.influxdb;
 
 import com.facebook.presto.pg.PGUtil;
+import com.facebook.presto.quickwit.QwUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -25,6 +26,7 @@ import com.influxdb.client.QueryApi;
 import com.influxdb.client.domain.Bucket;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
+import com.quickwit.javaclient.ApiException;
 import io.trino.spi.connector.ColumnMetadata;
 import io.trino.spi.type.VarcharType;
 import org.slf4j.Logger;
@@ -198,7 +200,9 @@ public class InfluxdbUtil {
                 } catch (ClassNotFoundException e) {
                     logger.error("ClassNotFoundException", e);
                 } catch (SQLException e) {
-                    logger.error("ClassNotFoundException", e);
+                    logger.error("SQLException", e);
+                } catch (ApiException e) {
+                    logger.error("ApiException", e);
                 }
 //            case  PG:
 //                try {
@@ -284,15 +288,18 @@ public class InfluxdbUtil {
     }
 
     public static Iterator<InfluxdbRow> select(String tableName,
-                                               boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException {
+                                               boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException, ApiException {
 
         InfluxdbQueryParameters influxdbQueryParameters = InfluxdbQueryParameters.getQueryParameters(tableName);
         return select(influxdbQueryParameters,forceRefresh);
     }
     public static Iterator<InfluxdbRow> select(InfluxdbQueryParameters influxdbQueryParameters,
-                                               boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException {
+                                               boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException, ApiException {
         if(influxdbQueryParameters.dbType == DBType.PG) {
             return PGUtil.select(influxdbQueryParameters,forceRefresh);
+        }
+        if(influxdbQueryParameters.dbType == DBType.QW) {
+            return QwUtil.select(influxdbQueryParameters,forceRefresh);
         }
         int hash = influxdbQueryParameters.getHash();
         influxdbQueryParameters.setStart(System.currentTimeMillis());
@@ -438,7 +445,7 @@ public class InfluxdbUtil {
         }
         return null;
     }
-    public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException, SQLException {
+    public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException, SQLException, ApiException {
         DBType dbType= DBType.INFLUXDB2;
         long start = System.currentTimeMillis();
 
@@ -483,7 +490,7 @@ public class InfluxdbUtil {
         }
     }
 
-    private static void tryOneQuery(DBType dbType, String query, int runCount) throws IOException, ClassNotFoundException, SQLException {
+    private static void tryOneQuery(DBType dbType, String query, int runCount) throws IOException, ClassNotFoundException, SQLException, ApiException {
         int index=0;
         query = query.toLowerCase(Locale.ENGLISH);
         logger.info("Testing no-cache queries");
@@ -497,6 +504,10 @@ public class InfluxdbUtil {
                     break;
                 case PG:
                     PGUtil.select(query, true);
+                    logger.info("query 1: " + index);
+                    break;
+                case QW:
+                    QwUtil.select(query, true);
                     logger.info("query 1: " + index);
                     break;
             }
