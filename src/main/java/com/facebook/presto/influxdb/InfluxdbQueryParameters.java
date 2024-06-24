@@ -85,14 +85,18 @@ public class InfluxdbQueryParameters {
 //        this.columns = columns;
 //        this.dbType = dbType;
 //    }
-
-    public static String getTableNameForHash(String tableName){
+    public static String replaceAll(String tableName, String find, String replace){
         String lastTableName = tableName;
         String beforeTableName = tableName;
         do{
             beforeTableName = lastTableName;
-            lastTableName = lastTableName.replaceAll("(.*)(\\/\\/.*)","");
+            lastTableName = lastTableName.replaceAll(find,replace);
         }while (!lastTableName.equals(beforeTableName));
+        return lastTableName;
+    }
+    public static String getTableNameForHash(String tableName){
+        String lastTableName = replaceAll(tableName,"(.*)(\\/\\/.*)","");
+
 
         String[] splits = lastTableName.split(NEW_LINE_CHAR);
         List<String> newLines = new ArrayList<>();
