@@ -473,18 +473,27 @@ public class InfluxdbUtil {
 //        tryOneQuery(dbType, SAMPLE_QUERY_3, 1);
 //        tryOneQuery(dbType, SAMPLE_QUERY_3_WITH_CACHE, 1);
 
-        dbType = DBType.PG;
-        PGUtil.pgUrl = "jdbc:postgresql://10.20.4.53:30758/grafana";
-        PGUtil.pgUser = "postgres";
-        PGUtil.pgPwd = "m1latDB";
-//        redisUrl = "redis://:ulak@10.20.4.53:31671";
-        PGUtil.instance(PGUtil.pgUrl,
-                PGUtil.pgUser,
-                PGUtil.pgPwd);
+//        dbType = DBType.PG;
+//        PGUtil.pgUrl = "jdbc:postgresql://10.20.4.53:30758/grafana";
+//        PGUtil.pgUser = "postgres";
+//        PGUtil.pgPwd = "m1latDB";
+////        redisUrl = "redis://:ulak@10.20.4.53:31671";
+//        PGUtil.instance(PGUtil.pgUrl,
+//                PGUtil.pgUser,
+//                PGUtil.pgPwd);
+//        setKeywords("");
+////        tryOneQuery(dbType, SAMPLE_QUERY_6, 1);
+//        tryOneQuery(dbType, SAMPLE_QUERY_6_WITH_CACHE, 1);
+
+
+        dbType = DBType.QW;
+        QwUtil.qwUrl = "http://10.20.4.53:31410";
+        QwUtil.qwIndex = "metrics3";
+        QwUtil.instance(QwUtil.qwUrl,
+                QwUtil.qwIndex);
         setKeywords("");
 //        tryOneQuery(dbType, SAMPLE_QUERY_6, 1);
-        tryOneQuery(dbType, SAMPLE_QUERY_6_WITH_CACHE, 1);
-
+        tryOneQuery(dbType, SAMPLE_QUERY_7_WITH_CACHE, 1);
         logger.info(String.valueOf(System.currentTimeMillis() - start));
         //TODO: test cache disable
         if(InfluxdbConnector.redisCacheWorker!=null) {

@@ -115,14 +115,15 @@ public class QwUtil {
                                                boolean forceRefresh) throws IOException,  ApiException {
 
         InfluxdbQueryParameters influxdbQueryParameters = InfluxdbQueryParameters.getQueryParameters(tableName);
-        String q = influxdbQueryParameters.getQuery();
-        influxdbQueryParameters.setQuery(replaceAll(q,"\\|"," "));
-        influxdbQueryParameters.setDbType(DBType.QW);
         return select(influxdbQueryParameters, forceRefresh);
     }
 
     public static Iterator<InfluxdbRow> select(InfluxdbQueryParameters influxdbQueryParameters,
                                                boolean forceRefresh) throws IOException,  ApiException {
+        String q = influxdbQueryParameters.getQuery();
+        influxdbQueryParameters.setQuery(replaceAll(q,"\\|"," "));
+        influxdbQueryParameters.setDbType(DBType.QW);
+
         int hash = influxdbQueryParameters.getHash();
         influxdbQueryParameters.setStart(System.currentTimeMillis());
 
@@ -232,8 +233,12 @@ public class QwUtil {
 
         for(Map.Entry<String, Object> agg:aggregation.entrySet()) {
             String aggKey = agg.getKey();
-            Map<String, Object> aggValue = (Map<String, Object>) agg.getValue();
-            arrangeAggregation(currentValuesIn, aggValue, aggKey);
+            Object aggValueObj = agg.getValue();
+            if(!(aggValueObj instanceof Map)) {
+                arrangeAggregation(currentValuesIn, new HashMap<String, Object>() {{put(aggKey, aggValueObj);}},aggKey);
+            }else{
+                arrangeAggregation(currentValuesIn, (Map<String, Object>) aggValueObj,aggKey);
+            }
         }
     }
     private static Map<String, Object> arrangeAggregation(Map<String, Object> currentValuesIn, Map<String, Object> aggValue, String aggKey) {
@@ -242,22 +247,23 @@ public class QwUtil {
         long doc_count =docCntVal instanceof Long ? (long) docCntVal : (long)(double)docCntVal;
         Object key = aggValue.getOrDefault(KEY, null);
         String key_as_string = (String) aggValue.getOrDefault(KEY_AS_STRING, null);
-        double sum_other_doc_count = (double) aggValue.getOrDefault(SUM_OTHER_DOC_COUNT, 0.0);
-
+        Object sumOtherDocCountObj =  aggValue.getOrDefault(SUM_OTHER_DOC_COUNT, 0.0);
+        double sum_other_doc_count = sumOtherDocCountObj instanceof Long ? (long) sumOtherDocCountObj : (long)(double)sumOtherDocCountObj;
+        String prefix = "";//aggKey + "/" ;
         if (doc_count > 0) {
-            currentValues.put(aggKey + "/" + DOC_COUNT, doc_count);
+            currentValues.put(prefix +  DOC_COUNT, doc_count);
             aggValue.remove(DOC_COUNT);
         }
         if (key != null) {
-            currentValues.put(aggKey + "/" + KEY, key);
+            currentValues.put(prefix +  KEY, key);
             aggValue.remove(KEY);
         }
         if (key_as_string != null) {
-            currentValues.put(aggKey + "/" + KEY_AS_STRING, doc_count);
+            currentValues.put(prefix +  KEY_AS_STRING, key_as_string);
             aggValue.remove(KEY_AS_STRING);
         }
         if (sum_other_doc_count > 0) {
-            currentValues.put(aggKey + "/" + SUM_OTHER_DOC_COUNT, sum_other_doc_count);
+            currentValues.put(prefix +  SUM_OTHER_DOC_COUNT, sum_other_doc_count);
             aggValue.remove(SUM_OTHER_DOC_COUNT);
         }
 
@@ -269,15 +275,15 @@ public class QwUtil {
         Object buckets = aggValue.getOrDefault(BUCKETS, null);
         if (buckets != null) {
             if(value!=null) {
-                currentValues.put(aggKey + "/" + VALUE, value);
+                currentValues.put(prefix +  VALUE, value);
             }
             for(Map<String, Object> bucket:((List<Map<String, Object>>)buckets)) {
                 Map<String, Object> newCurrentValues=arrangeAggregation(currentValues,bucket,aggKey);
                 if(newCurrentValues!=null){
                     currentValues=newCurrentValues;
-                    if(bucket.containsKey(BUCKETS) || bucket.containsKey(VALUE)) {
-                        arrangeAggregations(bucket, currentValues);
-                    }
+//                    if(bucket.containsKey(BUCKETS) || bucket.containsKey(VALUE)) {
+                    arrangeAggregations(bucket, currentValues);
+//                    }
                 }
             }
         }

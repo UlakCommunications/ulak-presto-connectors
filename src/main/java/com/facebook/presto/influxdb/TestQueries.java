@@ -233,4 +233,48 @@ public class TestQueries {
             + "--" + TEXT_DBTYPE + "=pg\n"
             + "--columns=resolve_count,alarm_count,nodata_count,site_count,silence_count,resolve_host_count,alarm_host_count,nodata_host_count,silenced_host_count,distinct_alert_sensor_count,distinct_invalid_sensor_count"
             + SAMPLE_QUERY_6;
+
+
+    public static final String SAMPLE_QUERY_7 =
+                    "  \n" +
+                    "  {\n" +
+                    "\"aggs\": { \n" +
+                    "        \"3\": {\n" +
+                    "          \"aggs\": {\n" +
+                    "            \"1\": {\n" +
+                    "              \"avg\": {\n" +
+                    "                \"field\": \"span_attributes.tx\"\n" +
+                    "              }\n" +
+                    "            },\n" +
+                    "            \"4\": {\n" +
+                    "              \"avg\": {\n" +
+                    "                \"field\": \"span_attributes.rx\"\n" +
+                    "              }\n" +
+                    "            }\n" +
+                    "          },\n" +
+                    "          \"terms\": {\n" +
+                    "            \"field\": \"span_attributes.h\",\n" +
+                    "            \"order\": {\n" +
+                    "              \"1\": \"desc\"\n" +
+                    "            },\n" +
+                    "            \"size\":5,\n" +
+                    "            \"min_doc_count\": 1\n" +
+                    "          }\n" +
+                    "        } \n" +
+                    "    } ,\n" +
+                    "  \"query\": \"span_attributes.p:interface  AND span_attributes.t:IN [if_octets]  AND span_attributes.h:IN [ee7b566c-68d7-4ffb-9d0a-29477a39b008|ee7b566c-68d7-4ffb-9d0a-29477a39b010|ee7b566c-68d7-4ffb-9d0a-29477a39b013|ee7b566c-68d7-4ffb-9d0a-29477a39b015|ee7b566c-68d7-4ffb-9d0a-29477a39b019]\",\n" +
+                    "  \"max_hits\": 0,\n" +
+                    "  \"start_timestamp\": 1719310491,\n" +
+                    "  \"end_timestamp\": 1719310791\n" +
+                    "}";
+
+    public static final String SAMPLE_QUERY_7_WITH_CACHE=
+                    "//" + TEXT_TTL + "=172800\n" +
+                    "//" + TEXT_REFRESH + "=10\n" +
+                    "//"+TEXT_CACHE+"=false\n" +
+                    "//eagercache=false\n" +
+                    "//name=Hub Network Throughput (bps)\n" +
+                    "//columns=/3/buckets/1/key,/3/buckets/1/value,/3/buckets/4/value\n" +
+                    "//" + TEXT_DBTYPE + "=qw\n" +
+                    SAMPLE_QUERY_7;
 }
