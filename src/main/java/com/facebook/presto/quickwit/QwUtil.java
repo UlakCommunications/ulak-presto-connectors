@@ -20,6 +20,7 @@ import com.facebook.presto.influxdb.InfluxdbRow;
 import com.facebook.presto.pg.DBCPDataSource;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.opendevl.JFlat;
+import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
@@ -32,6 +33,7 @@ import com.quickwit.javaclient.api.SearchApi;
 import com.quickwit.javaclient.models.SearchRequestQueryString;
 import com.quickwit.javaclient.models.SearchResponseRest;
 import com.quickwit.javaclient.models.VersionedIndexMetadata;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
@@ -52,6 +54,12 @@ public class QwUtil {
     public static String qwIndex;
     private static ApiClient defaultClient = null;
 
+    public static final String DOC_COUNT = "doc_count";
+    public static final String KEY = "key";
+    public static final String KEY_AS_STRING = "key_as_string";
+    public static final String SUM_OTHER_DOC_COUNT = "sum_other_doc_count";
+    public static final String VALUE = "value";
+    public static final String BUCKETS = "buckets";
 
     public static ApiClient getDefaultClient() {
         if (qwUrl == null) {
@@ -203,6 +211,85 @@ public class QwUtil {
     public static List<InfluxdbRow> parseResponse(SearchResponseRest ret) {
         Object g = ret.getAggregations();
         if (g == null) {
+            return parseResponseHits(ret);
+        }
+        parseResponseAggregations(ret);
+        return parseResponseHits(ret);
+    }
+    public static List<InfluxdbRow> parseResponseAggregations(SearchResponseRest ret) {
+        Object g = ret.getAggregations();
+        if (g == null) {
+            return null;
+        }
+
+        arrangeAggregations((Map<String,Object>)g,null);
+        return null;
+    }
+    public static  void arrangeAggregations(Map<String,Object> aggregation, Map<String,Object> currentValuesIn){
+        if (currentValuesIn == null) {
+            currentValuesIn = new HashMap<>();
+        }
+
+        for(Map.Entry<String, Object> agg:aggregation.entrySet()) {
+            String aggKey = agg.getKey();
+            Map<String, Object> aggValue = (Map<String, Object>) agg.getValue();
+            arrangeAggregation(currentValuesIn, aggValue, aggKey);
+        }
+    }
+    private static Map<String, Object> arrangeAggregation(Map<String, Object> currentValuesIn, Map<String, Object> aggValue, String aggKey) {
+        Map<String, Object> currentValues = new HashMap<>(currentValuesIn);
+        Object docCntVal = aggValue.getOrDefault(DOC_COUNT, 0L);
+        long doc_count =docCntVal instanceof Long ? (long) docCntVal : (long)(double)docCntVal;
+        Object key = aggValue.getOrDefault(KEY, null);
+        String key_as_string = (String) aggValue.getOrDefault(KEY_AS_STRING, null);
+        double sum_other_doc_count = (double) aggValue.getOrDefault(SUM_OTHER_DOC_COUNT, 0.0);
+
+        if (doc_count > 0) {
+            currentValues.put(aggKey + "/" + DOC_COUNT, doc_count);
+            aggValue.remove(DOC_COUNT);
+        }
+        if (key != null) {
+            currentValues.put(aggKey + "/" + KEY, key);
+            aggValue.remove(KEY);
+        }
+        if (key_as_string != null) {
+            currentValues.put(aggKey + "/" + KEY_AS_STRING, doc_count);
+            aggValue.remove(KEY_AS_STRING);
+        }
+        if (sum_other_doc_count > 0) {
+            currentValues.put(aggKey + "/" + SUM_OTHER_DOC_COUNT, sum_other_doc_count);
+            aggValue.remove(SUM_OTHER_DOC_COUNT);
+        }
+
+
+        Object value = aggValue.getOrDefault(VALUE, null);
+        if (value != null) {
+            aggValue.putAll(currentValues);
+        }
+        Object buckets = aggValue.getOrDefault(BUCKETS, null);
+        if (buckets != null) {
+            if(value!=null) {
+                currentValues.put(aggKey + "/" + VALUE, value);
+            }
+            for(Map<String, Object> bucket:((List<Map<String, Object>>)buckets)) {
+                Map<String, Object> newCurrentValues=arrangeAggregation(currentValues,bucket,aggKey);
+                if(newCurrentValues!=null){
+                    currentValues=newCurrentValues;
+                    if(bucket.containsKey(BUCKETS) || bucket.containsKey(VALUE)) {
+                        arrangeAggregations(bucket, currentValues);
+                    }
+                }
+            }
+        }
+        if(buckets==null && value==null&aggValue.size()==0){
+            aggValue.putAll(currentValues);
+            return null;
+        }
+        return currentValues;
+    }
+    public static List<InfluxdbRow> parseResponseHits(SearchResponseRest ret) {
+        Object g = ret.getAggregations();
+        if (g == null) {
             g = ret.getHits();
         }
         JFlat flatMe = new JFlat(getGson().toJson(g));
@@ -221,10 +308,15 @@ public class QwUtil {
                 if (val == null && i + 1 < flatted.size()) {
                     val = flatted.get(i + 1)[j];
                 }
-                r.put((String) headers[j], String.valueOf(val));
+                String value = String.valueOf(val);
+                if(!Strings.isNullOrEmpty(value)){
+                    value = StringUtils.strip(value, "\"");
+                }
+                r.put((String) headers[j], value);
             }
             toRet.add(new InfluxdbRow(r));
         }
         return toRet;
     }
+
 }
