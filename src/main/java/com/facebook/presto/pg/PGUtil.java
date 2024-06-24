@@ -90,14 +90,13 @@ public class PGUtil {
 
     public static Iterator<InfluxdbRow> select(String tableName,
                                                boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException {
-
         InfluxdbQueryParameters influxdbQueryParameters = InfluxdbQueryParameters.getQueryParameters(tableName);
-        influxdbQueryParameters.setDbType(DBType.PG);
         return select(influxdbQueryParameters, forceRefresh);
     }
 
     public static Iterator<InfluxdbRow> select(InfluxdbQueryParameters influxdbQueryParameters,
                                                boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException {
+        influxdbQueryParameters.setDbType(DBType.PG);
         int hash = influxdbQueryParameters.getHash();
         influxdbQueryParameters.setStart(System.currentTimeMillis());
 
