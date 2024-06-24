@@ -86,7 +86,7 @@ public class RedisCacheWorker extends Thread{
                     +",\"eager\":"+ influxdbQueryParameters.isEagerCached() +"},");
         }
         sb.append("]");
-        logger.info("Running stats: \n\t" + sb.toString());
+        logger.debug("Running stats: \n\t{}", sb.toString());
     }
     @Override
     public void run() {
@@ -184,7 +184,7 @@ public class RedisCacheWorker extends Thread{
                                             for (Object key : futures.keySet()) {
                                                 sb.append(key + ",");
                                             }
-                                            logger.info("Running stats: \n\tRunning Count: " + futures.size()
+                                            logger.debug("Running stats: \n\tRunning Count: " + futures.size()
                                                 + "\n\tRunning keys: " + sb.toString()
                                                 + "\n\t Current is eager: " + influxdbQueryParameters.isEagerCached());
 

@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.*;
 
+import static com.facebook.presto.influxdb.InfluxdbQueryParameters.replaceAll;
 import static com.facebook.presto.influxdb.InfluxdbUtil.*;
 import static com.facebook.presto.influxdb.RedisCacheWorker.addOneStat;
 
@@ -106,6 +107,8 @@ public class QwUtil {
                                                boolean forceRefresh) throws IOException,  ApiException {
 
         InfluxdbQueryParameters influxdbQueryParameters = InfluxdbQueryParameters.getQueryParameters(tableName);
+        String q = influxdbQueryParameters.getQuery();
+        influxdbQueryParameters.setQuery(replaceAll(q,"\\|"," "));
         influxdbQueryParameters.setDbType(DBType.QW);
         return select(influxdbQueryParameters, forceRefresh);
     }
@@ -185,7 +188,7 @@ public class QwUtil {
 
         SearchApi searchApi = new SearchApi(getDefaultClient());
 
-        SearchRequestQueryString toQuery = JSON.getGson().fromJson(query, SearchRequestQueryString.class);
+        SearchRequestQueryString toQuery = getGson().fromJson(query, SearchRequestQueryString.class);
         logger.debug("Running: {}", query);
         SearchResponseRest ret = searchApi.searchPostHandler(qwIndex, toQuery);
         return parseResponse(ret);

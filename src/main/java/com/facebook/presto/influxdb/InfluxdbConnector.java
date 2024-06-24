@@ -14,6 +14,7 @@
 package com.facebook.presto.influxdb;
 
 import com.facebook.presto.pg.PGUtil;
+import com.facebook.presto.quickwit.QwUtil;
 import io.trino.spi.connector.*;
 import io.trino.spi.transaction.IsolationLevel;
 import org.slf4j.Logger;
@@ -50,23 +51,29 @@ public class InfluxdbConnector
                              int numThreads,
                              String pgUrl,
                              String pgUsername,
-                             String pgPassword) {
+                             String pgPassword,
+                             String qwUrl,
+                             String qwIndex) {
         // need to get database connection here
         logger.debug("Connector by url: " + url);
 //        switch (dbType) {
 //            case INFLUXDB2:
-                try {
-                    InfluxdbUtil.instance(url, org, token, bucket);
-                } catch (IOException e) {
-                    logger.error("InfluxdbConnector", e);
-                }
-                if(pgUrl != null && !pgUrl.trim().equals("")) {
-                    try {
-                        PGUtil.instance(pgUrl, pgUsername, pgPassword);
-                    } catch (IOException e) {
-                        logger.error("InfluxdbConnector", e);
-                    }
-                }
+        try {
+            InfluxdbUtil.instance(url, org, token, bucket);
+        } catch (IOException e) {
+            logger.error("InfluxdbConnector", e);
+        }
+        if (pgUrl != null && !pgUrl.trim().equals("")) {
+            try {
+                PGUtil.instance(pgUrl, pgUsername, pgPassword);
+            } catch (IOException e) {
+                logger.error("InfluxdbConnector", e);
+            }
+        }
+
+        if (qwUrl != null && !qwUrl.trim().equals("")) {
+            QwUtil.instance(qwUrl, qwIndex);
+        }
 //                break;
 //            case PG:
 //                try {

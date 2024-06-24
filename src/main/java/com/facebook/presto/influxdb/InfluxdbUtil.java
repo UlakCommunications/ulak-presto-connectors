@@ -62,6 +62,8 @@ public class InfluxdbUtil {
             put("timesrc", "timeSrc");
             put("tolower", "toLower");
             put("toupper", "toUpper");
+            put("\\:in \\[", "\\:IN \\[");
+            put(" and ", " AND ");
         }
     };
     private static Map<String, String> keywords =new LinkedHashMap<>(const_keywords);
@@ -348,7 +350,7 @@ public class InfluxdbUtil {
                     ArrayList<InfluxdbRow> list = new ArrayList<InfluxdbRow>();
                     QueryApi queryApi = influxDBClient.getQueryApi();
                     String flux = influxdbQueryParameters.getQuery();
-                    logger.info("Running: " + hash);
+                    logger.debug("Running: " + hash);
                     List<FluxTable> tables = queryApi.query(flux, org);
                     List<Map<String, Object>> resMap = new LinkedList<>();
                     for (FluxTable fluxTable : tables) {

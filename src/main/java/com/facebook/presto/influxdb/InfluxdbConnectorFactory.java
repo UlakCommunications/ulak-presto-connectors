@@ -82,7 +82,9 @@ public class InfluxdbConnectorFactory
                         numThreads,
                         config.get("pg-connection-url"),
                         config.get("pg-connection-user"),
-                        config.get("pg-connection-password"));
+                        config.get("pg-connection-password"),
+                        config.get("qw-connection-url"),
+                        config.get("qw-index"));
 //            case TEXT_CONNECTOR_PG:
 //                connector = new InfluxdbConnector(DBType.PG,
 //                        url,
