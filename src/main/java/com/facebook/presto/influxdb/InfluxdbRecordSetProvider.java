@@ -25,11 +25,13 @@ public class InfluxdbRecordSetProvider
 {
     private static Logger logger = LoggerFactory.getLogger(InfluxdbConnector.class);
     private static InfluxdbRecordSetProvider single;
+    private InfluxdbConnector c;
 
-    public static InfluxdbRecordSetProvider getInstance()
+    public static InfluxdbRecordSetProvider getInstance(InfluxdbConnector c)
     {
         if (single == null) {
             single = new InfluxdbRecordSetProvider();
+            single.c=c;
         }
         return single;
     }
@@ -43,7 +45,7 @@ public class InfluxdbRecordSetProvider
             handles.add(influxdbColumnHandle);
            logger.debug(influxdbColumnHandle.getColumnName() + ":" + influxdbColumnHandle.getColumnType());
         }
-        return new InfluxdbRecordSet(influxdbSplit, handles.build());
+        return new InfluxdbRecordSet(c,influxdbSplit, handles.build());
     }
 
 }

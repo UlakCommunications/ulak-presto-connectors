@@ -21,14 +21,15 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-import static com.facebook.presto.influxdb.RedisCacheWorker.setNumThreads;
+//import static com.facebook.presto.influxdb.RedisCacheWorker.setNumThreads;
 
 public class InfluxdbConnector
         implements Connector
 {
 //    private DBType dbType=DBType.INFLUXDB2;
-    static RedisCacheWorker redisCacheWorker = null;
-
+//    static RedisCacheWorker redisCacheWorker = null;
+private String qwUrl;
+    private String qwIndex;
     private static Logger logger = LoggerFactory.getLogger(InfluxdbConnector.class);
     private final InfluxdbMetadata metadata;
 
@@ -50,23 +51,31 @@ public class InfluxdbConnector
                              int numThreads,
                              String pgUrl,
                              String pgUsername,
-                             String pgPassword) {
+                             String pgPassword,
+                             String qwUrl,
+                             String qwIndex) {
         // need to get database connection here
         logger.debug("Connector by url: " + url);
 //        switch (dbType) {
 //            case INFLUXDB2:
-                try {
-                    InfluxdbUtil.instance(url, org, token, bucket);
-                } catch (IOException e) {
-                    logger.error("InfluxdbConnector", e);
-                }
-                if(pgUrl != null && !pgUrl.trim().equals("")) {
-                    try {
-                        PGUtil.instance(pgUrl, pgUsername, pgPassword);
-                    } catch (IOException e) {
-                        logger.error("InfluxdbConnector", e);
-                    }
-                }
+        try {
+            InfluxdbUtil.instance(url, org, token, bucket);
+        } catch (IOException e) {
+            logger.error("InfluxdbConnector", e);
+        }
+        if (pgUrl != null && !pgUrl.trim().equals("")) {
+            try {
+                PGUtil.instance(pgUrl, pgUsername, pgPassword);
+            } catch (IOException e) {
+                logger.error("InfluxdbConnector", e);
+            }
+        }
+
+        if (qwUrl != null && !qwUrl.trim().equals("")) {
+//            QwUtil.instance(this,qwUrl, qwIndex);
+            this.setQwUrl(qwUrl);
+            this.setQwIndex(qwIndex);
+        }
 //                break;
 //            case PG:
 //                try {
@@ -77,20 +86,20 @@ public class InfluxdbConnector
 //                break;
 //        }
 
-        this.metadata = InfluxdbMetadata.getInstance(catalogName);
+        this.metadata = InfluxdbMetadata.getInstance(this,catalogName);
         this.splitManager = InfluxdbSplitManager.getInstance();
-        this.recordSetProvider = InfluxdbRecordSetProvider.getInstance();
+        this.recordSetProvider = InfluxdbRecordSetProvider.getInstance(this);
         InfluxdbUtil.redisUrl = redisUrl;
         InfluxdbUtil.workerId = workerId;
         InfluxdbUtil.workerIndexToRunIn = workerIndexToRunIn;
         InfluxdbUtil.setKeywords(keywords);
-        setNumThreads(numThreads);
+//        setNumThreads(numThreads);
         InfluxdbUtil.isCoordinator = true;
         if (isCoordinator && runInCoordinatorOnly) {
-            if (redisCacheWorker == null) {
-                redisCacheWorker = new RedisCacheWorker();
-                redisCacheWorker.start();
-            }
+//            if (redisCacheWorker == null) {
+//                redisCacheWorker = new RedisCacheWorker();
+//                redisCacheWorker.start();
+//            }
         }
     }
 
@@ -119,5 +128,21 @@ public class InfluxdbConnector
     public ConnectorRecordSetProvider getRecordSetProvider()
     {
         return recordSetProvider;
+    }
+
+    public String getQwUrl() {
+        return qwUrl;
+    }
+
+    public void setQwUrl(String qwUrl) {
+        this.qwUrl = qwUrl;
+    }
+
+    public String getQwIndex() {
+        return qwIndex;
+    }
+
+    public void setQwIndex(String qwIndex) {
+        this.qwIndex = qwIndex;
     }
 }

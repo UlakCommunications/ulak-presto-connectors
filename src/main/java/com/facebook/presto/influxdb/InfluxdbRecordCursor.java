@@ -13,7 +13,7 @@
  */
 package com.facebook.presto.influxdb;
 
-import com.google.common.base.Strings;
+import com.quickwit.javaclient.ApiException;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.trino.spi.connector.RecordCursor;
@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
@@ -45,11 +44,11 @@ public class InfluxdbRecordCursor
 
     private InfluxdbRow row;
 
-    public InfluxdbRecordCursor(List<InfluxdbColumnHandle> columnHandles, InfluxdbSplit split)
+    public InfluxdbRecordCursor(InfluxdbConnector c,List<InfluxdbColumnHandle> columnHandles, InfluxdbSplit split)
     {
         this.columnHandles = columnHandles;
         try {
-            this.iterator = InfluxdbUtil.select(split.getTableName(), false);
+            this.iterator = InfluxdbUtil.select(c,split.getTableName(), false);
         } catch (IOException e) {
             logger.error("Error getting cursor: " , e);
             throw new RuntimeException(e);
@@ -57,6 +56,9 @@ public class InfluxdbRecordCursor
             logger.error("Error getting cursor: " , e);
             throw new RuntimeException(e);
         } catch (SQLException e) {
+            logger.error("Error getting cursor: " , e);
+            throw new RuntimeException(e);
+        } catch (ApiException e) {
             logger.error("Error getting cursor: " , e);
             throw new RuntimeException(e);
         }

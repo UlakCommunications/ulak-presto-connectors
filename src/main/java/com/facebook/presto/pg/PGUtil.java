@@ -15,6 +15,7 @@
 package com.facebook.presto.pg;
 
 import com.facebook.presto.influxdb.DBType;
+import com.facebook.presto.influxdb.InfluxdbConnector;
 import com.facebook.presto.influxdb.InfluxdbQueryParameters;
 import com.facebook.presto.influxdb.InfluxdbRow;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -28,7 +29,7 @@ import java.sql.*;
 import java.util.*;
 
 import static com.facebook.presto.influxdb.InfluxdbUtil.*;
-import static com.facebook.presto.influxdb.RedisCacheWorker.addOneStat;
+//import static com.facebook.presto.influxdb.RedisCacheWorker.addOneStat;
 
 public class PGUtil {
 
@@ -88,16 +89,15 @@ public class PGUtil {
         return res;
     }
 
-    public static Iterator<InfluxdbRow> select(String tableName,
+    public static Iterator<InfluxdbRow> select(InfluxdbConnector c,String tableName,
                                                boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException {
-
-        InfluxdbQueryParameters influxdbQueryParameters = InfluxdbQueryParameters.getQueryParameters(tableName);
-        influxdbQueryParameters.setDbType(DBType.PG);
+        InfluxdbQueryParameters influxdbQueryParameters = InfluxdbQueryParameters.getQueryParameters(c,tableName);
         return select(influxdbQueryParameters, forceRefresh);
     }
 
     public static Iterator<InfluxdbRow> select(InfluxdbQueryParameters influxdbQueryParameters,
                                                boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException {
+        influxdbQueryParameters.setDbType(DBType.PG);
         int hash = influxdbQueryParameters.getHash();
         influxdbQueryParameters.setStart(System.currentTimeMillis());
 
@@ -150,7 +150,7 @@ public class PGUtil {
                         influxdbQueryParameters.setFinish(System.currentTimeMillis());
                         setCacheItem(jedis, influxdbQueryParameters);
                     }
-                    addOneStat(hash, 1);
+//                    addOneStat(hash, 1);
                     return ret.iterator();
                 }
             } finally {
