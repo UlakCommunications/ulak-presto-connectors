@@ -27,8 +27,9 @@ public class InfluxdbRecordSet
     private final List<InfluxdbColumnHandle> columnHandles;
     private final List<Type> columnTypes;
     private final InfluxdbSplit split;
+    private final InfluxdbConnector c;
 
-    public InfluxdbRecordSet(InfluxdbSplit split, List<InfluxdbColumnHandle> columnHandles)
+    public InfluxdbRecordSet(InfluxdbConnector c,InfluxdbSplit split, List<InfluxdbColumnHandle> columnHandles)
     {
         this.split = requireNonNull(split, "split is null");
         this.columnHandles = requireNonNull(columnHandles, "column handles is null");
@@ -37,6 +38,7 @@ public class InfluxdbRecordSet
             types.add(column.getColumnType());
         }
         this.columnTypes = types.build();
+        this.c=c;
     }
 
     @Override
@@ -48,6 +50,6 @@ public class InfluxdbRecordSet
     @Override
     public RecordCursor cursor()
     {
-        return new InfluxdbRecordCursor(columnHandles, split);
+        return new InfluxdbRecordCursor(c,columnHandles, split);
     }
 }

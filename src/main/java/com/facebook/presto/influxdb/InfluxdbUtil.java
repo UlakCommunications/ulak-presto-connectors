@@ -43,7 +43,8 @@ import java.time.Instant;
 import java.util.*;
 
 import static com.facebook.presto.influxdb.InfluxdbQueryParameters.getTableNameForHash;
-import static com.facebook.presto.influxdb.RedisCacheWorker.addOneStat;
+//import static com.facebook.presto.influxdb.RedisCacheWorker.addOneStat;
+import static com.facebook.presto.influxdb.InfluxdbQueryParameters.replaceAll;
 import static com.facebook.presto.influxdb.TestQueries.*;
 public class InfluxdbUtil {
     public static boolean isCoordinator;
@@ -188,7 +189,7 @@ public class InfluxdbUtil {
 //    private static Object columnsGetLock = new Object();
     public static Object inProgressLock = new Object();
 
-    public static List<ColumnMetadata> getColumns(String bucket, String tableName) throws IOException, ClassNotFoundException {
+    public static List<ColumnMetadata> getColumns(InfluxdbConnector c,String bucket, String tableName) throws IOException, ClassNotFoundException {
         logger.debug("influxdbUtil bucket:" + bucket + "table:" + tableName + " columnsMetadata");
         List<ColumnMetadata> res = new ArrayList<>();
 
@@ -196,7 +197,7 @@ public class InfluxdbUtil {
 //        switch (dbType){
 //            case  INFLUXDB2:
                 try {
-                    tables = InfluxdbUtil.select(tableName,false);
+                    tables = InfluxdbUtil.select(c,tableName,false);
                 } catch (IOException e) {
                     logger.error("IOException", e);
                 } catch (ClassNotFoundException e) {
@@ -231,7 +232,7 @@ public class InfluxdbUtil {
                 }
             }
         }else{
-            String[] cols = InfluxdbQueryParameters.getQueryParameters(tableName).getColumns();
+            String[] cols = InfluxdbQueryParameters.getQueryParameters(c,tableName).getColumns();
             if(cols.length>0) {
                 for (String record :cols) {
                     if (!res.stream().anyMatch(t -> t.getName().equals(record))) {
@@ -289,19 +290,19 @@ public class InfluxdbUtil {
         return getTrinoCacheString(String.valueOf(hash));
     }
 
-    public static Iterator<InfluxdbRow> select(String tableName,
+    public static Iterator<InfluxdbRow> select(InfluxdbConnector c,String tableName,
                                                boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException, ApiException {
 
-        InfluxdbQueryParameters influxdbQueryParameters = InfluxdbQueryParameters.getQueryParameters(tableName);
-        return select(influxdbQueryParameters,forceRefresh);
+        InfluxdbQueryParameters influxdbQueryParameters = InfluxdbQueryParameters.getQueryParameters(c,tableName);
+        return select(c,influxdbQueryParameters,forceRefresh);
     }
-    public static Iterator<InfluxdbRow> select(InfluxdbQueryParameters influxdbQueryParameters,
+    public static Iterator<InfluxdbRow> select(InfluxdbConnector c,InfluxdbQueryParameters influxdbQueryParameters,
                                                boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException, ApiException {
         if(influxdbQueryParameters.dbType == DBType.PG) {
             return PGUtil.select(influxdbQueryParameters,forceRefresh);
         }
         if(influxdbQueryParameters.dbType == DBType.QW) {
-            return QwUtil.select(influxdbQueryParameters,forceRefresh);
+            return QwUtil.select(c,influxdbQueryParameters,forceRefresh);
         }
         int hash = influxdbQueryParameters.getHash();
         influxdbQueryParameters.setStart(System.currentTimeMillis());
@@ -372,7 +373,7 @@ public class InfluxdbUtil {
                         influxdbQueryParameters.setFinish(System.currentTimeMillis());
                         setCacheItem(jedis, influxdbQueryParameters);
                     }
-                    addOneStat(hash, 1);
+//                    addOneStat(hash, 1);
                     return list.iterator();
                 }
             } finally {
@@ -438,7 +439,7 @@ public class InfluxdbUtil {
             List<InfluxdbRow> list;
             json = jedis.get(getTrinoCacheString(hash));
             if(json!=null){
-                addOneStat(hash, 1);
+//                addOneStat(hash, 1);
             }
             if (!forceRefresh && json != null) {
                 InfluxdbQueryParameters influxdbQueryParameters = getObjectMapper().readValue(json, InfluxdbQueryParameters.class);
@@ -450,7 +451,7 @@ public class InfluxdbUtil {
     public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException, SQLException, ApiException {
         DBType dbType= DBType.INFLUXDB2;
         long start = System.currentTimeMillis();
-
+//        InfluxdbConnector c = new InfluxdbConnector()
 //        redisUrl = "http://10.20.4.53:30485?readTimeout=2m&connectTimeout=2m&writeTimeout=2m";
 ////        redisUrl = "redis://:ulak@10.20.4.53:31671";
 //        instance(redisUrl,
@@ -482,47 +483,46 @@ public class InfluxdbUtil {
 //                PGUtil.pgUser,
 //                PGUtil.pgPwd);
 //        setKeywords("");
-////        tryOneQuery(dbType, SAMPLE_QUERY_6, 1);
+////        tryOneQuery(dbType, SAMPLE_QUERY_6_WITH_CACHE, 1);
 //        tryOneQuery(dbType, SAMPLE_QUERY_6_WITH_CACHE, 1);
 
 
         dbType = DBType.QW;
-        QwUtil.qwUrl = "http://10.20.4.53:31410";
-        QwUtil.qwIndex = "metrics3";
-        QwUtil.instance(QwUtil.qwUrl,
-                QwUtil.qwIndex);
-        setKeywords("");
 //        tryOneQuery(dbType, SAMPLE_QUERY_6, 1);
-        tryOneQuery(dbType, SAMPLE_QUERY_7_WITH_CACHE, 1);
+        InfluxdbQueryParameters params = InfluxdbQueryParameters.getQueryParameters(null,SAMPLE_QUERY_9);
+
+        params.setQuery(replaceAll(params.getQuery(),"\\|"," "));
+        params.setQuery(replaceAll(params.getQuery()," not "," NOT "));
+        params.setQwIndex("metrics3");
+        params.setQwUrl("http://10.20.4.53:31410");
+        params.setReplaceFromColumns("/3/buckets/2/buckets/4/buckets/5/buckets/6/buckets/7/buckets/8/buckets/9/buckets/10/buckets/1");
+        List<InfluxdbRow> ret = QwUtil.executeOneQuery(null,params,params.getQwIndex(), params.getQuery());
         logger.info(String.valueOf(System.currentTimeMillis() - start));
-        //TODO: test cache disable
-        if(InfluxdbConnector.redisCacheWorker!=null) {
-            InfluxdbConnector.redisCacheWorker.join();
-        }
+
     }
 
-    private static void tryOneQuery(DBType dbType, String query, int runCount) throws IOException, ClassNotFoundException, SQLException, ApiException {
-        int index=0;
-        query = query.toLowerCase(Locale.ENGLISH);
-        logger.info("Testing no-cache queries");
-        while(index <runCount) {
-            getColumns("", query);
-            logger.info("columns 1: " + index);
-            switch (dbType){
-                case INFLUXDB2:
-                    select(query, false);
-                    logger.info("query 1: " + index);
-                    break;
-                case PG:
-                    PGUtil.select(query, true);
-                    logger.info("query 1: " + index);
-                    break;
-                case QW:
-                    QwUtil.select(query, true);
-                    logger.info("query 1: " + index);
-                    break;
-            }
-            index++;
-        }
-    }
+//    private static void tryOneQuery(DBType dbType, String query, int runCount) throws IOException, ClassNotFoundException, SQLException, ApiException {
+//        int index=0;
+//        query = query.toLowerCase(Locale.ENGLISH);
+//        logger.info("Testing no-cache queries");
+//        while(index <runCount) {
+//            getColumns("", query);
+//            logger.info("columns 1: " + index);
+//            switch (dbType){
+//                case INFLUXDB2:
+//                    select(query, false);
+//                    logger.info("query 1: " + index);
+//                    break;
+//                case PG:
+//                    PGUtil.select(query, true);
+//                    logger.info("query 1: " + index);
+//                    break;
+//                case QW:
+//                    QwUtil.select(query, true);
+//                    logger.info("query 1: " + index);
+//                    break;
+//            }
+//            index++;
+//        }
+//    }
 }

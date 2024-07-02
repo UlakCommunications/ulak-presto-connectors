@@ -44,11 +44,11 @@ public class InfluxdbRecordCursor
 
     private InfluxdbRow row;
 
-    public InfluxdbRecordCursor(List<InfluxdbColumnHandle> columnHandles, InfluxdbSplit split)
+    public InfluxdbRecordCursor(InfluxdbConnector c,List<InfluxdbColumnHandle> columnHandles, InfluxdbSplit split)
     {
         this.columnHandles = columnHandles;
         try {
-            this.iterator = InfluxdbUtil.select(split.getTableName(), false);
+            this.iterator = InfluxdbUtil.select(c,split.getTableName(), false);
         } catch (IOException e) {
             logger.error("Error getting cursor: " , e);
             throw new RuntimeException(e);

@@ -35,16 +35,18 @@ public class InfluxdbMetadata
     private static Logger logger = LoggerFactory.getLogger(InfluxdbMetadata.class);
     private static InfluxdbMetadata single;
     private static String connectorId;
+    private final InfluxdbConnector c;
 
-    private InfluxdbMetadata(String catalogName)
+    private InfluxdbMetadata(InfluxdbConnector c, String catalogName)
     {
         connectorId = new InfluxdbConnectorId(catalogName).toString();
+        this.c=c;
     }
 
-    public static InfluxdbMetadata getInstance(String catalogName)
+    public static InfluxdbMetadata getInstance(InfluxdbConnector c,String catalogName)
     {
         if (single == null) {
-            single = new InfluxdbMetadata(catalogName);
+            single = new InfluxdbMetadata(c,catalogName);
         }
         return single;
     }
@@ -127,7 +129,7 @@ public class InfluxdbMetadata
         InfluxdbTableHandle influxdbTableHandle = (InfluxdbTableHandle) table;
         List<ColumnMetadata> list = null;
         try {
-            list = InfluxdbUtil.getColumns(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
+            list = InfluxdbUtil.getColumns(c, influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
         } catch (IOException e) {
             logger.error("IOException", e);
         } catch (ClassNotFoundException e) {
@@ -145,7 +147,7 @@ public class InfluxdbMetadata
         Map<String, ColumnHandle> res = new HashMap<>();
         List<ColumnMetadata> list = null;
         try {
-            list = InfluxdbUtil.getColumns(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
+            list = InfluxdbUtil.getColumns(c,influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
 
             for (int i = 0; i < list.size(); ++i) {
                 ColumnMetadata metadata = list.get(i);
@@ -168,7 +170,7 @@ public class InfluxdbMetadata
         for (SchemaTableName tableName : list) {
             if (tableName.getTableName().startsWith(prefix.getTable().get())) {
                 try {
-                    columns.put(tableName, InfluxdbUtil.getColumns(session.getSource().get(), tableName.getTableName()));
+                    columns.put(tableName, InfluxdbUtil.getColumns(c,session.getSource().get(), tableName.getTableName()));
                 } catch (IOException e) {
                     logger.error("IOException", e);
                     throw new RuntimeException(e);

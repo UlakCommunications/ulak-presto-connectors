@@ -23,14 +23,14 @@ import org.slf4j.LoggerFactory;
 import java.util.Locale;
 import java.util.Map;
 
-import static com.facebook.presto.influxdb.RedisCacheWorker.DEFAULT_N_THREADS;
+//import static com.facebook.presto.influxdb.RedisCacheWorker.DEFAULT_N_THREADS;
 
 public class InfluxdbConnectorFactory
         implements ConnectorFactory
 {
     public static final String TEXT_CONNECTOR_INFLUXDB = "influxdb";
 //    public static final String TEXT_CONNECTOR_PG = "mayapg";
-    private static Logger logger = LoggerFactory.getLogger(RedisCacheWorker.class);
+    private static Logger logger = LoggerFactory.getLogger(InfluxdbConnectorFactory.class);
 
     public String getName()
     {
@@ -49,7 +49,7 @@ public class InfluxdbConnectorFactory
     {
         String url = config.get("connection-url");
         String sNumThreads = config.get("number_of_worker_threads");
-        int numThreads = DEFAULT_N_THREADS;
+        int numThreads =10;// DEFAULT_N_THREADS;
         if(sNumThreads != null && !sNumThreads.trim().equals("")){
             try {
                 numThreads = Integer.parseInt(sNumThreads);
