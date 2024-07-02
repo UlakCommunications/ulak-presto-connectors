@@ -18,6 +18,9 @@ public class InfluxdbQueryParameters {
     public static final String TEXT_DBTYPE = "dbtype";
     public static final String TEXT_EAGER_CACHE = "eagercache";
     public static final String TEXT_NAME = "name";
+    public static final String TEXT_QWINDEX = "qwindex";
+    public static final String TEXT_QWURL = "qwurl";
+    public static final String TEXT_QWREPLACEFROMCOLUMN = "replacefromcolumns";
     private static Logger logger = LoggerFactory.getLogger(InfluxdbQueryParameters.class);
 
     public static final String NEW_LINE_CHAR = System.lineSeparator();
@@ -35,6 +38,9 @@ public class InfluxdbQueryParameters {
     private long start;
     private long finish;
     private String error;
+    private String qwUrl;
+    private String qwIndex;
+    private String replaceFromColumns;
 
     public DBType getDbType() {
         return dbType;
@@ -85,14 +91,18 @@ public class InfluxdbQueryParameters {
 //        this.columns = columns;
 //        this.dbType = dbType;
 //    }
-
-    public static String getTableNameForHash(String tableName){
+    public static String replaceAll(String tableName, String find, String replace){
         String lastTableName = tableName;
         String beforeTableName = tableName;
         do{
             beforeTableName = lastTableName;
-            lastTableName = lastTableName.replaceAll("(.*)(\\/\\/.*)","");
+            lastTableName = lastTableName.replaceAll(find,replace);
         }while (!lastTableName.equals(beforeTableName));
+        return lastTableName;
+    }
+    public static String getTableNameForHash(String tableName){
+        String lastTableName = replaceAll(tableName,"(.*)(\\/\\/.*)","");
+
 
         String[] splits = lastTableName.split(NEW_LINE_CHAR);
         List<String> newLines = new ArrayList<>();
@@ -104,7 +114,7 @@ public class InfluxdbQueryParameters {
         }
         return String.join(NEW_LINE_CHAR,newLines).replaceAll("[ \r\n]","");
     }
-    public static InfluxdbQueryParameters getQueryParameters(String tableName) {
+    public static InfluxdbQueryParameters getQueryParameters(InfluxdbConnector c, String tableName) {
         tableName = arrangeCase(tableName);
         String tableNameForHash = getTableNameForHash(tableName);
 
@@ -113,7 +123,10 @@ public class InfluxdbQueryParameters {
         InfluxdbQueryParameters ret = new InfluxdbQueryParameters();
         ret.setQuery(tableName);
         ret.setHash(hash);
-
+        if(c!=null) {
+            ret.setQwUrl(c.getQwUrl());
+            ret.setQwIndex(c.getQwIndex());
+        }
         String[] splits = tableName.split(NEW_LINE_CHAR);
         for (int i = 0; i < splits.length; i++) {
             String current = splits[i];
@@ -162,6 +175,15 @@ public class InfluxdbQueryParameters {
                             break;
                         case TEXT_NAME:
                             ret.setName(value);
+                            break;
+                        case TEXT_QWURL:
+                            ret.setQwUrl(value);
+                            break;
+                        case TEXT_QWINDEX:
+                            ret.setQwIndex(value);
+                            break;
+                        case TEXT_QWREPLACEFROMCOLUMN:
+                            ret.setReplaceFromColumns(value);
                             break;
                     }
                 } catch (Throwable e) {
@@ -254,5 +276,27 @@ public class InfluxdbQueryParameters {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public void setQwUrl(String qwUrl) {
+        this.qwUrl = qwUrl;
+    }
+
+    public String getQwUrl() {
+        return qwUrl;
+    }
+    public void setQwIndex(String qwIndex) {
+        this.qwIndex = qwIndex;
+    }
+
+    public String getQwIndex() {
+        return qwIndex;
+    }
+    public void setReplaceFromColumns(String replaceFromColumns) {
+        this.replaceFromColumns = replaceFromColumns;
+    }
+
+    public String getReplaceFromColumns() {
+        return replaceFromColumns;
     }
 }
