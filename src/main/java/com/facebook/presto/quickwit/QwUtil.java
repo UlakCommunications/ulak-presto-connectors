@@ -15,10 +15,9 @@
 package com.facebook.presto.quickwit;
 
 import com.facebook.presto.influxdb.DBType;
+import com.facebook.presto.influxdb.InfluxdbConnector;
 import com.facebook.presto.influxdb.InfluxdbQueryParameters;
 import com.facebook.presto.influxdb.InfluxdbRow;
-import com.facebook.presto.pg.DBCPDataSource;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.opendevl.JFlat;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
@@ -27,7 +26,6 @@ import com.google.gson.ToNumberPolicy;
 import com.quickwit.javaclient.ApiClient;
 import com.quickwit.javaclient.ApiException;
 import com.quickwit.javaclient.Configuration;
-import com.quickwit.javaclient.JSON;
 import com.quickwit.javaclient.api.IndexesApi;
 import com.quickwit.javaclient.api.SearchApi;
 import com.quickwit.javaclient.models.SearchRequestQueryString;
@@ -40,18 +38,16 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
 import java.io.IOException;
-import java.sql.*;
 import java.util.*;
 
 import static com.facebook.presto.influxdb.InfluxdbQueryParameters.replaceAll;
 import static com.facebook.presto.influxdb.InfluxdbUtil.*;
-import static com.facebook.presto.influxdb.RedisCacheWorker.addOneStat;
+//import static com.facebook.presto.influxdb.RedisCacheWorker.addOneStat;
 
 public class QwUtil {
 
     private static Logger logger = LoggerFactory.getLogger(QwUtil.class);
-    public static String qwUrl;
-    public static String qwIndex;
+
     private static ApiClient defaultClient = null;
 
     public static final String DOC_COUNT = "doc_count";
@@ -61,8 +57,14 @@ public class QwUtil {
     public static final String VALUE = "value";
     public static final String BUCKETS = "buckets";
 
-    public static ApiClient getDefaultClient() {
-        if (qwUrl == null) {
+    public static ApiClient getDefaultClient(InfluxdbConnector c,
+                                             InfluxdbQueryParameters influxdbQueryParameters) {
+        String qwUrl = influxdbQueryParameters!=null?influxdbQueryParameters.getQwUrl():null;
+        if(StringUtils.isBlank(qwUrl))
+        {
+            qwUrl = c!=null?c.getQwUrl():null;
+        }
+        if (StringUtils.isBlank(qwUrl) ) {
             return null;
         }
         if (defaultClient == null) {
@@ -76,16 +78,16 @@ public class QwUtil {
     private QwUtil() {
     }
 
-    public static void instance(String qwUrl, String qwIndex) {
-        QwUtil.qwUrl = qwUrl;
-        QwUtil.qwIndex = qwIndex;
-    }
+//    public static void instance(InfluxdbConnector c, String qwUrl, String qwIndex) {
+//        c.qwUrl = qwUrl;
+//        c.qwIndex = qwIndex;
+//    }
 
-    public static List<String> getSchemas() throws ApiException {
+    public static List<String> getSchemas(InfluxdbConnector c) throws ApiException {
         logger.debug("getSchemas");
         logger.debug("QwUtil-getSchemas");
         List<String> res = new ArrayList<>();
-        IndexesApi indexesApi = new IndexesApi(getDefaultClient());
+        IndexesApi indexesApi = new IndexesApi(getDefaultClient(c,null));
         List<VersionedIndexMetadata> indexesMetadatas = indexesApi.getIndexesMetadatas();
 
         for (VersionedIndexMetadata bucket1 : indexesMetadatas) {
@@ -96,11 +98,11 @@ public class QwUtil {
         return res;
     }
 
-    public static List<String> getTableNames(String schema) throws ApiException {
+    public static List<String> getTableNames(InfluxdbConnector c,String schema) throws ApiException {
         logger.debug("getSchemas");
         logger.debug("QwUtil-getSchemas");
         List<String> res = new ArrayList<>();
-        IndexesApi indexesApi = new IndexesApi(getDefaultClient());
+        IndexesApi indexesApi = new IndexesApi(getDefaultClient(c,null));
         List<VersionedIndexMetadata> indexesMetadatas = indexesApi.getIndexesMetadatas();
 
         for (VersionedIndexMetadata bucket1 : indexesMetadatas) {
@@ -111,18 +113,21 @@ public class QwUtil {
         return res;
     }
 
-    public static Iterator<InfluxdbRow> select(String tableName,
+    public static Iterator<InfluxdbRow> select(InfluxdbConnector c,String tableName,
                                                boolean forceRefresh) throws IOException,  ApiException {
 
-        InfluxdbQueryParameters influxdbQueryParameters = InfluxdbQueryParameters.getQueryParameters(tableName);
-        return select(influxdbQueryParameters, forceRefresh);
+        InfluxdbQueryParameters influxdbQueryParameters = InfluxdbQueryParameters.getQueryParameters(c,tableName);
+        return select(c,influxdbQueryParameters, forceRefresh);
     }
 
-    public static Iterator<InfluxdbRow> select(InfluxdbQueryParameters influxdbQueryParameters,
+    public static Iterator<InfluxdbRow> select(InfluxdbConnector c,InfluxdbQueryParameters influxdbQueryParameters,
                                                boolean forceRefresh) throws IOException,  ApiException {
         String q = influxdbQueryParameters.getQuery();
         influxdbQueryParameters.setQuery(replaceAll(q,"\\|"," "));
+        influxdbQueryParameters.setQuery(replaceAll(q," not "," NOT "));
         influxdbQueryParameters.setDbType(DBType.QW);
+//        influxdbQueryParameters.setQwUrl(c.qwUrl);
+//        influxdbQueryParameters.setQwIndex(c.qwIndex);
 
         int hash = influxdbQueryParameters.getHash();
         influxdbQueryParameters.setStart(System.currentTimeMillis());
@@ -169,14 +174,14 @@ public class QwUtil {
                     influxdbQueryParameters.setError("");
                     String query = influxdbQueryParameters.getQuery();//"from(bucket: " + "\"" + bucket + "\"" + ")\n" + "|> range(start:" + time_interval + ")\n" + "|> filter(fn : (r) => r._measurement == " + "\"" + tableName + "\"" + ")";
 
-                    List<InfluxdbRow> ret = executeOneQuery(query);
+                    List<InfluxdbRow> ret = executeOneQuery( c,influxdbQueryParameters,influxdbQueryParameters.getQwIndex(),query);
 
                     if (jedis != null) {
                         influxdbQueryParameters.setRows(ret);
                         influxdbQueryParameters.setFinish(System.currentTimeMillis());
                         setCacheItem(jedis, influxdbQueryParameters);
                     }
-                    addOneStat(hash, 1);
+//                    addOneStat(hash, 1);
                     return ret.iterator();
                 }
             } finally {
@@ -193,15 +198,41 @@ public class QwUtil {
         }
     }
 
-    private static List<InfluxdbRow> executeOneQuery(String query) throws ApiException {
+    public static List<InfluxdbRow> executeOneQuery(InfluxdbConnector c,
+                                                     InfluxdbQueryParameters influxdbQueryParameters,
+                                                     String qwIndex,
+                                                     String query) throws ApiException {
 
-        SearchApi searchApi = new SearchApi(getDefaultClient());
+        SearchApi searchApi = new SearchApi(getDefaultClient(c,influxdbQueryParameters));
 
         SearchRequestQueryString toQuery = getGson().fromJson(query, SearchRequestQueryString.class);
-        logger.debug("Running: {}", query);
+        logger.debug("Running on {}/{}: {}", influxdbQueryParameters.getQwUrl(), qwIndex, query);
         SearchResponseRest ret = searchApi.searchPostHandler(qwIndex, toQuery);
-        return parseResponse(ret);
+        List<InfluxdbRow> parsed = parseResponse(influxdbQueryParameters,ret);
+        //parseColumns( influxdbQueryParameters, parsed);
+        return parsed;
     }
+//    private static void parseColumns(SearchRequestQueryString toQuery, List<InfluxdbRow> parsed) {
+//        Map<String,Object> aggs = (Map<String, Object>) toQuery.getAggs();
+//
+//        for (InfluxdbRow row : parsed) {
+//            for (Map.Entry<String, Object> c:row.getColumnMap().entrySet()){
+//                String col = c.getKey();
+//                String[] splits = col.split("/");
+//                Map<String,Object> currAgg = aggs;
+//                for (int i = 0; i < splits.length; i++) {
+//                    String split = splits[i];
+//                    if(StringUtils.isNotBlank(split)) {
+//                        if (split.equals("buckets")) {
+//                            currAgg = (Map<String, Object>) currAgg.get("aggs");
+//                        }else{
+//                            currAgg = (Map<String, Object>) currAgg.get(split);
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
 
     public static Gson getGson() {
         GsonBuilder gsonBuilder = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE);
@@ -209,13 +240,14 @@ public class QwUtil {
         return gson;
     }
 
-    public static List<InfluxdbRow> parseResponse(SearchResponseRest ret) {
+    public static List<InfluxdbRow> parseResponse(InfluxdbQueryParameters influxdbQueryParameters,
+                                                  SearchResponseRest ret) {
         Object g = ret.getAggregations();
         if (g == null) {
-            return parseResponseHits(ret);
+            return parseResponseHits(influxdbQueryParameters,ret);
         }
         parseResponseAggregations(ret);
-        return parseResponseHits(ret);
+        return parseResponseHits(influxdbQueryParameters, ret);
     }
     public static List<InfluxdbRow> parseResponseAggregations(SearchResponseRest ret) {
         Object g = ret.getAggregations();
@@ -243,13 +275,13 @@ public class QwUtil {
     }
     private static Map<String, Object> arrangeAggregation(Map<String, Object> currentValuesIn, Map<String, Object> aggValue, String aggKey) {
         Map<String, Object> currentValues = new HashMap<>(currentValuesIn);
-        Object docCntVal = aggValue.getOrDefault(DOC_COUNT, 0L);
+        Object docCntVal = aggValue.getOrDefault(DOC_COUNT, -1L);
         long doc_count =docCntVal instanceof Long ? (long) docCntVal : (long)(double)docCntVal;
         Object key = aggValue.getOrDefault(KEY, null);
         String key_as_string = (String) aggValue.getOrDefault(KEY_AS_STRING, null);
-        Object sumOtherDocCountObj =  aggValue.getOrDefault(SUM_OTHER_DOC_COUNT, 0.0);
+        Object sumOtherDocCountObj =  aggValue.getOrDefault(SUM_OTHER_DOC_COUNT, -1L);
         double sum_other_doc_count = sumOtherDocCountObj instanceof Long ? (long) sumOtherDocCountObj : (long)(double)sumOtherDocCountObj;
-        String prefix = "";//aggKey + "/" ;
+        String prefix = aggKey + "/" ;
         if (doc_count > 0) {
             currentValues.put(prefix +  DOC_COUNT, doc_count);
             aggValue.remove(DOC_COUNT);
@@ -262,7 +294,7 @@ public class QwUtil {
             currentValues.put(prefix +  KEY_AS_STRING, key_as_string);
             aggValue.remove(KEY_AS_STRING);
         }
-        if (sum_other_doc_count > 0) {
+        if (sum_other_doc_count > -1) {
             currentValues.put(prefix +  SUM_OTHER_DOC_COUNT, sum_other_doc_count);
             aggValue.remove(SUM_OTHER_DOC_COUNT);
         }
@@ -293,7 +325,8 @@ public class QwUtil {
         }
         return currentValues;
     }
-    public static List<InfluxdbRow> parseResponseHits(SearchResponseRest ret) {
+    public static List<InfluxdbRow> parseResponseHits(InfluxdbQueryParameters influxdbQueryParameters,
+                                                      SearchResponseRest ret) {
         Object g = ret.getAggregations();
         if (g == null) {
             g = ret.getHits();
@@ -309,6 +342,7 @@ public class QwUtil {
         for (int i = 1; i < flatted.size(); i++) {
             Map<String, Object> r = new HashMap<>();
             Object[] c = flatted.get(i);
+            boolean allNulls=true;
             for (int j = 0; j < headers.length; j++) {
                 Object val = c[j];
                 if (val == null && i + 1 < flatted.size()) {
@@ -317,12 +351,24 @@ public class QwUtil {
                 String value = String.valueOf(val);
                 if(!Strings.isNullOrEmpty(value)){
                     value = StringUtils.strip(value, "\"");
+                    if(value.equals("null")) {
+                        value=null;
+                    }
                 }
-                r.put((String) headers[j], value);
+                String k = (String) headers[j];
+                String toReplace =influxdbQueryParameters.getReplaceFromColumns();
+                if(StringUtils.isNotBlank(toReplace)){
+                    k=StringUtils.replace((String) k, toReplace,"");
+                }
+                if(value!=null){
+                    allNulls=false;
+                }
+                r.put(k, value);
             }
-            toRet.add(new InfluxdbRow(r));
+            if(!allNulls) {
+                toRet.add(new InfluxdbRow(r));
+            };
         }
         return toRet;
     }
-
 }

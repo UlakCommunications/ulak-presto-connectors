@@ -277,4 +277,203 @@ public class TestQueries {
                     "//columns=/3/buckets/1/key,/3/buckets/1/value,/3/buckets/4/value\n" +
                     "//" + TEXT_DBTYPE + "=qw\n" +
                     SAMPLE_QUERY_7;
+
+
+    public static final String SAMPLE_QUERY_8 =
+            "  {\n" +
+                    "  \"aggs\": {\n" +
+                    "    \"3\": {\n" +
+                    "      \"aggs\": {\n" +
+                    "        \"2\": {\n" +
+                    "          \"aggs\": {\n" +
+                    "            \"4\": {\n" +
+                    "              \"aggs\": {\n" +
+                    "                \"5\": {\n" +
+                    "                  \"aggs\": {\n" +
+                    "                    \"6\": {\n" +
+                    "                      \"aggs\": {\n" +
+                    "                        \"7\": {\n" +
+                    "                          \"aggs\": {\n" +
+                    "                            \"8\": {\n" +
+                    "                              \"aggs\": {\n" +
+                    "                                \"9\": {\n" +
+                    "                                  \"aggs\": {\n" +
+                    "                                    \"10\": {\n" +
+                    "                                      \"aggs\": {\n" +
+                    "                                        \"1\": {\n" +
+                    "                                          \"sum\": {\n" +
+                    "                                            \"field\": \"span_attributes.status_ni\"\n" +
+                    "                                          }\n" +
+                    "                                        }\n" +
+                    "                                      },\n" +
+                    "                                      \"terms\": {\n" +
+                    "                                        \"field\": \"span_attributes.m_src\",\n" +
+                    "                                        \"size\": 100,\n" +
+                    "                                        \"order\": {\n" +
+                    "                                          \"_key\": \"desc\"\n" +
+                    "                                        },\n" +
+                    "                                        \"min_doc_count\": 1\n" +
+                    "                                      }\n" +
+                    "                                    }\n" +
+                    "                                  },\n" +
+                    "                                  \"terms\": {\n" +
+                    "                                    \"field\": \"span_attributes.m_peer\",\n" +
+                    "                                    \"size\": 100,\n" +
+                    "                                    \"order\": {\n" +
+                    "                                      \"_key\": \"desc\"\n" +
+                    "                                    },\n" +
+                    "                                    \"min_doc_count\": 1\n" +
+                    "                                  }\n" +
+                    "                                }\n" +
+                    "                              },\n" +
+                    "                              \"terms\": {\n" +
+                    "                                \"field\": \"span_attributes.m_ns_id\",\n" +
+                    "                                \"size\": 100,\n" +
+                    "                                \"order\": {\n" +
+                    "                                  \"_key\": \"desc\"\n" +
+                    "                                },\n" +
+                    "                                \"min_doc_count\": 1\n" +
+                    "                              }\n" +
+                    "                            }\n" +
+                    "                          },\n" +
+                    "                          \"terms\": {\n" +
+                    "                            \"field\": \"span_attributes.m_uuid\",\n" +
+                    "                            \"size\": 100,\n" +
+                    "                            \"order\": {\n" +
+                    "                              \"_key\": \"desc\"\n" +
+                    "                            },\n" +
+                    "                            \"min_doc_count\": 1\n" +
+                    "                          }\n" +
+                    "                        }\n" +
+                    "                      },\n" +
+                    "                      \"terms\": {\n" +
+                    "                        \"field\": \"span_attributes.m_status_text\",\n" +
+                    "                        \"size\": 100,\n" +
+                    "                        \"order\": {\n" +
+                    "                          \"_key\": \"desc\"\n" +
+                    "                        },\n" +
+                    "                        \"min_doc_count\": 1\n" +
+                    "                      }\n" +
+                    "                    }\n" +
+                    "                  },\n" +
+                    "                  \"terms\": {\n" +
+                    "                    \"field\": \"span_attributes.m_overlay\",\n" +
+                    "                    \"size\": 100,\n" +
+                    "                    \"order\": {\n" +
+                    "                      \"_key\": \"desc\"\n" +
+                    "                    },\n" +
+                    "                    \"min_doc_count\": 1\n" +
+                    "                  }\n" +
+                    "                }\n" +
+                    "              },\n" +
+                    "              \"terms\": {\n" +
+                    "                \"field\": \"span_attributes.m_iface\",\n" +
+                    "                \"size\": 100,\n" +
+                    "                \"order\": {\n" +
+                    "                  \"_key\": \"desc\"\n" +
+                    "                },\n" +
+                    "                \"min_doc_count\": 1\n" +
+                    "              }\n" +
+                    "            }\n" +
+                    "          },\n" +
+                    "          \"terms\": {\n" +
+                    "            \"field\": \"span_attributes.h\",\n" +
+                    "            \"size\": 100,\n" +
+                    "            \"order\": {\n" +
+                    "              \"_key\": \"desc\"\n" +
+                    "            },\n" +
+                    "            \"min_doc_count\": 1\n" +
+                    "          }\n" +
+                    "        }\n" +
+                    "      },\n" +
+                    "      \"date_histogram\": {\n" +
+                    "        \"field\": \"span_start_timestamp_nanos\",\n" +
+                    "        \"fixed_interval\": \"5s\",\n" +
+                    "        \"min_doc_count\": 0\n" +
+                    "      }\n" +
+                    "    }\n" +
+                    "  },\n" +
+                    "  \"query\": \"span_attributes.p:maya_bfd AND NOT span_attributes.h:IN [e84b661f-8328-4c7a-863b-65cabdf43f94]\",\n" +
+                    "  \"max_hits\": 0,\n" +
+                    "  \"start_timestamp\": 1719827487,\n" +
+                    "  \"end_timestamp\": 1719827787\n" +
+                    "}";
+
+    public static final String SAMPLE_QUERY_9 =
+            "  {\n" +
+                    "  \"aggs\": {\n" +
+                    "  \"6\": {\n" +
+                    "    \"aggs\": {\n" +
+                    "      \"5\": {\n" +
+                    "        \"aggs\": {\n" +
+                    "          \"1\": {\n" +
+                    "            \"min\": {\n" +
+                    "              \"field\": \"span_attributes.tx\"\n" +
+                    "            }\n" +
+                    "          },\n" +
+                    "          \"9\": {\n" +
+                    "            \"aggs\": {\n" +
+                    "              \"2\": {\n" +
+                    "                \"min\": {\n" +
+                    "                  \"field\": \"span_attributes.tx\"\n" +
+                    "                }\n" +
+                    "              },\n" +
+                    "              \"21\": {\n" +
+                    "                \"max\": {\n" +
+                    "                  \"field\": \"span_attributes.tx\"\n" +
+                    "                }\n" +
+                    "              },\n" +
+                    "              \"3\": {\n" +
+                    "                \"min\": {\n" +
+                    "                  \"field\": \"span_attributes.rx\"\n" +
+                    "                }\n" +
+                    "              },\n" +
+                    "              \"4\": {\n" +
+                    "                \"max\": {\n" +
+                    "                  \"field\": \"span_attributes.rx\"\n" +
+                    "                }\n" +
+                    "              }\n" +
+                    "            },\n" +
+                    "            \"terms\": {\n" +
+                    "              \"field\": \"span_attributes.pi\",\n" +
+                    "              \"size\": 1000,\n" +
+                    "              \"order\": {\n" +
+                    "                \"2\": \"desc\"\n" +
+                    "              },\n" +
+                    "              \"min_doc_count\": 1\n" +
+                    "            }\n" +
+                    "          }\n" +
+                    "        },\n" +
+                    "        \"terms\": {\n" +
+                    "          \"field\": \"span_attributes.h\",\n" +
+                    "          \"size\": 10000,\n" +
+                    "          \"order\": {\n" +
+                    "            \"1\": \"desc\"\n" +
+                    "          },\n" +
+                    "          \"min_doc_count\": 1\n" +
+                    "        }\n" +
+                    "      }\n" +
+                    "    },\n" +
+                    "    \"date_histogram\": {\n" +
+                    "      \"field\": \"span_start_timestamp_nanos\",\n" +
+                    "      \"fixed_interval\": \"1h\",\n" +
+                    "      \"min_doc_count\": 1\n" +
+                    "    }\n" +
+                    "  }\n" +
+                    "},\n" +
+                    "  \"query\": \"span_attributes.p:interface  AND span_attributes.t:IN [if_octets]  AND span_attributes.h:IN [ee7b566c-68d7-4ffb-9d0a-29477a39b004|ee7b566c-68d7-4ffb-9d0a-29477a39b012|ee7b566c-68d7-4ffb-9d0a-29477a39b013|ee7b566c-68d7-4ffb-9d0a-29477a39b020|ee7b566c-68d7-4ffb-9d0a-29477a39b024]\",\n" +
+                    "\"max_hits\": 0,\n" +
+                    "\"start_timestamp\": 1719844427,\n" +
+                    "\"end_timestamp\": 1719845327\n" +
+                    "}";
+
+    public static final String SAMPLE_QUERY_8_WITH_CACHE=
+            "//" + TEXT_TTL + "=172800\n" +
+                    "//" + TEXT_REFRESH + "=10\n" +
+                    "//"+TEXT_CACHE+"=false\n" +
+                    "//eagercache=false\n" +
+                    "//name=Hub Network Throughput (bps)\n" +
+                    "//columns=/3/buckets/1/key,/3/buckets/1/value,/3/buckets/4/value\n" +
+                    "//" + TEXT_DBTYPE + "=qw\n" +
+                    SAMPLE_QUERY_8;
 }
