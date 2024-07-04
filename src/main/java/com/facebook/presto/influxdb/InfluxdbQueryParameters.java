@@ -1,5 +1,6 @@
 package com.facebook.presto.influxdb;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,7 +97,7 @@ public class InfluxdbQueryParameters {
         String beforeTableName = tableName;
         do{
             beforeTableName = lastTableName;
-            lastTableName = lastTableName.replaceAll(find,replace);
+            lastTableName = StringUtils.replace(lastTableName,find,replace);
         }while (!lastTableName.equals(beforeTableName));
         return lastTableName;
     }
@@ -122,6 +123,7 @@ public class InfluxdbQueryParameters {
 
         InfluxdbQueryParameters ret = new InfluxdbQueryParameters();
         ret.setQuery(tableName);
+
         ret.setHash(hash);
         if(c!=null) {
             ret.setQwUrl(c.getQwUrl());
