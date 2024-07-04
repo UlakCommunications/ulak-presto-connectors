@@ -112,18 +112,19 @@ public class QwUtil {
         }
         return res;
     }
+//
+//    public static Iterator<InfluxdbRow> select(InfluxdbConnector c,String tableName,
+//                                               boolean forceRefresh) throws IOException,  ApiException {
+//
+//        InfluxdbQueryParameters influxdbQueryParameters = InfluxdbQueryParameters.getQueryParameters(c,tableName);
+//        return select(c,influxdbQueryParameters, forceRefresh);
+//    }
 
-    public static Iterator<InfluxdbRow> select(InfluxdbConnector c,String tableName,
-                                               boolean forceRefresh) throws IOException,  ApiException {
-
-        InfluxdbQueryParameters influxdbQueryParameters = InfluxdbQueryParameters.getQueryParameters(c,tableName);
-        return select(c,influxdbQueryParameters, forceRefresh);
-    }
-
-    public static Iterator<InfluxdbRow> select(InfluxdbConnector c,InfluxdbQueryParameters influxdbQueryParameters,
+    public static Iterator<InfluxdbRow> select(InfluxdbConnector c,
+                                               InfluxdbQueryParameters influxdbQueryParameters,
                                                boolean forceRefresh) throws IOException,  ApiException {
         String q = influxdbQueryParameters.getQuery();
-        influxdbQueryParameters.setQuery(replaceAll(q,"\\|"," "));
+        influxdbQueryParameters.setQuery(replaceAll(q,"|"," "));
         influxdbQueryParameters.setQuery(replaceAll(q," not "," NOT "));
         influxdbQueryParameters.setDbType(DBType.QW);
 //        influxdbQueryParameters.setQwUrl(c.qwUrl);
@@ -203,6 +204,8 @@ public class QwUtil {
                                                      String qwIndex,
                                                      String query) throws ApiException {
 
+        query=replaceAll(query,"|"," ");
+        query=replaceAll(query," not "," NOT ");
         SearchApi searchApi = new SearchApi(getDefaultClient(c,influxdbQueryParameters));
 
         SearchRequestQueryString toQuery = getGson().fromJson(query, SearchRequestQueryString.class);

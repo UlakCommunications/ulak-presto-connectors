@@ -489,9 +489,9 @@ public class InfluxdbUtil {
 
         dbType = DBType.QW;
 //        tryOneQuery(dbType, SAMPLE_QUERY_6, 1);
-        InfluxdbQueryParameters params = InfluxdbQueryParameters.getQueryParameters(null,SAMPLE_QUERY_9);
+        InfluxdbQueryParameters params = InfluxdbQueryParameters.getQueryParameters(null,"pan_attributes.p:interface  AND span_attributes.t:IN [if_octets]  AND span_attributes.h:IN [5e0bb4d8-4661-426a-81fc-e5b8bbc9e9df|abf0a4ca-d24f-4dc7-9ab7-4cdc8b4d3c32|d0bcfe0b-605e-44a1-b45e-96620df56d62|ee7b566c-68d7-4ffb-9d0a-29477a39b001|ee7b566c-68d7-4ffb-9d0a-29477a39b003]");
 
-        params.setQuery(replaceAll(params.getQuery(),"\\|"," "));
+        params.setQuery(replaceAll(params.getQuery(),"|"," "));
         params.setQuery(replaceAll(params.getQuery()," not "," NOT "));
         params.setQwIndex("metrics3");
         params.setQwUrl("http://10.20.4.53:31410");
