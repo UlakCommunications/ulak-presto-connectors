@@ -39,7 +39,6 @@ import redis.clients.jedis.params.SetParams;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.*;
 
 import static com.facebook.presto.influxdb.InfluxdbQueryParameters.getTableNameForHash;
@@ -291,13 +290,13 @@ public class InfluxdbUtil {
     }
 
     public static Iterator<InfluxdbRow> select(InfluxdbConnector c,String tableName,
-                                               boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException, ApiException {
+                                               boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException, ApiException  {
 
         InfluxdbQueryParameters influxdbQueryParameters = InfluxdbQueryParameters.getQueryParameters(c,tableName);
         return select(c,influxdbQueryParameters,forceRefresh);
     }
     public static Iterator<InfluxdbRow> select(InfluxdbConnector c,InfluxdbQueryParameters influxdbQueryParameters,
-                                               boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException, ApiException {
+                                               boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException, ApiException  {
         if(influxdbQueryParameters.dbType == DBType.PG) {
             return PGUtil.select(influxdbQueryParameters,forceRefresh);
         }
@@ -448,7 +447,7 @@ public class InfluxdbUtil {
         }
         return null;
     }
-    public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException, SQLException, ApiException {
+    public static void main(String[] args) throws ApiException  {
         DBType dbType= DBType.INFLUXDB2;
         long start = System.currentTimeMillis();
 //        InfluxdbConnector c = new InfluxdbConnector()
@@ -489,7 +488,83 @@ public class InfluxdbUtil {
 
         dbType = DBType.QW;
 //        tryOneQuery(dbType, SAMPLE_QUERY_6, 1);
-        InfluxdbQueryParameters params = InfluxdbQueryParameters.getQueryParameters(null,"pan_attributes.p:interface  AND span_attributes.t:IN [if_octets]  AND span_attributes.h:IN [5e0bb4d8-4661-426a-81fc-e5b8bbc9e9df|abf0a4ca-d24f-4dc7-9ab7-4cdc8b4d3c32|d0bcfe0b-605e-44a1-b45e-96620df56d62|ee7b566c-68d7-4ffb-9d0a-29477a39b001|ee7b566c-68d7-4ffb-9d0a-29477a39b003]");
+        InfluxdbQueryParameters params = InfluxdbQueryParameters.getQueryParameters(null,"{\n" +
+                "  \"aggs\": {\n" +
+                "    \"6\": {\n" +
+                "      \"aggs\": {\n" +
+                "        \"5\": {\n" +
+                "          \"aggs\": {\n" +
+                "            \"1\": {\n" +
+                "              \"min\": {\n" +
+                "                \"field\": \"span_attributes.tx\"\n" +
+                "              }\n" +
+                "            },\n" +
+                "            \"9\": {\n" +
+                "              \"aggs\": {\n" +
+                "                \"a\": {\n" +
+                "                  \"aggs\": {\n" +
+                "                    \"2\": {\n" +
+                "                      \"min\": {\n" +
+                "                        \"field\": \"span_attributes.tx\"\n" +
+                "                      }\n" +
+                "                    },\n" +
+                "                    \"21\": {\n" +
+                "                      \"max\": {\n" +
+                "                        \"field\": \"span_attributes.tx\"\n" +
+                "                      }\n" +
+                "                    },\n" +
+                "                    \"3\": {\n" +
+                "                      \"min\": {\n" +
+                "                        \"field\": \"span_attributes.rx\"\n" +
+                "                      }\n" +
+                "                    },\n" +
+                "                    \"4\": {\n" +
+                "                      \"max\": {\n" +
+                "                        \"field\": \"span_attributes.rx\"\n" +
+                "                      }\n" +
+                "                    }\n" +
+                "                  },\n" +
+                "                  \"terms\": {\n" +
+                "                    \"field\": \"span_attributes.t\",\n" +
+                "                    \"size\": 1000,\n" +
+                "                    \"order\": {\n" +
+                "                      \"21\": \"desc\"\n" +
+                "                    },\n" +
+                "                    \"min_doc_count\": 1\n" +
+                "                  }\n" +
+                "                }\n" +
+                "              },\n" +
+                "              \"terms\": {\n" +
+                "                \"field\": \"span_attributes.pi\",\n" +
+                "                \"size\": 1000,\n" +
+                "                \"order\": {\n" +
+                "                  \"_key\": \"desc\"\n" +
+                "                },\n" +
+                "                \"min_doc_count\": 1\n" +
+                "              }\n" +
+                "            }\n" +
+                "          },\n" +
+                "          \"terms\": {\n" +
+                "            \"field\": \"span_attributes.h\",\n" +
+                "            \"order\": {\n" +
+                "              \"1\": \"desc\"\n" +
+                "            },\n" +
+                "            \"min_doc_count\": 1\n" +
+                "          }\n" +
+                "        }\n" +
+                "      },\n" +
+                "      \"date_histogram\": {\n" +
+                "        \"field\": \"span_start_timestamp_nanos\",\n" +
+                "        \"fixed_interval\": \"10s\",\n" +
+                "        \"min_doc_count\": 1\n" +
+                "      }\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"query\": \"span_attributes.p:interface AND span_attributes.h:IN [5e0bb4d8-4661-426a-81fc-e5b8bbc9e9df]\",\n" +
+                "  \"max_hits\": 0,\n" +
+                "  \"start_timestamp\": now - (90*d) ,\n" +
+                "  \"end_timestamp\": now\n" +
+                "}");
 
         params.setQuery(replaceAll(params.getQuery(),"|"," "));
         params.setQuery(replaceAll(params.getQuery()," not "," NOT "));
