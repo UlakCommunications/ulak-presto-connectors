@@ -571,6 +571,7 @@ public class InfluxdbUtil {
         params.setQwIndex("metrics3");
         params.setQwUrl("http://10.20.4.53:31410");
         params.setReplaceFromColumns("/3/buckets/2/buckets/4/buckets/5/buckets/6/buckets/7/buckets/8/buckets/9/buckets/10/buckets/1");
+        params.setHasJs(true);
         List<InfluxdbRow> ret = QwUtil.executeOneQuery(null,params,params.getQwIndex(), params.getQuery());
         logger.info(String.valueOf(System.currentTimeMillis() - start));
 
