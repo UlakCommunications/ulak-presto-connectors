@@ -21,6 +21,7 @@ public class InfluxdbQueryParameters {
     public static final String TEXT_NAME = "name";
     public static final String TEXT_QWINDEX = "qwindex";
     public static final String TEXT_QWURL = "qwurl";
+    public static final String TEXT_HASJS = "hasjs";
     public static final String TEXT_QWREPLACEFROMCOLUMN = "replacefromcolumns";
     private static Logger logger = LoggerFactory.getLogger(InfluxdbQueryParameters.class);
 
@@ -34,6 +35,7 @@ public class InfluxdbQueryParameters {
     private List<InfluxdbRow> rows;
     private boolean toBeCached = false;
     private boolean eagerCached = false;
+    private boolean hasJs = false;
     private long ttlInSeconds = DEFAULT_TTL;
     private long refreshDurationInSeconds = DEFAULT_TTL + 5;
     private long start;
@@ -175,6 +177,9 @@ public class InfluxdbQueryParameters {
                         case TEXT_EAGER_CACHE:
                             ret.setEagerCached(Boolean.parseBoolean(value));
                             break;
+                        case TEXT_HASJS:
+                            ret.setHasJs(Boolean.parseBoolean(value));
+                            break;
                         case TEXT_NAME:
                             ret.setName(value);
                             break;
@@ -221,6 +226,13 @@ public class InfluxdbQueryParameters {
 
     public void setToBeCached(boolean toBeCached) {
         this.toBeCached = toBeCached;
+    }
+    public boolean isHasJs() {
+        return hasJs;
+    }
+
+    public void setHasJs(boolean hasJs) {
+        this.hasJs = hasJs;
     }
 
     public long getTtlInSeconds() {

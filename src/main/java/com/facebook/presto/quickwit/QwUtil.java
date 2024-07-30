@@ -39,6 +39,8 @@ import redis.clients.jedis.JedisPool;
 
 import java.io.IOException;
 import java.util.*;
+import org.mozilla.javascript.Context;
+import org.mozilla.javascript.Scriptable;
 
 import static com.facebook.presto.influxdb.InfluxdbQueryParameters.replaceAll;
 import static com.facebook.presto.influxdb.InfluxdbUtil.*;
@@ -122,7 +124,7 @@ public class QwUtil {
 
     public static Iterator<InfluxdbRow> select(InfluxdbConnector c,
                                                InfluxdbQueryParameters influxdbQueryParameters,
-                                               boolean forceRefresh) throws IOException,  ApiException {
+                                               boolean forceRefresh) throws IOException, ApiException {
         String q = influxdbQueryParameters.getQuery();
         influxdbQueryParameters.setQuery(replaceAll(q,"|"," "));
         influxdbQueryParameters.setQuery(replaceAll(q," not "," NOT "));
@@ -198,7 +200,28 @@ public class QwUtil {
             }
         }
     }
+    public static String executeScript(String query) {
+        // Creates and enters a Context. The Context stores information
+        // about the execution environment of a script.
+        Context cx = Context.enter();
+        try {
+            // Initialize the standard objects (Object, Function, etc.)
+            // This must be done before scripts can be executed. Returns
+            // a scope object that we use in later calls.
+            Scriptable scope = cx.initStandardObjects();
 
+
+            // Now evaluate the string we've colected.
+            Object result = cx.evaluateString(scope, query, "<cmd>", 1, null);
+
+            // Convert the result to a string and print it.
+            logger.debug(Context.toString(result));
+            return (String) result;
+        } finally {
+            // Exit from the context.
+            Context.exit();
+        }
+    }
     public static List<InfluxdbRow> executeOneQuery(InfluxdbConnector c,
                                                      InfluxdbQueryParameters influxdbQueryParameters,
                                                      String qwIndex,
@@ -206,6 +229,35 @@ public class QwUtil {
 
         query=replaceAll(query,"|"," ");
         query=replaceAll(query," not "," NOT ");
+        long unixTime = System.currentTimeMillis() / 1000L;
+//        query=replaceAll(query,"now()", String.valueOf(unixTime));
+//        ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
+
+//        ScriptEngineManager sem = new ScriptEngineManager();
+//        List<ScriptEngineFactory> factories = sem.getEngineFactories();
+//        for (ScriptEngineFactory factory : factories)
+//            logger.debug(factory.getEngineName() + " " + factory.getEngineVersion() + " " + factory.getNames());
+//        if (factories.isEmpty())
+//            logger.debug("No Script Engines found");
+
+//        ScriptEngine scriptEngine = scriptEngineManager.getEngineByName("JavaScript");
+//        try {
+        if(influxdbQueryParameters.isHasJs()) {
+            query =   executeScript(
+                    "var now = " + unixTime + ";" +
+                            "var d = 24*60*60 /*number of seconds in a day*/;" +
+                            "var h = 60*60 /*number of seconds in an hour*/;" +
+                            "var m = 60 /*number of seconds in a minute*/;" +
+                            "var s = 1 /*number of seconds in a second*/;" +
+                            "var a = " + query + ";" +
+                            "JSON.stringify(a);");
+        }
+//        } catch (ScriptException e) {
+//            logger.error("No Script Engines found", e);
+//            throw e;
+//        }
+
+
         SearchApi searchApi = new SearchApi(getDefaultClient(c,influxdbQueryParameters));
 
         SearchRequestQueryString toQuery = getGson().fromJson(query, SearchRequestQueryString.class);
