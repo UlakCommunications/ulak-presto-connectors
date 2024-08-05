@@ -4,12 +4,13 @@
 
   <groupId>com.facebook.presto</groupId>
   <version>0.432-SNAPSHOT</version>
-  <artifactId>presto-influxdb</artifactId>
+  <artifactId>presto-influxdb-base</artifactId>
 <!--  <packaging>presto-plugin</packaging>-->
-      <packaging>jar</packaging>
+      <packaging>pom</packaging>
 <!--  <packaging>pom</packaging>-->
+  <description>Maya presto-influxdb libraries</description>
 
-  <name>presto-influxdb</name>
+  <name>presto-influxdb-base</name>
   <url>http://maven.apache.org</url>
 
   <properties>
@@ -17,187 +18,30 @@
   </properties>
 
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>com.squareup.okhttp3</groupId>
-        <artifactId>okhttp</artifactId>
-        <version>4.10.0</version>
-      </dependency>
-
-    </dependencies>
-  </dependencyManagement>
-
   <dependencies>
-
-
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>26.0-jre</version>
-    </dependency>
-
-
-    <dependency>
-      <groupId>com.influxdb</groupId>
-      <artifactId>influxdb-client-core</artifactId>
-      <version>6.9.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.influxdb</groupId>
-      <artifactId>influxdb-client-java</artifactId>
-      <version>6.9.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>io.trino</groupId>
-      <artifactId>trino-spi</artifactId>
-      <version>432</version>
-<!--      <scope>provided</scope>-->
-    </dependency>
-    <dependency>
-      <groupId>io.trino</groupId>
-      <artifactId>trino-cache</artifactId>
-      <version>432</version>
-    </dependency>
-
-    <dependency>
-      <groupId>io.trino</groupId>
-      <artifactId>trino-plugin-toolkit</artifactId>
-      <version>432</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.postgresql</groupId>
-      <artifactId>postgresql</artifactId>
-      <version>42.7.2</version>
-    </dependency>
-
-    <!-- https://mvnrepository.com/artifact/commons-dbcp/commons-dbcp -->
-    <dependency>
-      <groupId>commons-dbcp</groupId>
-      <artifactId>commons-dbcp</artifactId>
-      <version>1.4</version>
-    </dependency>
-
-    <!--    <dependency>-->
-<!--      <groupId>io.trino</groupId>-->
-<!--      <artifactId>trino-common</artifactId>-->
-<!--      <version>422</version>-->
-<!--      <scope>provided</scope>-->
-<!--    </dependency>-->
-
-<!--    <dependency>-->
-<!--      <groupId>com.fasterxml.jackson.core</groupId>-->
-<!--      <artifactId>jackson-annotations</artifactId>-->
-<!--      <version>2.10.0</version>-->
-<!--&lt;!&ndash;      <scope>provided</scope>&ndash;&gt;-->
-<!--    </dependency>-->
-
-<!--    <dependency>-->
-<!--      <groupId>io.airlift</groupId>-->
-<!--      <artifactId>slice</artifactId>-->
-<!--      <version>0.34</version>-->
-<!--&lt;!&ndash;      <scope>provided</scope>&ndash;&gt;-->
-<!--    </dependency>-->
-
-    <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>2.0.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>redis.clients</groupId>
-      <artifactId>jedis</artifactId>
-      <version>5.1.2</version>
-    </dependency>
-<!--    Java 8 date/time type `java.time.Instant` not supported by default: add Module "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" to enable handling-->
-    <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-jsr310</artifactId>
-      <version>2.16.1</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.quickwit</groupId>
-      <artifactId>quickwit-java-client</artifactId>
-      <version>0.0.1.33-SNAPSHOT</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.github.opendevl</groupId>
-      <artifactId>json2flat-maya</artifactId>
-      <version>1.0.3-SNAPSHOT</version>
-    </dependency>
-    <!-- https://mvnrepository.com/artifact/org.mozilla/rhino -->
-    <dependency>
-      <groupId>org.mozilla</groupId>
-      <artifactId>rhino</artifactId>
-      <version>1.7.15</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.mozilla</groupId>
-      <artifactId>rhino-engine</artifactId>
-      <version>1.7.15</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.mozilla</groupId>
-      <artifactId>rhino-runtime</artifactId>
-      <version>1.7.15</version>
-    </dependency>
   </dependencies>
 
   <build>
-    <sourceDirectory>src/main/java</sourceDirectory>
-    <resources>
-      <resource>
-        <directory>src/main/resource</directory>
-      </resource>
-    </resources>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <version>3.1.1</version>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>3.2.1</version>
         <executions>
           <execution>
-            <phase>package</phase>
+            <id>attach-sources</id>
             <goals>
-              <goal>shade</goal>
+              <goal>jar-no-fork</goal>
             </goals>
-            <configuration>
-              <createDependencyReducedPom>false</createDependencyReducedPom>
-              <filters>
-                <filter>
-                  <artifact>*:*</artifact>
-                  <excludes>
-                    <exclude>module-info.class</exclude>
-                    <exclude>META-INF/*.SF</exclude>
-                    <exclude>META-INF/*.DSA</exclude>
-                    <exclude>META-INF/*.RSA</exclude>
-                  </excludes>
-                </filter>
-              </filters>
-            </configuration>
           </execution>
         </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration combine.children="append">
-          <fork>false</fork>
-<!--          <target>1.8</target>-->
-<!--          <source>1.8</source>-->
-        </configuration>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.5.0</version>
 
       </plugin>
-
     </plugins>
   </build>
   <repositories>
@@ -207,5 +51,33 @@
       <url>https://repo.maven.apache.org/maven2/</url>
     </repository>
   </repositories>
+
+  <distributionManagement>
+    <repository>
+      <id>maya-maven-snapshot</id>
+      <url>http://192.168.57.202:8081/repository/maya-maven-repo/</url>
+    </repository>
+    <snapshotRepository>
+      <id>maya-maven-repo</id>
+      <url>http://192.168.57.202:8081/repository/maya-maven-snapshot/</url>
+    </snapshotRepository>
+
+    <!--		<snapshotRepository>-->
+    <!--			<id>maya-maven-snapshot</id>-->
+    <!--			<url>https://maya-nexus.ulakhaberlesme.com.tr/repository/maya-maven-snapshot/</url>-->
+    <!--		</snapshotRepository>-->
+    <!--		<repository>-->
+    <!--			<id>maya-maven-repo</id>-->
+    <!--			<url>https://maya-nexus.ulakhaberlesme.com.tr/repository/maya-maven-repo/</url>-->
+    <!--		</repository>-->
+  </distributionManagement>
+
+  <modules>
+<!--    <module>presto-maya-caching</module>-->
+    <module>presto-maya-postgres-connector</module>
+    <module>presto-maya-quickwit-connector</module>
+    <module>presto-maya-influxdb-connector</module>
+    <module>presto-maya-connector-base</module>
+  </modules>
 
 </project>
