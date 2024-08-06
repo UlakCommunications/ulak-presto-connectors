@@ -43,24 +43,11 @@
       <version>26.0-jre</version>
     </dependency>
 
-
-    <dependency>
-      <groupId>com.influxdb</groupId>
-      <artifactId>influxdb-client-core</artifactId>
-      <version>6.9.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.influxdb</groupId>
-      <artifactId>influxdb-client-java</artifactId>
-      <version>6.9.0</version>
-    </dependency>
-
     <dependency>
       <groupId>io.trino</groupId>
       <artifactId>trino-spi</artifactId>
       <version>432</version>
-<!--      <scope>provided</scope>-->
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.trino</groupId>
@@ -74,39 +61,6 @@
       <version>432</version>
     </dependency>
 
-    <dependency>
-      <groupId>org.postgresql</groupId>
-      <artifactId>postgresql</artifactId>
-      <version>42.7.2</version>
-    </dependency>
-
-    <!-- https://mvnrepository.com/artifact/commons-dbcp/commons-dbcp -->
-    <dependency>
-      <groupId>commons-dbcp</groupId>
-      <artifactId>commons-dbcp</artifactId>
-      <version>1.4</version>
-    </dependency>
-
-    <!--    <dependency>-->
-<!--      <groupId>io.trino</groupId>-->
-<!--      <artifactId>trino-common</artifactId>-->
-<!--      <version>422</version>-->
-<!--      <scope>provided</scope>-->
-<!--    </dependency>-->
-
-<!--    <dependency>-->
-<!--      <groupId>com.fasterxml.jackson.core</groupId>-->
-<!--      <artifactId>jackson-annotations</artifactId>-->
-<!--      <version>2.10.0</version>-->
-<!--&lt;!&ndash;      <scope>provided</scope>&ndash;&gt;-->
-<!--    </dependency>-->
-
-<!--    <dependency>-->
-<!--      <groupId>io.airlift</groupId>-->
-<!--      <artifactId>slice</artifactId>-->
-<!--      <version>0.34</version>-->
-<!--&lt;!&ndash;      <scope>provided</scope>&ndash;&gt;-->
-<!--    </dependency>-->
 
     <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
     <dependency>
@@ -127,11 +81,6 @@
       <version>2.16.1</version>
     </dependency>
 
-    <dependency>
-      <groupId>org.quickwit</groupId>
-      <artifactId>quickwit-java-client</artifactId>
-      <version>0.0.1.33-SNAPSHOT</version>
-    </dependency>
 
     <dependency>
       <groupId>com.github.opendevl</groupId>
@@ -156,6 +105,14 @@
       <artifactId>rhino-runtime</artifactId>
       <version>1.7.15</version>
     </dependency>
+
+
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>3.15.0</version>
+    </dependency>
+
   </dependencies>
 
   <build>

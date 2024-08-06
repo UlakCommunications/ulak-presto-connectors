@@ -1,1 +1,1 @@
-com.facebook.presto.influxdb.InfluxdbPlugin
+com.facebook.presto.quickwit.UlakQuickwitPlugin
