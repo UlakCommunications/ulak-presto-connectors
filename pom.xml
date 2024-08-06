@@ -4,13 +4,13 @@
 
   <groupId>com.facebook.presto</groupId>
   <version>0.432-SNAPSHOT</version>
-  <artifactId>presto-influxdb-base</artifactId>
+  <artifactId>maya-connector-base</artifactId>
 <!--  <packaging>presto-plugin</packaging>-->
       <packaging>pom</packaging>
 <!--  <packaging>pom</packaging>-->
-  <description>Maya presto-influxdb libraries</description>
+  <description>Ulak presto connector libraries</description>
 
-  <name>presto-influxdb-base</name>
+  <name>maya-connector-base</name>
   <url>http://maven.apache.org</url>
 
   <properties>
