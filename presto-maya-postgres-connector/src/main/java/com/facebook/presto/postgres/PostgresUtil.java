@@ -48,7 +48,7 @@ public class PostgresUtil {
 
         Iterator<UlakRow> tables = null;
         try {
-            tables = PostgresUtil.select(tableName, false);
+            tables = PostgresUtil.select(tableName);
         } catch (IOException e) {
             logger.error("IOException", e);
         } catch (ClassNotFoundException e) {
@@ -85,14 +85,12 @@ public class PostgresUtil {
         return res;
     }
 
-     public static Iterator<UlakRow> select(String tableName,
-                                               boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException, ApiException  {
+     public static Iterator<UlakRow> select(String tableName ) throws IOException, ClassNotFoundException, SQLException, ApiException  {
 
         QueryParameters influxdbQueryParameters = QueryParameters.getQueryParameters(tableName);
-        return select(influxdbQueryParameters,forceRefresh);
+        return select(influxdbQueryParameters );
     }
-    public static Iterator<UlakRow> select(QueryParameters influxdbQueryParameters,
-                                               boolean forceRefresh) throws IOException, ClassNotFoundException, SQLException, ApiException  {
+    public static Iterator<UlakRow> select(QueryParameters influxdbQueryParameters ) throws IOException, ClassNotFoundException, SQLException, ApiException  {
         return PGUtil.select(influxdbQueryParameters);
     }
 

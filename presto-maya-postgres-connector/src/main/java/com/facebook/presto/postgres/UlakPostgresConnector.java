@@ -17,6 +17,10 @@ import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
 import com.facebook.presto.ulak.UlakRecordSetProvider;
 import com.facebook.presto.ulak.UlakSplitManager;
 import com.facebook.presto.ulak.UlakTransactionHandle;
+import com.facebook.presto.ulak.caching.QueryParameters;
+import com.facebook.presto.ulak.caching.RedisCacheWorker;
+import com.google.common.collect.Lists;
+import com.quickwit.javaclient.ApiException;
 import io.trino.spi.connector.*;
 import io.trino.spi.transaction.IsolationLevel;
 import org.slf4j.Logger;
@@ -30,6 +34,7 @@ import java.sql.SQLException;
 public class UlakPostgresConnector
         implements Connector
 {
+    private RedisCacheWorker redisCacheWorker;
     private String qwUrl;
     private String qwIndex;
     private static Logger logger = LoggerFactory.getLogger(UlakPostgresConnector.class);
@@ -108,10 +113,26 @@ public class UlakPostgresConnector
 //        setNumThreads(numThreads);
         ConnectorBaseUtil.isCoordinator = true;
         if (isCoordinator && runInCoordinatorOnly) {
-//            if (redisCacheWorker == null) {
-//                redisCacheWorker = new RedisCacheWorker();
-//                redisCacheWorker.start();
-//            }
+            if (redisCacheWorker == null) {
+                redisCacheWorker = new RedisCacheWorker((QueryParameters s)-> {
+                    try {
+                        return Lists.newArrayList(PostgresUtil.select(s));
+                    } catch (IOException e) {
+                        logger.error("InfluxdbConnector", e);
+                        throw new RuntimeException(e);
+                    } catch (ClassNotFoundException e) {
+                        logger.error("InfluxdbConnector", e);
+                        throw new RuntimeException(e);
+                    } catch (SQLException e) {
+                        logger.error("InfluxdbConnector", e);
+                        throw new RuntimeException(e);
+                    } catch (ApiException e) {
+                        logger.error("InfluxdbConnector", e);
+                        throw new RuntimeException(e);
+                    }
+                },numThreads);
+                redisCacheWorker.start();
+            }
         }
     }
 
