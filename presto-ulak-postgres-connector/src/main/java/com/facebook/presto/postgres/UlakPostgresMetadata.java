@@ -88,6 +88,9 @@ public class UlakPostgresMetadata
             logger.error("IOException", e);
         } catch (ClassNotFoundException e) {
             logger.error("ClassNotFoundException", e);
+        } catch (Exception e) {
+            logger.error("Exception - empty query", e);
+            throw new RuntimeException(e);
         }
         SchemaTableName tableName = new SchemaTableName(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
 
@@ -112,6 +115,8 @@ public class UlakPostgresMetadata
             throw new RuntimeException(e);
         } catch (ClassNotFoundException e) {
             logger.error("ClassNotFoundException", e);
+        }catch (Exception e) {
+            logger.error("Exception - Empty query", e);
         }
         return res;
     }
@@ -130,6 +135,8 @@ public class UlakPostgresMetadata
                     throw new RuntimeException(e);
                 } catch (ClassNotFoundException e) {
                     logger.error("ClassNotFoundException", e);
+                }catch (Exception e) {
+                    logger.error("Exception - Empty query", e);
                 }
             }
         }

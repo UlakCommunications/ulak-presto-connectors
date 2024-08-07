@@ -28,13 +28,14 @@ public class RedisCacheWorker extends Thread{
     private static Object statLock = new Object();
     private long lastAllPrint = System.currentTimeMillis();
     public int numThreads = DEFAULT_N_THREADS;
-    private Function<QueryParameters, ArrayList<UlakRow>> exec1;
-
+    private Function<QueryParameters, List<UlakRow>> exec1;
+    private final DBType dbType;
     private ExecutorService executor = null;
 
-    public RedisCacheWorker(Function<QueryParameters, ArrayList<UlakRow>> exec1,
-                            int numThreads) {
+    public RedisCacheWorker(Function<QueryParameters, List<UlakRow>> exec1,
+                            int numThreads, DBType dbType) {
         this.exec1 = exec1;
+        this.dbType = dbType;
         setNumThreads(numThreads);
     }
 
@@ -88,8 +89,8 @@ public class RedisCacheWorker extends Thread{
                     +",\"stopSeconds\":"+ ((System.currentTimeMillis() - QueryParameters.getFinish())/1000)
                     +",\"duration\":"+ ((QueryParameters.getFinish() - QueryParameters.getStart())/1000)
                     +",\"ttl\":"+ QueryParameters.getTtlInSeconds()
-                    +",\"refresh\":"+ QueryParameters.getRefreshDurationInSeconds()
-                    +",\"eager\":"+ QueryParameters.isEagerCached() +"},");
+                    +",\"refresh\":"+ QueryParameters.getRefreshDurationInSeconds());
+//                    +",\"eager\":"+ QueryParameters.isEagerCached() +"},");
         }
         sb.append("]");
         logger.debug("Running stats: \n\t{}", sb.toString());
@@ -153,7 +154,9 @@ public class RedisCacheWorker extends Thread{
                                             logger.error("JsonProcessingException", e);
                                             continue;
                                         }
-
+                                        if(queryParameters.getDbType()!=this.dbType){
+                                            continue;
+                                        }
                                         CacheUsageStats usageStats = stats.get(queryParameters.getHash());
                                         if(usageStats==null){
                                             //maybe we have restarted.
@@ -169,9 +172,8 @@ public class RedisCacheWorker extends Thread{
 
                                         long ttl = jedis.ttl(currentRedisKey);
                                         long passed = queryParameters.getTtlInSeconds() - ttl;
-                                        if (passed > queryParameters.getRefreshDurationInSeconds()
-                                                || (queryParameters.getRows().size() == 0
-                                                    && queryParameters.isEagerCached())) {
+                                        if (passed > queryParameters.getRefreshDurationInSeconds() ) {
+                                                    //|| (queryParameters.getRows().size() == 0)&& queryParameters.isEagerCached()
 
                                             logger.debug("Seconds passed : " + passed
                                                     + " for " + queryParameters.getHash());
@@ -191,8 +193,8 @@ public class RedisCacheWorker extends Thread{
                                                 sb.append(key + ",");
                                             }
                                             logger.debug("Running stats: \n\tRunning Count: " + futures.size()
-                                                + "\n\tRunning keys: " + sb.toString()
-                                                + "\n\t Current is eager: " + queryParameters.isEagerCached());
+                                                + "\n\tRunning keys: " + sb.toString());
+                                                //+ "\n\t Current is eager: " + queryParameters.isEagerCached()
 
                                             printUsage(jedis,futures.keySet().toArray());
                                             if(System.currentTimeMillis() - lastAllPrint>10000) {

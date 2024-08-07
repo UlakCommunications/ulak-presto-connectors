@@ -19,6 +19,7 @@ import com.facebook.presto.ulak.caching.QueryParameters;
 import com.facebook.presto.ulak.UlakRow;
 import com.github.opendevl.JFlat;
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
@@ -114,24 +115,22 @@ public class QwUtil {
 //        return select(c,influxdbQueryParameters, forceRefresh);
 //    }
 
-    public static Iterator<UlakRow> select(String tableName,String qwUrl, String qwIndex) throws IOException, ClassNotFoundException, SQLException, ApiException  {
+    public static List<UlakRow> select(String tableName,String qwUrl, String qwIndex) throws IOException, ClassNotFoundException, SQLException, ApiException  {
 
         QueryParameters influxdbQueryParameters = QueryParameters.getQueryParameters(tableName);
-        if(StringUtils.isEmpty(influxdbQueryParameters.getQwIndex())){
-            influxdbQueryParameters.setQwIndex(qwIndex);
-        }
-        if(StringUtils.isEmpty(influxdbQueryParameters.getQwUrl())){
-            influxdbQueryParameters.setQwUrl(qwUrl);
-        }
-        return select(influxdbQueryParameters);
+        return select(influxdbQueryParameters, qwUrl, qwIndex);
     }
-    public static Iterator<UlakRow> select(QueryParameters influxdbQueryParameters ) throws ApiException {
+
+
+    public static List<UlakRow> select(QueryParameters influxdbQueryParameters,
+                                           String qwUrl,
+                                           String qwIndex ) throws ApiException {
         String q = influxdbQueryParameters.getQuery();
         influxdbQueryParameters.setQuery(replaceAll(q,"|"," "));
         influxdbQueryParameters.setQuery(replaceAll(q," not "," NOT "));
         influxdbQueryParameters.setDbType(DBType.QW);
-//        influxdbQueryParameters.setQwUrl(c.qwUrl);
-//        influxdbQueryParameters.setQwIndex(c.qwIndex);
+        influxdbQueryParameters.setQwUrl(qwUrl);
+        influxdbQueryParameters.setQwIndex(qwIndex);
 
         int hash = influxdbQueryParameters.getHash();
         influxdbQueryParameters.setStart(System.currentTimeMillis());
@@ -142,7 +141,7 @@ public class QwUtil {
         List<UlakRow> ret = executeOneQuery( influxdbQueryParameters,influxdbQueryParameters.getQwIndex(),query);
 
 //                    addOneStat(hash, 1);
-        return ret.iterator();
+        return ret ;
     }
     public static String executeScript(String query) {
         // Creates and enters a Context. The Context stores information
@@ -368,5 +367,142 @@ public class QwUtil {
             };
         }
         return toRet;
+    }
+
+
+    public static void main(String[] args)    {
+        DBType dbType= DBType.INFLUXDB2;
+        long start = System.currentTimeMillis();
+//        InfluxdbConnector c = new InfluxdbConnector()
+//        redisUrl = "http://10.20.4.53:30485?readTimeout=2m&connectTimeout=2m&writeTimeout=2m";
+////        redisUrl = "redis://:ulak@10.20.4.53:31671";
+//        instance(redisUrl,
+//                "ulak",
+//                "KbSyJTKzIuvxqpKjVMTautakGg7uPxGTF3hz878Ye4CH_UgTl0k4W2UXYy79dwrzSle9QmEt2KCde0Sf88qhSQ==",
+//                "collectd");
+//        setKeywords("");
+//        String name = getTableNameForHash(SAMPLE_QUERY_3_WITH_CACHE);
+//        tryOneQuery(dbType, SAMPLE_QUERY_4, 1);
+//        tryOneQuery(dbType, SAMPLE_QUERY_4_WITH_CACHE, 1);
+//
+//
+//        tryOneQuery(dbType, SAMPLE_QUERY_4, 1);
+//        tryOneQuery(dbType, SAMPLE_QUERY_4_WITH_CACHE, 1);
+//
+//        tryOneQuery(dbType, SAMPLE_QUERY, 1);
+//        tryOneQuery(dbType, SAMPLE_QUERY_WITH_CACHE, 1);
+//        tryOneQuery(dbType, SAMPLE_QUERY_2, 1);
+//        tryOneQuery(dbType, SAMPLE_QUERY_2_WITH_CACHE, 1);
+//        tryOneQuery(dbType, SAMPLE_QUERY_3, 1);
+//        tryOneQuery(dbType, SAMPLE_QUERY_3_WITH_CACHE, 1);
+
+//        dbType = DBType.PG;
+//        PGUtil.pgUrl = "jdbc:postgresql://10.20.4.53:30758/grafana";
+//        PGUtil.pgUser = "postgres";
+//        PGUtil.pgPwd = "m1latDB";
+////        redisUrl = "redis://:ulak@10.20.4.53:31671";
+//        PGUtil.instance(PGUtil.pgUrl,
+//                PGUtil.pgUser,
+//                PGUtil.pgPwd);
+//        setKeywords("");
+////        tryOneQuery(dbType, SAMPLE_QUERY_6_WITH_CACHE, 1);
+//        tryOneQuery(dbType, SAMPLE_QUERY_6_WITH_CACHE, 1);
+
+
+        dbType = DBType.QW;
+//        tryOneQuery(dbType, SAMPLE_QUERY_6, 1);
+        QueryParameters params = QueryParameters.getQueryParameters("{\n" +
+                "  \"aggs\": {\n" +
+                "    \"6\": {\n" +
+                "      \"aggs\": {\n" +
+                "        \"5\": {\n" +
+                "          \"aggs\": {\n" +
+                "            \"1\": {\n" +
+                "              \"min\": {\n" +
+                "                \"field\": \"span_attributes.tx\"\n" +
+                "              }\n" +
+                "            },\n" +
+                "            \"9\": {\n" +
+                "              \"aggs\": {\n" +
+                "                \"a\": {\n" +
+                "                  \"aggs\": {\n" +
+                "                    \"2\": {\n" +
+                "                      \"min\": {\n" +
+                "                        \"field\": \"span_attributes.tx\"\n" +
+                "                      }\n" +
+                "                    },\n" +
+                "                    \"21\": {\n" +
+                "                      \"max\": {\n" +
+                "                        \"field\": \"span_attributes.tx\"\n" +
+                "                      }\n" +
+                "                    },\n" +
+                "                    \"3\": {\n" +
+                "                      \"min\": {\n" +
+                "                        \"field\": \"span_attributes.rx\"\n" +
+                "                      }\n" +
+                "                    },\n" +
+                "                    \"4\": {\n" +
+                "                      \"max\": {\n" +
+                "                        \"field\": \"span_attributes.rx\"\n" +
+                "                      }\n" +
+                "                    }\n" +
+                "                  },\n" +
+                "                  \"terms\": {\n" +
+                "                    \"field\": \"span_attributes.t\",\n" +
+                "                    \"size\": 1000,\n" +
+                "                    \"order\": {\n" +
+                "                      \"21\": \"desc\"\n" +
+                "                    },\n" +
+                "                    \"min_doc_count\": 1\n" +
+                "                  }\n" +
+                "                }\n" +
+                "              },\n" +
+                "              \"terms\": {\n" +
+                "                \"field\": \"span_attributes.pi\",\n" +
+                "                \"size\": 1000,\n" +
+                "                \"order\": {\n" +
+                "                  \"_key\": \"desc\"\n" +
+                "                },\n" +
+                "                \"min_doc_count\": 1\n" +
+                "              }\n" +
+                "            }\n" +
+                "          },\n" +
+                "          \"terms\": {\n" +
+                "            \"field\": \"span_attributes.h\",\n" +
+                "            \"order\": {\n" +
+                "              \"1\": \"desc\"\n" +
+                "            },\n" +
+                "            \"min_doc_count\": 1\n" +
+                "          }\n" +
+                "        }\n" +
+                "      },\n" +
+                "      \"date_histogram\": {\n" +
+                "        \"field\": \"span_start_timestamp_nanos\",\n" +
+                "        \"fixed_interval\": \"10s\",\n" +
+                "        \"min_doc_count\": 1\n" +
+                "      }\n" +
+                "    }\n" +
+                "  },\n" +
+                "  \"query\": \"span_attributes.p:interface AND span_attributes.h:IN [5e0bb4d8-4661-426a-81fc-e5b8bbc9e9df]\",\n" +
+                "  \"max_hits\": 0,\n" +
+                "  \"start_timestamp\": now - (90*d) ,\n" +
+                "  \"end_timestamp\": now\n" +
+                "}");
+
+        params.setQuery(replaceAll(params.getQuery(),"|"," "));
+        params.setQuery(replaceAll(params.getQuery()," not "," NOT "));
+        params.setQwIndex("metrics3");
+        params.setDbType(DBType.QW);
+        params.setQwUrl("http://10.20.4.53:32215");
+        params.setReplaceFromColumns("/3/buckets/2/buckets/4/buckets/5/buckets/6/buckets/7/buckets/8/buckets/9/buckets/10/buckets/1");
+        params.setHasJs(true);
+        List<UlakRow> ret = null;
+        try {
+            ret = Lists.newArrayList(QwUtil.select(params,params.getQwUrl(), params.getQwIndex()));
+        } catch (ApiException e) {
+            throw new RuntimeException(e);
+        }
+        logger.info(String.valueOf(System.currentTimeMillis() - start));
+
     }
 }

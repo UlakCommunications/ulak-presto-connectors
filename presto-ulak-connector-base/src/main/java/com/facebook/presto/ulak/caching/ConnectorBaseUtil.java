@@ -167,18 +167,18 @@ public class ConnectorBaseUtil {
         return getTrinoCacheString(String.valueOf(hash));
     }
 
-    public static Iterator<UlakRow> select(String tableName,
+    public static List<UlakRow> select(String tableName,
                                                boolean forceRefresh,
-                                               Function<QueryParameters, ArrayList<UlakRow>> exec) throws IOException {
+                                               Function<QueryParameters, List<UlakRow>> exec) throws IOException {
 
         QueryParameters queryParameters = QueryParameters.getQueryParameters(tableName);
         return select(queryParameters,
                 forceRefresh,
                 exec);
     }
-    public static Iterator<UlakRow> select(QueryParameters queryParameters,
+    public static List<UlakRow> select(QueryParameters queryParameters,
                                                boolean forceRefresh,
-                                               Function<QueryParameters, ArrayList<UlakRow>> exec1) throws IOException {
+                                               Function<QueryParameters, List<UlakRow>> exec1) throws IOException {
         int hash = queryParameters.getHash();
         queryParameters.setStart(System.currentTimeMillis());
 
@@ -192,14 +192,14 @@ public class ConnectorBaseUtil {
             if (fromCache != null) {
                 queryParameters.setRows(fromCache);
                 setCacheItem(jedis, queryParameters);
-                return fromCache.iterator();
+                return fromCache ;
             }
             synchronized (inProgressLock) {
                 fromCache = getCacheResultAsList(forceRefresh, jedis, hash);
                 if (fromCache != null) {
                     queryParameters.setRows(fromCache);
                     setCacheItem(jedis, queryParameters);
-                    return fromCache.iterator();
+                    return fromCache ;
                 }
                 if (!inProgressLocks.containsKey(hash)) {
                     inProgressLocks.put(hash, hash);
@@ -212,18 +212,19 @@ public class ConnectorBaseUtil {
                     if (fromCache != null) {
                         queryParameters.setRows(fromCache);
                         setCacheItem(jedis, queryParameters);
-                        return fromCache.iterator();
+                        return fromCache ;
                     } else {
-                        if (queryParameters.isEagerCached() && !forceRefresh) {
-                            LinkedList<UlakRow> rows = new LinkedList<>();
-                            queryParameters.setRows(rows);
-                            setCacheItem(jedis, queryParameters);
-                            return rows.iterator();
-                        }
+                        //TODO:
+//                        if (queryParameters.isEagerCached() && !forceRefresh) {
+//                            LinkedList<UlakRow> rows = new LinkedList<>();
+//                            queryParameters.setRows(rows);
+//                            setCacheItem(jedis, queryParameters);
+//                            return rows.iterator();
+//                        }
                     }
 
                     queryParameters.setError("");
-                    ArrayList<UlakRow> list = exec1.apply(queryParameters);
+                    List<UlakRow> list = exec1.apply(queryParameters);
                     logger.debug("Running: " + hash);
 
                     if (jedis != null) {
@@ -232,7 +233,7 @@ public class ConnectorBaseUtil {
                         setCacheItem(jedis, queryParameters);
                     }
 //                    addOneStat(hash, 1);
-                    return list.iterator();
+                    return list ;
                 }
             } finally {
                 synchronized (inProgressLock) {
@@ -462,13 +463,12 @@ public class ConnectorBaseUtil {
 //    }
 
 
-    public static List<ColumnMetadata> getColumnsBase(String tableName,  Iterator<UlakRow> tables) throws IOException, ClassNotFoundException {
+    public static List<ColumnMetadata> getColumnsBase(List<UlakRow> tables) throws Exception {
         List<ColumnMetadata> res = new ArrayList<>();
 
 
-        if (tables.hasNext()) {
-            for (Iterator<UlakRow> it = tables; it.hasNext(); ) {
-                UlakRow fluxTable = it.next();
+        if (tables!=null) {
+            for (UlakRow fluxTable :tables) {
                 Map<String, Object> records = fluxTable.getColumnMap();
                 for (String record : records.keySet()) {
                     if (!res.stream().anyMatch(t -> t.getName().equals(record))) {
@@ -477,14 +477,15 @@ public class ConnectorBaseUtil {
                 }
             }
         } else {
-            String[] cols = QueryParameters.getQueryParameters(tableName).getColumns();
-            if (cols.length > 0) {
-                for (String record : cols) {
-                    if (!res.stream().anyMatch(t -> t.getName().equals(record))) {
-                        res.add(new ColumnMetadata(record, VarcharType.VARCHAR));
-                    }
-                }
-            }
+            throw new Exception("Empty Query");
+//            String[] cols = QueryParameters.getQueryParameters(tableName).getColumns();
+//            if (cols.length > 0) {
+//                for (String record : cols) {
+//                    if (!res.stream().anyMatch(t -> t.getName().equals(record))) {
+//                        res.add(new ColumnMetadata(record, VarcharType.VARCHAR));
+//                    }
+//                }
+//            }
         }
 //        // all tags
 //        flux = "import \"influxdata/influxdb/schema\"\n" + "schema.measurementTagKeys(\n"

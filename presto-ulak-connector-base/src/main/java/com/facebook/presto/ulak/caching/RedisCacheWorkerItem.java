@@ -8,6 +8,7 @@ import redis.clients.jedis.JedisPool;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -19,9 +20,9 @@ public class RedisCacheWorkerItem extends Thread implements Supplier<String> {
 
     private static Logger logger = LoggerFactory.getLogger(RedisCacheWorkerItem.class);
     private final String key;
-    private final Function<QueryParameters, ArrayList<UlakRow>> exec1;
+    private final Function<QueryParameters, List<UlakRow>> exec1;
 
-    public RedisCacheWorkerItem(String key, Function<QueryParameters, ArrayList<UlakRow>> exec1) {
+    public RedisCacheWorkerItem(String key, Function<QueryParameters, List<UlakRow>> exec1) {
         this.key = key;
         this.exec1 = exec1;
     }

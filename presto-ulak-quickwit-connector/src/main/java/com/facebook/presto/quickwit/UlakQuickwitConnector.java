@@ -17,6 +17,7 @@ import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
 import com.facebook.presto.ulak.UlakRecordSetProvider;
 import com.facebook.presto.ulak.UlakSplitManager;
 import com.facebook.presto.ulak.UlakTransactionHandle;
+import com.facebook.presto.ulak.caching.DBType;
 import com.facebook.presto.ulak.caching.QueryParameters;
 import com.facebook.presto.ulak.caching.RedisCacheWorker;
 import com.google.common.collect.Lists;
@@ -85,6 +86,10 @@ public class UlakQuickwitConnector
                 throw new RuntimeException(e);
             }
         }));
+
+        ConnectorBaseUtil.redisUrl = redisUrl;
+        ConnectorBaseUtil.workerId = workerId;
+        ConnectorBaseUtil.workerIndexToRunIn = workerIndexToRunIn;
         ConnectorBaseUtil.setKeywords(keywords);
 //        setNumThreads(numThreads);
         ConnectorBaseUtil.isCoordinator = true;
@@ -92,13 +97,13 @@ public class UlakQuickwitConnector
             if (redisCacheWorker == null) {
                 redisCacheWorker = new RedisCacheWorker((QueryParameters s)-> {
                     try {
-                        return Lists.newArrayList(QwUtil.select(s));
+                        return  QwUtil.select(s, qwUrl, qwIndex) ;
                     } catch (ApiException e) {
                         logger.error("InfluxdbConnector", e);
                         throw new RuntimeException(e);
                     }
-                },numThreads);
-                redisCacheWorker.start();
+                },numThreads, DBType.QW);
+                //redisCacheWorker.start();
             }
         }
     }
