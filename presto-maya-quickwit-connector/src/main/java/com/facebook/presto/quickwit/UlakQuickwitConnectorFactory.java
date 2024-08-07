@@ -25,12 +25,12 @@ import java.util.Map;
 
 //import static com.facebook.presto.influxdb.RedisCacheWorker.DEFAULT_N_THREADS;
 
-public class UlakQuicwitConnectorFactory
+public class UlakQuickwitConnectorFactory
         implements ConnectorFactory
 {
     public static final String TEXT_CONNECTOR_INFLUXDB = "influxdb";
 //    public static final String TEXT_CONNECTOR_PG = "mayapg";
-    private static Logger logger = LoggerFactory.getLogger(UlakQuicwitConnectorFactory.class);
+    private static Logger logger = LoggerFactory.getLogger(UlakQuickwitConnectorFactory.class);
 
     public String getName()
     {
