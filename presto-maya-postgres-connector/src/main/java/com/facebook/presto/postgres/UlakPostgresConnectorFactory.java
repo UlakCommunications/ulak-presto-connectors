@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.influxdb;
+package com.facebook.presto.postgres;
 
 
 import io.trino.spi.connector.Connector;
@@ -25,12 +25,12 @@ import java.util.Map;
 
 //import static com.facebook.presto.influxdb.RedisCacheWorker.DEFAULT_N_THREADS;
 
-public class InfluxdbConnectorFactory
+public class UlakPostgresConnectorFactory
         implements ConnectorFactory
 {
     public static final String TEXT_CONNECTOR_INFLUXDB = "influxdb";
 //    public static final String TEXT_CONNECTOR_PG = "mayapg";
-    private static Logger logger = LoggerFactory.getLogger(InfluxdbConnectorFactory.class);
+    private static Logger logger = LoggerFactory.getLogger(UlakPostgresConnectorFactory.class);
 
     public String getName()
     {
@@ -41,7 +41,7 @@ public class InfluxdbConnectorFactory
 //    @Override
 //    public ConnectorHandleResolver getHandleResolver()
 //    {
-//        return new InfluxdbHandleResolver();
+//        return new UlakHandleResolver();
 //    }
 
     @Override
@@ -64,10 +64,10 @@ public class InfluxdbConnectorFactory
             runInCoordinatorOnly = sRunInCoordinatorOnly.trim().toLowerCase(Locale.ENGLISH).equals("true");
         }
         String sWorkerIndexToRunIn = config.get("worker_id_to_run_in");
-        InfluxdbConnector connector = null;
+        UlakPostgresConnector connector = null;
         switch ( getName()){
             case TEXT_CONNECTOR_INFLUXDB:
-                connector = new InfluxdbConnector(
+                connector = new UlakPostgresConnector(
                         url,
                         catalogName,
                         config.get("connection-org"),

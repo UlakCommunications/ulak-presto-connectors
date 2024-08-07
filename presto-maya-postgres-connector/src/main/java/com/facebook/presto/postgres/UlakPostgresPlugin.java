@@ -11,17 +11,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.influxdb;
+package com.facebook.presto.postgres;
 
 import com.google.common.collect.ImmutableList;
 import io.trino.spi.Plugin;
 import io.trino.spi.connector.ConnectorFactory;
 
-public class InfluxdbPlugin
+public class UlakPostgresPlugin
         implements Plugin
 {
     public Iterable<ConnectorFactory> getConnectorFactories()
     {
-        return ImmutableList.of(new InfluxdbConnectorFactory());
+        return ImmutableList.of(new UlakPostgresConnectorFactory());
     }
 }

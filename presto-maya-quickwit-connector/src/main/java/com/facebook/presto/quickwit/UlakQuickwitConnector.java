@@ -11,12 +11,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.influxdb;
+package com.facebook.presto.quickwit;
 
+import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
 import com.facebook.presto.ulak.UlakRecordSetProvider;
 import com.facebook.presto.ulak.UlakSplitManager;
 import com.facebook.presto.ulak.UlakTransactionHandle;
-import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
 import com.facebook.presto.ulak.caching.QueryParameters;
 import com.facebook.presto.ulak.caching.RedisCacheWorker;
 import com.google.common.collect.Lists;
@@ -31,20 +31,20 @@ import java.sql.SQLException;
 
 //import static com.facebook.presto.influxdb.RedisCacheWorker.setNumThreads;
 
-public class InfluxdbConnector
+public class UlakQuickwitConnector
         implements Connector
 {
-    private RedisCacheWorker redisCacheWorker = null;
+    private RedisCacheWorker redisCacheWorker;
     private String qwUrl;
     private String qwIndex;
-    private static Logger logger = LoggerFactory.getLogger(InfluxdbConnector.class);
-    private final InfluxdbMetadata metadata;
+    private static Logger logger = LoggerFactory.getLogger(UlakQuickwitConnector.class);
+    private final UlakQuickwitMetadata metadata;
 
     private final UlakSplitManager splitManager;
 
     private final UlakRecordSetProvider recordSetProvider;
 
-    public InfluxdbConnector(String url,
+    public UlakQuickwitConnector(String url,
                              String catalogName,
                              String org,
                              String token,
@@ -63,52 +63,35 @@ public class InfluxdbConnector
                              String qwIndex) {
         // need to get database connection here
         logger.debug("Connector by url: " + url);
-//        switch (dbType) {
-//            case INFLUXDB2:
-        try {
-            InfluxdbUtil.instance(url, org, token, bucket);
-        } catch (IOException e) {
-            logger.error("InfluxdbConnector", e);
-        }
-
 
         if (qwUrl != null && !qwUrl.trim().equals("")) {
 //            QwUtil.instance(this,qwUrl, qwIndex);
             this.setQwUrl(qwUrl);
             this.setQwIndex(qwIndex);
         }
-//                break;
-//            case PG:
-//                try {
-//                    PGUtil.instance(pgUrl, pgUsername, pgPassword);
-//                } catch (IOException e) {
-//                    logger.error("InfluxdbConnector", e);
-//                }
-//                break;
-//        }
 
-        this.metadata = InfluxdbMetadata.getInstance(catalogName);
+        this.metadata = UlakQuickwitMetadata.getInstance(catalogName);
         this.splitManager = UlakSplitManager.getInstance();
-        this.recordSetProvider = UlakRecordSetProvider.getInstance((s)-> {
+        this.recordSetProvider = UlakRecordSetProvider.getInstance((s-> {
             try {
-                return InfluxdbUtil.exec(s);
+                return QwUtil.select(s);
             } catch (IOException e) {
-                logger.error("InfluxdbConnector", e);
+                logger.error("Connector by url: {}", url, e);
                 throw new RuntimeException(e);
             } catch (ClassNotFoundException e) {
-                logger.error("InfluxdbConnector", e);
+                logger.error("Connector by url: {}", url, e);
                 throw new RuntimeException(e);
             } catch (SQLException e) {
-                logger.error("InfluxdbConnector", e);
+                logger.error("Connector by url: {}", url, e);
                 throw new RuntimeException(e);
             } catch (ApiException e) {
-                logger.error("InfluxdbConnector", e);
+                logger.error("Connector by url: {}", url, e);
                 throw new RuntimeException(e);
             }
-        });
-        ConnectorBaseUtil.redisUrl = redisUrl;
-        ConnectorBaseUtil.workerId = workerId;
-        ConnectorBaseUtil.workerIndexToRunIn = workerIndexToRunIn;
+        }));
+        QwUtil.redisUrl = redisUrl;
+        QwUtil.workerId = workerId;
+        QwUtil.workerIndexToRunIn = workerIndexToRunIn;
         ConnectorBaseUtil.setKeywords(keywords);
 //        setNumThreads(numThreads);
         ConnectorBaseUtil.isCoordinator = true;
@@ -116,16 +99,7 @@ public class InfluxdbConnector
             if (redisCacheWorker == null) {
                 redisCacheWorker = new RedisCacheWorker((QueryParameters s)-> {
                     try {
-                        return Lists.newArrayList(InfluxdbUtil.exec(s));
-                    } catch (IOException e) {
-                        logger.error("InfluxdbConnector", e);
-                        throw new RuntimeException(e);
-                    } catch (ClassNotFoundException e) {
-                        logger.error("InfluxdbConnector", e);
-                        throw new RuntimeException(e);
-                    } catch (SQLException e) {
-                        logger.error("InfluxdbConnector", e);
-                        throw new RuntimeException(e);
+                        return Lists.newArrayList(QwUtil.select(s));
                     } catch (ApiException e) {
                         logger.error("InfluxdbConnector", e);
                         throw new RuntimeException(e);
@@ -141,7 +115,7 @@ public class InfluxdbConnector
         return UlakTransactionHandle.INSTANCE;
     }
 
-    public InfluxdbMetadata getMetadata() {
+    public UlakQuickwitMetadata getMetadata() {
         return metadata;
     }
 

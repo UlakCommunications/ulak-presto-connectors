@@ -18,6 +18,7 @@ import com.facebook.presto.ulak.UlakRow;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.common.collect.Lists;
 import io.trino.spi.connector.ColumnMetadata;
 import io.trino.spi.type.VarcharType;
 import org.slf4j.Logger;
@@ -226,7 +227,7 @@ public class ConnectorBaseUtil {
                     logger.debug("Running: " + hash);
 
                     if (jedis != null) {
-                        queryParameters.setRows(list);
+                        queryParameters.setRows(Lists.newArrayList(list));
                         queryParameters.setFinish(System.currentTimeMillis());
                         setCacheItem(jedis, queryParameters);
                     }
