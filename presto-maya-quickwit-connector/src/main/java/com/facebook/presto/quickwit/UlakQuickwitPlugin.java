@@ -22,6 +22,6 @@ public class UlakQuickwitPlugin
 {
     public Iterable<ConnectorFactory> getConnectorFactories()
     {
-        return ImmutableList.of(new UlakQuicwitConnectorFactory());
+        return ImmutableList.of(new UlakQuickwitConnectorFactory());
     }
 }
