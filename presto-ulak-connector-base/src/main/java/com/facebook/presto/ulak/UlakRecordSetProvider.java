@@ -30,12 +30,12 @@ public class UlakRecordSetProvider
 {
     private static Logger logger = LoggerFactory.getLogger(UlakRecordSetProvider.class);
     private static UlakRecordSetProvider single;
-    private final Function<String, Iterator<UlakRow>> exec1;
+    private final Function<String, List<UlakRow>> exec1;
 
-    public UlakRecordSetProvider(Function<String, Iterator<UlakRow>> exec1){
+    public UlakRecordSetProvider(Function<String, List<UlakRow>> exec1){
         this.exec1 = exec1;
     }
-    public static UlakRecordSetProvider getInstance(Function<String, Iterator<UlakRow>> exec1)
+    public static UlakRecordSetProvider getInstance(Function<String, List<UlakRow>> exec1)
     {
         if (single == null) {
             single = new UlakRecordSetProvider(exec1);
@@ -50,7 +50,7 @@ public class UlakRecordSetProvider
         for (ColumnHandle handle : columns) {
             UlakColumnHandle influxdbColumnHandle = (UlakColumnHandle) handle;
             handles.add(influxdbColumnHandle);
-           logger.debug(influxdbColumnHandle.getColumnName() + ":" + influxdbColumnHandle.getColumnType());
+            logger.debug(influxdbColumnHandle.getColumnName() + ":" + influxdbColumnHandle.getColumnType());
         }
         return new UlakRecordSet(influxdbSplit, handles.build(),exec1);
     }

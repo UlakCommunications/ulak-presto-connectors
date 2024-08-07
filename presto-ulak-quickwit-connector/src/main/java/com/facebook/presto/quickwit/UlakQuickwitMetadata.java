@@ -15,7 +15,9 @@ package com.facebook.presto.quickwit;
 
 import com.facebook.presto.ulak.UlakColumnHandle;
 import com.facebook.presto.ulak.UlakConnectorId;
+import com.facebook.presto.ulak.UlakRow;
 import com.facebook.presto.ulak.UlakTableHandle;
+import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
 import com.quickwit.javaclient.ApiException;
 import io.trino.spi.connector.*;
 import org.slf4j.Logger;
@@ -109,19 +111,23 @@ public class UlakQuickwitMetadata
         UlakTableHandle influxdbTableHandle = (UlakTableHandle) table;
         List<ColumnMetadata> list = null;
         try {
-            list = getColumnsBase( influxdbTableHandle.getTableName(), QwUtil.select(influxdbTableHandle.getTableName(),this.qwUrl,this.qwIndex));
+            String tableName = influxdbTableHandle.getTableName();
+            list = getColumnsBase(ConnectorBaseUtil.select(tableName,false, s-> {
+                            try {
+                                return  QwUtil.select(s, qwUrl, qwIndex);
+                            } catch (ApiException e) {
+                                logger.error("ApiException", e);
+                                throw new RuntimeException(e);
+                            }
+                        }));
         } catch (IOException e) {
             logger.error("IOException", e);
             throw new RuntimeException(e);
         } catch (ClassNotFoundException e) {
             logger.error("ClassNotFoundException", e);
             throw new RuntimeException(e);
-        } catch (SQLException e) {
-            logger.error("ClassNotFoundException", e);
-            throw new RuntimeException(e);
-        } catch (ApiException e) {
-            logger.error("ClassNotFoundException", e);
-            throw new RuntimeException(e);
+        }catch (Exception e) {
+            logger.error("Exception - Empty query", e);
         }
         SchemaTableName tableName = new SchemaTableName(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
 
@@ -135,7 +141,15 @@ public class UlakQuickwitMetadata
         Map<String, ColumnHandle> res = new HashMap<>();
         List<ColumnMetadata> list = null;
         try {
-            list = getColumnsBase(influxdbTableHandle.getTableName(), QwUtil.select(influxdbTableHandle.getTableName(),this.qwUrl,this.qwIndex));
+            String tableName = influxdbTableHandle.getTableName();
+            list = getColumnsBase(ConnectorBaseUtil.select(tableName,false, s-> {
+                        try {
+                            return QwUtil.select(s, qwUrl, qwIndex);
+                        } catch (ApiException e) {
+                            logger.error("ApiException", e);
+                            throw new RuntimeException(e);
+                        }
+                    }));
 
         } catch (IOException e) {
             logger.error("IOException", e);
@@ -143,12 +157,8 @@ public class UlakQuickwitMetadata
         } catch (ClassNotFoundException e) {
             logger.error("ClassNotFoundException", e);
             throw new RuntimeException(e);
-        } catch (SQLException e) {
-            logger.error("IOException", e);
-            throw new RuntimeException(e);
-        } catch (ApiException e) {
-            logger.error("IOException", e);
-            throw new RuntimeException(e);
+        }catch (Exception e) {
+            logger.error("Exception - Empty query", e);
         }
         for (int i = 0; i < list.size(); ++i) {
             ColumnMetadata metadata = list.get(i);
@@ -165,19 +175,23 @@ public class UlakQuickwitMetadata
         for (SchemaTableName tableName : list) {
             if (tableName.getTableName().startsWith(prefix.getTable().get())) {
                 try {
-                    columns.put(tableName,getColumnsBase( tableName.getTableName(), QwUtil.select(tableName.getTableName(),this.qwUrl,this.qwIndex)));
+                    columns.put(tableName,
+                            getColumnsBase(ConnectorBaseUtil.select(tableName.getTableName(),false, s-> {
+                                        try {
+                                            return QwUtil.select(s, qwUrl, qwIndex);
+                                        } catch (ApiException e) {
+                                            logger.error("ClassNotFoundException", e);
+                                            throw new RuntimeException(e);
+                                        }
+                                    })));
                 } catch (IOException e) {
                     logger.error("IOException", e);
                     throw new RuntimeException(e);
                 } catch (ClassNotFoundException e) {
                     logger.error("ClassNotFoundException", e);
                     throw new RuntimeException(e);
-                } catch (SQLException e) {
-                    logger.error("IOException", e);
-                    throw new RuntimeException(e);
-                } catch (ApiException e) {
-                    logger.error("IOException", e);
-                    throw new RuntimeException(e);
+                }catch (Exception e) {
+                    logger.error("Exception - Empty query", e);
                 }
             }
         }

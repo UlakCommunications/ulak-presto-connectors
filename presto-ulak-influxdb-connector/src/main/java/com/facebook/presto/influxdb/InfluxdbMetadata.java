@@ -126,6 +126,8 @@ public class InfluxdbMetadata
             logger.error("IOException", e);
         } catch (ClassNotFoundException e) {
             logger.error("ClassNotFoundException", e);
+        }catch (Exception e) {
+            logger.error("Exception - Empty query", e);
         }
         SchemaTableName tableName = new SchemaTableName(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
 
@@ -150,6 +152,8 @@ public class InfluxdbMetadata
             throw new RuntimeException(e);
         } catch (ClassNotFoundException e) {
             logger.error("ClassNotFoundException", e);
+        }catch (Exception e) {
+            logger.error("Exception - Empty query", e);
         }
         return res;
     }
@@ -168,6 +172,8 @@ public class InfluxdbMetadata
                     throw new RuntimeException(e);
                 } catch (ClassNotFoundException e) {
                     logger.error("ClassNotFoundException", e);
+                }catch (Exception e) {
+                    logger.error("Exception - Empty query", e);
                 }
             }
         }

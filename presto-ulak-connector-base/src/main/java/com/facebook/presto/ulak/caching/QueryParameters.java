@@ -15,9 +15,9 @@ public class QueryParameters {
     public static final String TEXT_TTL = "ttl";
     public static final String TEXT_CACHE = "cache";
     public static final String TEXT_REFRESH = "refresh";
-    public static final String TEXT_COLUMNS = "columns";
+//    public static final String TEXT_COLUMNS = "columns";
     public static final String TEXT_DBTYPE = "dbtype";
-    public static final String TEXT_EAGER_CACHE = "eagercache";
+//    public static final String TEXT_EAGER_CACHE = "eagercache";
     public static final String TEXT_NAME = "name";
     public static final String TEXT_QWINDEX = "qwindex";
     public static final String TEXT_QWURL = "qwurl";
@@ -34,7 +34,7 @@ public class QueryParameters {
     private int hash;
     private List<UlakRow> rows;
     private boolean toBeCached = false;
-    private boolean eagerCached = false;
+//    private boolean eagerCached = false;
     private boolean hasJs = false;
     private long ttlInSeconds = DEFAULT_TTL;
     private long refreshDurationInSeconds = DEFAULT_TTL + 5;
@@ -167,16 +167,16 @@ public class QueryParameters {
                                 ret.setRefreshDurationInSeconds(v);
                             }
                             break;
-                        case TEXT_COLUMNS:
-                            String[] vs = value.split(",");
-                            ret.setColumns(vs);
-                            break;
+//                        case TEXT_COLUMNS:
+//                            String[] vs = value.split(",");
+//                            ret.setColumns(vs);
+//                            break;
                         case TEXT_DBTYPE:
                             ret.setDbType(DBType.valueOf(value.toUpperCase(Locale.ENGLISH)));
                             break;
-                        case TEXT_EAGER_CACHE:
-                            ret.setEagerCached(Boolean.parseBoolean(value));
-                            break;
+//                        case TEXT_EAGER_CACHE:
+//                            ret.setEagerCached(Boolean.parseBoolean(value));
+//                            break;
                         case TEXT_HASJS:
                             ret.setHasJs(Boolean.parseBoolean(value));
                             break;
@@ -214,12 +214,12 @@ public class QueryParameters {
 
         return ret;
     }
-    public void setColumns(String[] vs) {
-        columns = vs;
-    }
-    public String[] getColumns( ) {
-        return columns;
-    }
+//    public void setColumns(String[] vs) {
+//        columns = vs;
+//    }
+//    public String[] getColumns( ) {
+//        return columns;
+//    }
     public boolean isToBeCached() {
         return toBeCached;
     }
@@ -250,14 +250,14 @@ public class QueryParameters {
     public void setRefreshDurationInSeconds(long refreshDurationInSeconds) {
         this.refreshDurationInSeconds = refreshDurationInSeconds;
     }
-
-    public boolean isEagerCached() {
-        return eagerCached;
-    }
-
-    public void setEagerCached(boolean eagerCached) {
-        this.eagerCached = eagerCached;
-    }
+//
+//    public boolean isEagerCached() {
+//        return eagerCached;
+//    }
+//
+//    public void setEagerCached(boolean eagerCached) {
+//        this.eagerCached = eagerCached;
+//    }
 
 
     public long getStart() {

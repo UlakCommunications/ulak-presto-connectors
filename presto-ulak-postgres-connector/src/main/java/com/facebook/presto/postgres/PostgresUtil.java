@@ -42,11 +42,11 @@ public class PostgresUtil {
             throws IOException {
     }
 
-    public static List<ColumnMetadata> getColumns(String bucket, String tableName) throws IOException, ClassNotFoundException {
+    public static List<ColumnMetadata> getColumns(String bucket, String tableName) throws Exception {
         logger.debug("influxdbUtil bucket:" + bucket + "table:" + tableName + " columnsMetadata");
         List<ColumnMetadata> res = new ArrayList<>();
 
-        Iterator<UlakRow> tables = null;
+        List<UlakRow> tables = null;
         try {
             tables = PostgresUtil.select(tableName);
         } catch (IOException e) {
@@ -59,9 +59,8 @@ public class PostgresUtil {
             logger.error("ApiException", e);
         }
 
-        if (tables.hasNext()) {
-            for (Iterator<UlakRow> it = tables; it.hasNext(); ) {
-                UlakRow fluxTable = it.next();
+        if (tables!=null) {
+            for (UlakRow fluxTable :tables) {
                 Map<String, Object> records = fluxTable.getColumnMap();
                 for (String record : records.keySet()) {
                     if (!res.stream().anyMatch(t -> t.getName().equals(record))) {
@@ -70,14 +69,16 @@ public class PostgresUtil {
                 }
             }
         } else {
-            String[] cols = QueryParameters.getQueryParameters(tableName).getColumns();
-            if (cols.length > 0) {
-                for (String record : cols) {
-                    if (!res.stream().anyMatch(t -> t.getName().equals(record))) {
-                        res.add(new ColumnMetadata(record, VarcharType.VARCHAR));
-                    }
-                }
-            }
+
+            throw new Exception("Empty Query");
+//            String[] cols = QueryParameters.getQueryParameters(tableName).getColumns();
+//            if (cols.length > 0) {
+//                for (String record : cols) {
+//                    if (!res.stream().anyMatch(t -> t.getName().equals(record))) {
+//                        res.add(new ColumnMetadata(record, VarcharType.VARCHAR));
+//                    }
+//                }
+//            }
         }
         for (ColumnMetadata columnMetadata : res) {
             logger.debug(columnMetadata.getName() + ":" + columnMetadata.getType().getDisplayName());
@@ -85,12 +86,12 @@ public class PostgresUtil {
         return res;
     }
 
-     public static Iterator<UlakRow> select(String tableName ) throws IOException, ClassNotFoundException, SQLException, ApiException  {
+     public static List<UlakRow> select(String tableName ) throws IOException, ClassNotFoundException, SQLException, ApiException  {
 
         QueryParameters influxdbQueryParameters = QueryParameters.getQueryParameters(tableName);
         return select(influxdbQueryParameters );
     }
-    public static Iterator<UlakRow> select(QueryParameters influxdbQueryParameters ) throws IOException, ClassNotFoundException, SQLException, ApiException  {
+    public static List<UlakRow> select(QueryParameters influxdbQueryParameters ) throws IOException, ClassNotFoundException, SQLException, ApiException  {
         return PGUtil.select(influxdbQueryParameters);
     }
 

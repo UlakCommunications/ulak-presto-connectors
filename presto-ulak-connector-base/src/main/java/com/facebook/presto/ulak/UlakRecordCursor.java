@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.ulak;
 
+import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.trino.spi.connector.RecordCursor;
@@ -24,6 +25,7 @@ import io.trino.spi.type.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
@@ -44,11 +46,19 @@ public class UlakRecordCursor
 
     public UlakRecordCursor(List<UlakColumnHandle> columnHandles,
                                 UlakSplit split,
-                                Function<String, Iterator<UlakRow>> exec1)
+                                Function<String, List<UlakRow>> exec1)
     {
         this.columnHandles = columnHandles;
 //        try {
-            this.iterator = exec1.apply(split.getTableName());
+        try {
+            this.iterator = ConnectorBaseUtil.select(split.getTableName(),
+                    false,
+                    s->  exec1.apply(split.getTableName())).iterator();
+        } catch (IOException e) {
+            logger.error("Error getting cursor: " , e);
+            throw new RuntimeException(e);
+        }
+//        this.iterator = exec1.apply(split.getTableName());
 //        } catch (IOException e) {
 //            logger.error("Error getting cursor: " , e);
 //            throw new RuntimeException(e);

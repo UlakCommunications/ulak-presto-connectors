@@ -57,7 +57,6 @@ public class InfluxdbUtil {
     };
     private static Map<String, String> keywords = new LinkedHashMap<>(const_keywords);
 
-    public static String redisUrl = null;
     private static String token = "zNBXClD-3rbf82GiGNGNxx0lZsJeJ3RCc7ViONhffoKfp5tfbv1UtLGFFcw7IU9i4ebllttDWzaD3899LaRQKg==";
     private static String org = "ulak";
     private static String bucket = "collectd";
@@ -118,11 +117,11 @@ public class InfluxdbUtil {
         return query;
     }
 
-    public static List<ColumnMetadata> getColumns(String bucket, String tableName) throws IOException, ClassNotFoundException {
+    public static List<ColumnMetadata> getColumns(String bucket, String tableName) throws Exception {
         logger.debug("influxdbUtil bucket:" + bucket + "table:" + tableName + " columnsMetadata");
         List<ColumnMetadata> res = new ArrayList<>();
 
-        Iterator<UlakRow> tables = null;
+        List<UlakRow> tables = null;
 //        switch (dbType){
 //            case  INFLUXDB2:
         try {
@@ -150,9 +149,8 @@ public class InfluxdbUtil {
 //        }
 
 
-        if (tables.hasNext()) {
-            for (Iterator<UlakRow> it = tables; it.hasNext(); ) {
-                UlakRow fluxTable = it.next();
+        if (tables!=null) {
+            for ( UlakRow  fluxTable : tables) {
                 Map<String, Object> records = fluxTable.getColumnMap();
                 for (String record : records.keySet()) {
                     if (!res.stream().anyMatch(t -> t.getName().equals(record))) {
@@ -161,14 +159,15 @@ public class InfluxdbUtil {
                 }
             }
         } else {
-            String[] cols = QueryParameters.getQueryParameters(tableName).getColumns();
-            if (cols.length > 0) {
-                for (String record : cols) {
-                    if (!res.stream().anyMatch(t -> t.getName().equals(record))) {
-                        res.add(new ColumnMetadata(record, VarcharType.VARCHAR));
-                    }
-                }
-            }
+            throw  new Exception("Empty Query");
+//            String[] cols = QueryParameters.getQueryParameters(tableName).getColumns();
+//            if (cols.length > 0) {
+//                for (String record : cols) {
+//                    if (!res.stream().anyMatch(t -> t.getName().equals(record))) {
+//                        res.add(new ColumnMetadata(record, VarcharType.VARCHAR));
+//                    }
+//                }
+//            }
         }
 //        // all tags
 //        flux = "import \"influxdata/influxdb/schema\"\n" + "schema.measurementTagKeys(\n"
@@ -189,12 +188,12 @@ public class InfluxdbUtil {
         return res;
     }
 
-    public static Iterator<UlakRow> exec(String tableName) throws IOException, ClassNotFoundException, SQLException, ApiException {
+    public static List<UlakRow> exec(String tableName) throws IOException, ClassNotFoundException, SQLException, ApiException {
         QueryParameters influxdbQueryParameters = QueryParameters.getQueryParameters(tableName);
         return exec(influxdbQueryParameters);
     }
 
-    public static Iterator<UlakRow> exec(QueryParameters influxdbQueryParameters) throws IOException, ClassNotFoundException, SQLException, ApiException {
+    public static List<UlakRow> exec(QueryParameters influxdbQueryParameters) throws IOException, ClassNotFoundException, SQLException, ApiException {
         try {
             influxdbQueryParameters.setError("");
             ArrayList<UlakRow> list = new ArrayList<UlakRow>();
@@ -216,7 +215,7 @@ public class InfluxdbUtil {
             for (Map<String, Object> entry : resMap) {
                 list.add(new UlakRow(entry));
             }
-            return list.iterator();
+            return list ;
         } finally {
 
         }

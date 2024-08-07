@@ -17,6 +17,7 @@ import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
 import com.facebook.presto.ulak.UlakRecordSetProvider;
 import com.facebook.presto.ulak.UlakSplitManager;
 import com.facebook.presto.ulak.UlakTransactionHandle;
+import com.facebook.presto.ulak.caching.DBType;
 import com.facebook.presto.ulak.caching.QueryParameters;
 import com.facebook.presto.ulak.caching.RedisCacheWorker;
 import com.google.common.collect.Lists;
@@ -116,7 +117,7 @@ public class UlakPostgresConnector
             if (redisCacheWorker == null) {
                 redisCacheWorker = new RedisCacheWorker((QueryParameters s)-> {
                     try {
-                        return Lists.newArrayList(PostgresUtil.select(s));
+                        return  PostgresUtil.select(s) ;
                     } catch (IOException e) {
                         logger.error("InfluxdbConnector", e);
                         throw new RuntimeException(e);
@@ -130,8 +131,8 @@ public class UlakPostgresConnector
                         logger.error("InfluxdbConnector", e);
                         throw new RuntimeException(e);
                     }
-                },numThreads);
-                redisCacheWorker.start();
+                },numThreads, DBType.PG);
+                //redisCacheWorker.start();
             }
         }
     }

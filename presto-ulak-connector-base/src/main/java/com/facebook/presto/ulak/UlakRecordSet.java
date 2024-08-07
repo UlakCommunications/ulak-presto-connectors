@@ -29,13 +29,13 @@ public class UlakRecordSet
         implements RecordSet
 {
     private final List<UlakColumnHandle> columnHandles;
-    private final Function<String, Iterator<UlakRow>> exec1;
+    private final Function<String, List<UlakRow>> exec1;
     private final List<Type> columnTypes;
     private final UlakSplit split;
 
     public UlakRecordSet(UlakSplit split,
                              List<UlakColumnHandle> columnHandles,
-                             Function<String, Iterator<UlakRow>> exec1)
+                             Function<String, List<UlakRow>> exec1)
     {
         this.split = requireNonNull(split, "split is null");
         this.columnHandles = requireNonNull(columnHandles, "column handles is null");

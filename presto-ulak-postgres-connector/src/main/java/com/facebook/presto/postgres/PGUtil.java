@@ -84,12 +84,12 @@ public class PGUtil {
         return res;
     }
 
-    public static Iterator<UlakRow> select(String tableName ) throws IOException, SQLException {
+    public static List<UlakRow> select(String tableName ) throws IOException, SQLException {
         QueryParameters influxdbQueryParameters = QueryParameters.getQueryParameters(tableName);
         return select(influxdbQueryParameters);
     }
 
-    public static Iterator<UlakRow> select(QueryParameters influxdbQueryParameters) throws IOException, SQLException {
+    public static List<UlakRow> select(QueryParameters influxdbQueryParameters) throws IOException, SQLException {
         influxdbQueryParameters.setDbType(DBType.PG);
         influxdbQueryParameters.setStart(System.currentTimeMillis());
 
@@ -98,7 +98,7 @@ public class PGUtil {
 
         List<UlakRow> ret = executeOneQuery(query);
 //                    addOneStat(hash, 1);
-        return ret.iterator();
+        return ret ;
 
     }
 
