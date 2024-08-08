@@ -36,6 +36,7 @@ import java.util.function.Function;
 //import static com.facebook.presto.influxdb.RedisCacheWorker.addOneStat;
 
 public class ConnectorBaseUtil {
+    public static final  int NONE_CACHE_TTL_IN_SECONDS = 5;
     public static boolean isCoordinator;
     public static String workerId;
     public static String workerIndexToRunIn;
@@ -156,8 +157,13 @@ public class ConnectorBaseUtil {
                                     QueryParameters queryParameters) throws JsonProcessingException {
         queryParameters.setFinish(System.currentTimeMillis());
         SetParams param = new SetParams();
-        param.ex(queryParameters.getTtlInSeconds());
-        jedis.set(getTrinoCacheString(queryParameters.getHash()), getObjectMapper().writeValueAsString(queryParameters), param);
+        if(queryParameters.isToBeCached()) {
+            param.ex(queryParameters.getTtlInSeconds());
+        }else{
+            param.ex(NONE_CACHE_TTL_IN_SECONDS);
+        }
+        jedis.set(getTrinoCacheString(queryParameters.getHash()),
+                getObjectMapper().writeValueAsString(queryParameters), param);
     }
 
     public static String getTrinoCacheString(String hash){

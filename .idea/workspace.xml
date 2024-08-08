@@ -6,23 +6,10 @@
   <component name="ChangeListManager">
     <list default="true" id="07193e5b-7538-452b-907e-1dada32f10d6" name="Changes" comment="fix column medata bugs and reformat code structure.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/presto-ulak-connector-base/src/main/java/com/facebook/presto/ulak/UlakRecordCursor.java" beforeDir="false" afterPath="$PROJECT_DIR$/presto-ulak-connector-base/src/main/java/com/facebook/presto/ulak/UlakRecordCursor.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/presto-ulak-connector-base/src/main/java/com/facebook/presto/ulak/UlakRecordSet.java" beforeDir="false" afterPath="$PROJECT_DIR$/presto-ulak-connector-base/src/main/java/com/facebook/presto/ulak/UlakRecordSet.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/presto-ulak-connector-base/src/main/java/com/facebook/presto/ulak/UlakRecordSetProvider.java" beforeDir="false" afterPath="$PROJECT_DIR$/presto-ulak-connector-base/src/main/java/com/facebook/presto/ulak/UlakRecordSetProvider.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/presto-ulak-connector-base/src/main/java/com/facebook/presto/ulak/caching/ConnectorBaseUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/presto-ulak-connector-base/src/main/java/com/facebook/presto/ulak/caching/ConnectorBaseUtil.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/presto-ulak-connector-base/src/main/java/com/facebook/presto/ulak/caching/QueryParameters.java" beforeDir="false" afterPath="$PROJECT_DIR$/presto-ulak-connector-base/src/main/java/com/facebook/presto/ulak/caching/QueryParameters.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/presto-ulak-connector-base/src/main/java/com/facebook/presto/ulak/caching/RedisCacheWorker.java" beforeDir="false" afterPath="$PROJECT_DIR$/presto-ulak-connector-base/src/main/java/com/facebook/presto/ulak/caching/RedisCacheWorker.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/presto-ulak-connector-base/src/main/java/com/facebook/presto/ulak/caching/RedisCacheWorkerItem.java" beforeDir="false" afterPath="$PROJECT_DIR$/presto-ulak-connector-base/src/main/java/com/facebook/presto/ulak/caching/RedisCacheWorkerItem.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/presto-ulak-influxdb-connector/src/main/java/com/facebook/presto/influxdb/InfluxdbConnector.java" beforeDir="false" afterPath="$PROJECT_DIR$/presto-ulak-influxdb-connector/src/main/java/com/facebook/presto/influxdb/InfluxdbConnector.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/presto-ulak-influxdb-connector/src/main/java/com/facebook/presto/influxdb/InfluxdbMetadata.java" beforeDir="false" afterPath="$PROJECT_DIR$/presto-ulak-influxdb-connector/src/main/java/com/facebook/presto/influxdb/InfluxdbMetadata.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/presto-ulak-influxdb-connector/src/main/java/com/facebook/presto/influxdb/InfluxdbUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/presto-ulak-influxdb-connector/src/main/java/com/facebook/presto/influxdb/InfluxdbUtil.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/presto-ulak-postgres-connector/src/main/java/com/facebook/presto/postgres/PGUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/presto-ulak-postgres-connector/src/main/java/com/facebook/presto/postgres/PGUtil.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/presto-ulak-postgres-connector/src/main/java/com/facebook/presto/postgres/PostgresUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/presto-ulak-postgres-connector/src/main/java/com/facebook/presto/postgres/PostgresUtil.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/presto-ulak-postgres-connector/src/main/java/com/facebook/presto/postgres/UlakPostgresConnector.java" beforeDir="false" afterPath="$PROJECT_DIR$/presto-ulak-postgres-connector/src/main/java/com/facebook/presto/postgres/UlakPostgresConnector.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/presto-ulak-postgres-connector/src/main/java/com/facebook/presto/postgres/UlakPostgresMetadata.java" beforeDir="false" afterPath="$PROJECT_DIR$/presto-ulak-postgres-connector/src/main/java/com/facebook/presto/postgres/UlakPostgresMetadata.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/presto-ulak-quickwit-connector/src/main/java/com/facebook/presto/quickwit/QwUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/presto-ulak-quickwit-connector/src/main/java/com/facebook/presto/quickwit/QwUtil.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/presto-ulak-quickwit-connector/src/main/java/com/facebook/presto/quickwit/UlakQuickwitConnector.java" beforeDir="false" afterPath="$PROJECT_DIR$/presto-ulak-quickwit-connector/src/main/java/com/facebook/presto/quickwit/UlakQuickwitConnector.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/presto-ulak-quickwit-connector/src/main/java/com/facebook/presto/quickwit/UlakQuickwitMetadata.java" beforeDir="false" afterPath="$PROJECT_DIR$/presto-ulak-quickwit-connector/src/main/java/com/facebook/presto/quickwit/UlakQuickwitMetadata.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -30,6 +17,11 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="github_refactor_tmp" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="UPDATE_TYPE" value="REBASE" />
   </component>
@@ -45,18 +37,24 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Application.QwUtil.executor": "Debug",
+    "Maven.ulak-connector-base [compile].executor": "Run",
     "Maven.ulak-connector-base [install].executor": "Run",
     "Maven.ulak-connector-base [site].executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "WebServerToolWindowFactoryState": "false",
-    "last_opened_file_path": "/home/reins/presto-influxdb-single",
+    "git-widget-placeholder": "github__refactor",
+    "last_opened_file_path": "/home/fatihyuce/work/projects/maya3/ng_sdn/monitoring/presto-influxdb-connector_refactor/b.json",
+    "node.js.detected.package.eslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
     "project.structure.last.edited": "Project",
     "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.22324508"
+    "project.structure.side.proportion": "0.22324508",
+    "settings.editor.selected.configurable": "preferences.lookFeel",
+    "two.files.diff.last.used.file": "/home/fatihyuce/work/projects/maya3/ng_sdn/monitoring/presto-influxdb-connector_refactor/b.json"
   }
 }]]></component>
   <component name="RecentsManager">
@@ -80,6 +78,7 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Application.QwUtil" />
         <item itemvalue="Application.QwUtil" />
       </list>
     </recent_temporary>
@@ -179,16 +178,6 @@
           <url>file://$PROJECT_DIR$/presto-ulak-quickwit-connector/src/main/java/com/facebook/presto/quickwit/QwUtil.java</url>
           <line>127</line>
           <option name="timeStamp" value="5" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/presto-ulak-quickwit-connector/src/main/java/com/facebook/presto/quickwit/QwUtil.java</url>
-          <line>204</line>
-          <option name="timeStamp" value="6" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/presto-ulak-quickwit-connector/src/main/java/com/facebook/presto/quickwit/QwUtil.java</url>
-          <line>202</line>
-          <option name="timeStamp" value="7" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

@@ -146,15 +146,21 @@ public class RedisCacheWorker extends Thread{
                                             }
                                             queryParameters = getObjectMapper().readValue(json,
                                                     QueryParameters.class);
-                                            if(stats.equals((queryParameters.getHash()))){
-                                                logger.error("Hash does not match: " + currentRedisKey + "/"
-                                                        + queryParameters.getHash());
-                                            }
+//                                            if(stats.equals((queryParameters.getHash()))){
+//                                                logger.error("Hash does not match: " + currentRedisKey + "/"
+//                                                        + queryParameters.getHash());
+//                                            }
                                         } catch (Throwable e) {
                                             logger.error("JsonProcessingException", e);
                                             continue;
                                         }
                                         if(queryParameters.getDbType()!=this.dbType){
+                                            logger.info("not the same db type {}/{}",queryParameters.getDbType(), this.dbType);
+                                            continue;
+                                        }
+
+                                        if(!queryParameters.isToBeCached()){
+                                            logger.debug("not the to be cached {}",queryParameters.getHash());
                                             continue;
                                         }
                                         CacheUsageStats usageStats = stats.get(queryParameters.getHash());
@@ -172,7 +178,7 @@ public class RedisCacheWorker extends Thread{
 
                                         long ttl = jedis.ttl(currentRedisKey);
                                         long passed = queryParameters.getTtlInSeconds() - ttl;
-                                        if (passed > queryParameters.getRefreshDurationInSeconds() ) {
+                                        if (passed >= queryParameters.getRefreshDurationInSeconds() ) {
                                                     //|| (queryParameters.getRows().size() == 0)&& queryParameters.isEagerCached()
 
                                             logger.debug("Seconds passed : " + passed
