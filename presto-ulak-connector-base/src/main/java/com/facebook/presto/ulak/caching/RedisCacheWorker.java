@@ -169,12 +169,12 @@ public class RedisCacheWorker extends Thread{
                                             usageStats = addOneStat(queryParameters.getHash(),1);
                                             //removeCacheFromRefreshWorker(influxdbQueryParameters.getHash());
                                         }
-                                        long diff = Duration.between(usageStats.getLastUsed().toInstant(),
-                                                new Date().toInstant()).getSeconds();
-                                        if (diff >= queryParameters.getTtlInSeconds()) {
-                                            removeCacheFromRefreshWorker(queryParameters.getHash());
-                                            continue;
-                                        }
+//                                        long diff = Duration.between(usageStats.getLastUsed().toInstant(),
+//                                                new Date().toInstant()).getSeconds();
+//                                        if (diff >= queryParameters.getTtlInSeconds()) {
+//                                            removeCacheFromRefreshWorker(queryParameters.getHash());
+//                                            continue;
+//                                        }
 
                                         long ttl = jedis.ttl(currentRedisKey);
                                         long passed = queryParameters.getTtlInSeconds() - ttl;

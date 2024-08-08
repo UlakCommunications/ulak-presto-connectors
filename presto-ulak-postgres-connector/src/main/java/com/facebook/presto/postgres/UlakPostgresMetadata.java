@@ -16,12 +16,18 @@ package com.facebook.presto.postgres;
 import com.facebook.presto.ulak.UlakColumnHandle;
 import com.facebook.presto.ulak.UlakConnectorId;
 import com.facebook.presto.ulak.UlakTableHandle;
+import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
+import com.facebook.presto.ulak.caching.QueryParameters;
+import com.quickwit.javaclient.ApiException;
 import io.trino.spi.connector.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.*;
+
+import static com.facebook.presto.ulak.caching.ConnectorBaseUtil.getColumnsBase;
 
 public class UlakPostgresMetadata
         implements ConnectorMetadata
@@ -83,11 +89,21 @@ public class UlakPostgresMetadata
         UlakTableHandle influxdbTableHandle = (UlakTableHandle) table;
         List<ColumnMetadata> list = null;
         try {
-            list = PostgresUtil.getColumns(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
+            String tableName = influxdbTableHandle.getTableName();
+            list =  getColumnsBase(ConnectorBaseUtil.select(tableName,false, s-> {
+                try {
+                    return  PostgresUtil.select(s);
+                } catch (ApiException | IOException | ClassNotFoundException | SQLException e) {
+                    logger.error("Exception", e);
+                    throw new RuntimeException(e);
+                }
+            }));
         } catch (IOException e) {
             logger.error("IOException", e);
+            throw new RuntimeException(e);
         } catch (ClassNotFoundException e) {
             logger.error("ClassNotFoundException", e);
+            throw new RuntimeException(e);
         } catch (Exception e) {
             logger.error("Exception - empty query", e);
             throw new RuntimeException(e);
@@ -104,7 +120,24 @@ public class UlakPostgresMetadata
         Map<String, ColumnHandle> res = new HashMap<>();
         List<ColumnMetadata> list = null;
         try {
-            list = PostgresUtil.getColumns(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
+            String tableName = influxdbTableHandle.getTableName();
+            list = getColumnsBase(ConnectorBaseUtil.select(tableName,false, s-> {
+                try {
+                    return PostgresUtil.select(s);
+                } catch (ApiException e) {
+                    logger.error("ApiException", e);
+                    throw new RuntimeException(e);
+                } catch (SQLException e) {
+                    logger.error("SQLException", e);
+                    throw new RuntimeException(e);
+                } catch (IOException e) {
+                    logger.error("IOException", e);
+                    throw new RuntimeException(e);
+                } catch (ClassNotFoundException e) {
+                    logger.error("ClassNotFoundException", e);
+                    throw new RuntimeException(e);
+                }
+            }));
 
             for (int i = 0; i < list.size(); ++i) {
                 ColumnMetadata metadata = list.get(i);
@@ -129,7 +162,23 @@ public class UlakPostgresMetadata
         for (SchemaTableName tableName : list) {
             if (tableName.getTableName().startsWith(prefix.getTable().get())) {
                 try {
-                    columns.put(tableName, PostgresUtil.getColumns(session.getSource().get(), tableName.getTableName()));
+                    columns.put(tableName, getColumnsBase(ConnectorBaseUtil.select(tableName.getTableName(),false, (QueryParameters s)-> {
+                        try {
+                            return PostgresUtil.select(s);
+                        } catch (ApiException e) {
+                            logger.error("ApiException", e);
+                            throw new RuntimeException(e);
+                        } catch (SQLException e) {
+                            logger.error("SQLException", e);
+                            throw new RuntimeException(e);
+                        } catch (IOException e) {
+                            logger.error("IOException", e);
+                            throw new RuntimeException(e);
+                        } catch (ClassNotFoundException e) {
+                            logger.error("ClassNotFoundException", e);
+                            throw new RuntimeException(e);
+                        }
+                    })));
                 } catch (IOException e) {
                     logger.error("IOException", e);
                     throw new RuntimeException(e);
