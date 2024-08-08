@@ -132,7 +132,7 @@ public class InfluxdbConnector
                         throw new RuntimeException(e);
                     }
                 },numThreads, DBType.INFLUXDB2);
-                //redisCacheWorker.start();
+                redisCacheWorker.start();
             }
         }
     }

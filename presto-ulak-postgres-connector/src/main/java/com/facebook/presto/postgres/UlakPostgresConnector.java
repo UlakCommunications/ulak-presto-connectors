@@ -132,7 +132,7 @@ public class UlakPostgresConnector
                         throw new RuntimeException(e);
                     }
                 },numThreads, DBType.PG);
-                //redisCacheWorker.start();
+                redisCacheWorker.start();
             }
         }
     }
