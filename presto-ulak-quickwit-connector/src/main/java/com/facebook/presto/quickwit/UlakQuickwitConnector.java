@@ -103,7 +103,7 @@ public class UlakQuickwitConnector
                         throw new RuntimeException(e);
                     }
                 },numThreads, DBType.QW);
-                //redisCacheWorker.start();
+                redisCacheWorker.start();
             }
         }
     }

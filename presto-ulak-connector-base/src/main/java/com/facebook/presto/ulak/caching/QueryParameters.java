@@ -125,12 +125,8 @@ public class QueryParameters {
 
         QueryParameters ret = new QueryParameters();
         ret.setQuery(tableName);
-
         ret.setHash(hash);
-//        if(c!=null) {
-//            ret.setQwUrl(c.getQwUrl());
-//            ret.setQwIndex(c.getQwIndex());
-//        }
+
         String[] splits = tableName.split(NEW_LINE_CHAR);
         for (int i = 0; i < splits.length; i++) {
             String current = splits[i];
