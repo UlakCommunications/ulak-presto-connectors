@@ -74,7 +74,7 @@ public class RedisCacheWorker extends Thread{
                 logger.error("Key does not exists to be printed: {}", key);
                 continue;
             }
-            QueryParameters QueryParameters = null;
+            QueryParameters QueryParameters;
             try {
                 QueryParameters = getObjectMapper().readValue(json, QueryParameters.class);
             } catch (JsonProcessingException e) {
