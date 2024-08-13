@@ -56,7 +56,7 @@ public class RedisCacheWorkerItem extends Thread implements Supplier<String> {
 
     @Override
     public String get() {
-        run();
+        start();
         return "finished";
     }
 }
