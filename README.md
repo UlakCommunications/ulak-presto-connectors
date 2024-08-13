@@ -1,16 +1,40 @@
 # ulak-presto-connectors
 
-NOTE: We are trying to enhance the documentation. Also help is much appreciated.
-
 This repository contains three presto connectors;
 
 * InfluxDB connector : Developed upon from [presto-influxdb-connector](https://github.com/Chasingdreams6/presto-influxdb-connector.git)
 * Postgres inline connector
 * Quickwit inline connector
 
-All connectors exploit a known trino feature (query in ) to embed [non-]sql data source queries.
+All connectors exploit a known Trino feature (query in) to embed [non-]sql data source queries.
 
-## An influxdb Query sample;
+# Connectors
+* [ulak-presto-influxdb-connector](ulak-presto-influxdb-connector)
+* [ulak-presto-postgres-connector](ulak-presto-postgres-connector)
+* [ulak-presto-quickwit-connector](ulak-presto-quickwit-connector)
+
+# Installation
+1. Execute "mvn package".
+2. Create "quickwit" directory in ${presto-root}/plugin/
+3. copy original-presto-quickwit-0.432-SNAPSHOT.jar and presto-quickwit-0.280-SNAPSHOT.jar to /{presto-root-dir}/plugin/quickwit
+4. use "/bin/launcher start" to start server
+5. 
+## Docker Build and Push Commands
+### Building and Publishing Trino
+```bash
+./mvnw clean package
+docker build -t 192.168.57.202:35000/trinodb/trino:432 .
+docker push 192.168.57.202:35000/trinodb/trino:432
+```
+### Building and Publishing Trino-Cache
+```bash
+./mvnw clean package
+docker build -t 192.168.57.202:35000/trinodb/trino:432-cache .
+docker push 192.168.57.202:35000/trinodb/trino:432-cache
+```
+
+# Sample Queries
+## Sample Influxdb Query;
 
 ```sql
 
@@ -37,7 +61,7 @@ order by _value desc
 
 ```
 
-## A quickwit Sample
+## Sample Quickwit Query
 
 ```bash
 select 1 as r, status, count(*) as cnt
@@ -317,9 +341,7 @@ from (
 group by status
  
 ```
-## A postgres sample
-
-
+## Sample Postgres Query
 ```sql
 
 select cast(i._time as DOUBLE)*1000  as time, _measurement,cast(i._value as DOUBLE) as _value
@@ -339,31 +361,9 @@ order by _value desc
 
 ```
 
-
-## Docker Local
-
-```bash
-./mvnw clean package
-docker build -t 192.168.57.202:35000/trinodb/trino:432 .
-docker push 192.168.57.202:35000/trinodb/trino:432
-```
-
-```bash
-./mvnw clean package
-docker build -t 192.168.57.202:35000/trinodb/trino:432-cache .
-docker push 192.168.57.202:35000/trinodb/trino:432-cache
-```
-
-
-
-## build and run
-1. Execute "mvn package".
-2. Create "quickwit" directory in ${presto-root}/plugin/
-3. copy original-presto-quickwit-0.432-SNAPSHOT.jar and presto-quickwit-0.280-SNAPSHOT.jar to /{presto-root-dir}/plugin/quickwit
-4. use "/bin/launcher start" to start server
-
-## notes
-1. It's only support StringType;
+# Notes
+1. The connector only supports String type data.
+2. The documentation is still improving by ourselves. We welcome any kind of help.
 
 # Trino catalog sample
 
@@ -371,28 +371,14 @@ docker push 192.168.57.202:35000/trinodb/trino:432-cache
 # Postgres Entry in Trino Catalog
 
 ```
-
     maya_pg_grafana: >-
-      connector.name=mayapg
-      
+      connector.name=mayapg   
       connection-url=jdbc:postgresql://postgres:5432/grafana
-
       connection-user=postgres
-
       connection-password=*****
-  
       redis-url=http://default:*****@redis:6379
-  
       keywords= 
-  
       number_of_worker_threads=10
-  
       run_in_coordinator_only=true
-  
       worker_index_to_run_in=1
-`````
-
-# Connectors
-* [ulak-presto-influxdb-connector](ulak-presto-influxdb-connector)
-* [ulak-presto-postgres-connector](ulak-presto-postgres-connector)
-* [ulak-presto-quickwit-connector](ulak-presto-quickwit-connector)
+````
