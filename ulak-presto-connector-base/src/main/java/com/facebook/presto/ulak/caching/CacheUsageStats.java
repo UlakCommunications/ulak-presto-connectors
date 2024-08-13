@@ -24,7 +24,7 @@ public class CacheUsageStats {
         return hash;
     }
 
-    public void setQueryHash(int used) {
+    public void setQueryHash(int hash) {
         this.hash = hash;
     }
     public Date getLastUsed() {
@@ -37,7 +37,7 @@ public class CacheUsageStats {
 
     @Override
     public int hashCode() {
-        int result = (int) (hash ^ (hash >>> 32));
+        int result = (hash ^ (hash >>> 32));
         result = 31 * result + used;
         result = 31 * result + lastUsed.hashCode();
         return result;
