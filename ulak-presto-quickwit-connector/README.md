@@ -1,69 +1,30 @@
-# ulak-presto-connectors
+# presto-influxdb-connector
 
-This repository contains three presto connectors;
+It's a Quickwit connector for presto, it's based on trino-0.432.
 
-* InfluxDB connector : Developed from [presto-influxdb-connector](https://github.com/Chasingdreams6/presto-influxdb-connector.git)
-* Postgres inline connector
-* Quickwit inline connector
-
-All connectors exploit a known Trino feature (query in) to embed [non-]sql data source queries.
-
-Redis is not required, but needed if caching is requested.
-
-# Connectors
-* [ulak-presto-influxdb-connector](ulak-presto-influxdb-connector)
-* [ulak-presto-postgres-connector](ulak-presto-postgres-connector)
-* [ulak-presto-quickwit-connector](ulak-presto-quickwit-connector)
-
-# Installation
+## build and run 
 1. Execute "mvn package".
 2. Create "quickwit" directory in ${presto-root}/plugin/
 3. copy original-presto-quickwit-0.432-SNAPSHOT.jar and presto-quickwit-0.280-SNAPSHOT.jar to /{presto-root-dir}/plugin/quickwit
 4. use "/bin/launcher start" to start server
-5. 
-## Docker Build and Push Commands
-### Building and Publishing Trino
+
+## notes
+1. It's only support StringType;
+
+
+## Docker Local
+
 ```bash
 ./mvnw clean package
 docker build -t 192.168.57.202:35000/trinodb/trino:432 .
 docker push 192.168.57.202:35000/trinodb/trino:432
 ```
-### Building and Publishing Trino-Cache
+
 ```bash
 ./mvnw clean package
 docker build -t 192.168.57.202:35000/trinodb/trino:432-cache .
 docker push 192.168.57.202:35000/trinodb/trino:432-cache
 ```
-
-# Sample Queries
-## Sample Influxdb Query;
-
-```sql
-
-select cast(i._time as DOUBLE)*1000  as time, _measurement,cast(i._value as DOUBLE) as _value
-from influxdb_monitoring.otlp_metric."
-  //ttl=172800
-  //refresh=3600
-  //cache=true
-  //eagercache=true
-  //columns=_time,_measurement,_value
-        
-  import ""date""
-  
-  from(bucket: ""otlp_metric"")
-  |> range(start: -24h) 
-  |> aggregateWindow( every: 1h, fn: count, timeSrc: ""_start"")  
-  |> group(columns: [""_time"",""_measurement""])
-  |> sum() 
-  |> group()
-" as i
---left join postgres_simsek.public.site s on cast(s.id as varchar) = i.host 
---where s.name is null 
-order by _value desc
-
-```
-
-## Sample Quickwit Query
 
 ```bash
 select 1 as r, status, count(*) as cnt
@@ -343,75 +304,4 @@ from (
 group by status
  
 ```
-## Sample Postgres Query
-```sql
-
-select cast(i._time as DOUBLE)*1000  as time, _measurement,cast(i._value as DOUBLE) as _value
-from mayapostgres.public."
-  //ttl=172800
-  //refresh=3600
-  //cache=true
-  //eagercache=true
-
-  //columns=_time,_measurement,_value
-   select ""a"" as b
-
-" as i
---left join postgres_simsek.public.site s on cast(s.id as varchar) = i.host 
---where s.name is null 
-order by _value desc
-
-```
-
-# Notes
-1. The connector only supports String type data.
-2. The documentation is still improving by ourselves. We welcome any kind of help.
-
-# Trino catalog sample
-
-
-# Postgres Entry in Trino Catalog
-
-```
-    maya_pg_grafana: >-
-      connector.name=mayapg   
-      connection-url=jdbc:postgresql://postgres:5432/grafana
-      connection-user=postgres
-      connection-password=*****
-      redis-url=http://default:*****@redis:6379
-      keywords= 
-      number_of_worker_threads=10
-      run_in_coordinator_only=true
-      worker_index_to_run_in=1
-````
-
-
-# Query Parameters
-
-```
-//cache=false
-//name=Dataplane Status
-//columns=host,_time,_value
-//dbtype=qw
-//qwindex=metrics3
-//qwurl=http://1.2.3.5:7280
-//replacefromcolumns=/3/buckets/2/buckets/4/buckets/5/buckets/6/buckets/7/buckets/8/buckets/9/buckets/10/buckets/1
-            
-```
-
-| Parameter            | Values               | Description                                                                                                                                                                                                                                                                                                                                                                                                                             |   |
-|----------------------|----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---|
-| `cache`              | `true`/`false`       | Enable cache                                                                                                                                                                                                                                                                                                                                                                                                                            |   |
-| `name`               | text                 | Name of the query                                                                                                                                                                                                                                                                                                                                                                                                                       |   |
-| `columns`            | Comma sperated names | If no data available, then only these headers will be returned                                                                                                                                                                                                                                                                                                                                                                          |   |
-| `dbtype`             | `qw`/`pg`/`influxdb` |                                                                                                                                                                                                                                                                                                                                                                                                                                         |   |
-| `qwindex`            | text                 | Quickwit index   name                                                                                                                                                                                                                                                                                                                                                                                                                   |   |
-| `qwurl`              | URL                  | Quickwit URL                                                                                                                                                                                                                                                                                                                                                                                                                            |   |
-| `replacefromcolumns` | text                 | Text to replace from field names                                                                                                                                                                                                                                                                                                                                                                                                        |   |
-| `ttl`                | seconds              | Time to leave for redis                                                                                                                                                                                                                                                                                                                                                                                                                 |   |
-| `refresh`            | seconds              | Cache refresh period                                                                                                                                                                                                                                                                                                                                                                                                                    |   |
-| `hasjs` (trino only) | `true`/`false`       | Ability to use javascript code in queries  <br/> Predefined javascripts variables;<br/><table><tr><th>Name</th><th>Value</th><tr><td>`now`</td><td>current unix time  </td></tr><tr><td>`now`</td><td>current unix time  </td></tr><tr><td>`d`</td><td>seconds in a day  </td></tr><tr><td>`h`</td><td>seconds in an hour  </td></tr><tr><td>`m`</td><td>seconds in a minute</td></tr><tr><td>`s`</td><td>1 second  </td></tr> </table> |   |
-
-```
-
-```
+ 
