@@ -24,12 +24,12 @@ import static com.facebook.presto.ulak.caching.ConnectorBaseUtil.*;
 public class RedisCacheWorker extends Thread{
     private static Logger logger = LoggerFactory.getLogger(RedisCacheWorker.class);
 
-    public static int DEFAULT_N_THREADS = 10;
-    private static Map<Integer, CacheUsageStats> stats = new LinkedHashMap<>();
-    private static Object statLock = new Object();
+    public static final int DEFAULT_N_THREADS = 10;
+    private static final Map<Integer, CacheUsageStats> stats = new LinkedHashMap<>();
+    private static final Object statLock = new Object();
     private long lastAllPrint = System.currentTimeMillis();
-    public int numThreads = DEFAULT_N_THREADS;
-    private Function<QueryParameters, List<UlakRow>> exec1;
+    private int numThreads = DEFAULT_N_THREADS;
+    private final Function<QueryParameters, List<UlakRow>> exec1;
     private final DBType dbType;
     private ExecutorService executor = null;
 
@@ -74,30 +74,28 @@ public class RedisCacheWorker extends Thread{
                 logger.error("Key does not exists to be printed: {}", key);
                 continue;
             }
-            QueryParameters QueryParameters = null;
             try {
-                QueryParameters = getObjectMapper().readValue(json, QueryParameters.class);
+                QueryParameters queryParameters = getObjectMapper().readValue(json, QueryParameters.class);
+                sb.append("{\"key\":\"").append(key).append("\",\"name\":\"").
+                        append(queryParameters.getName()).append("\",\"start\":").
+                        append(queryParameters.getStart()).append(",\"startSeconds\":").
+                        append((System.currentTimeMillis() - queryParameters.getStart()) / 1000).
+                        append(",\"stop\":").append(queryParameters.getFinish()).
+                        append(",\"stopSeconds\":").append((System.currentTimeMillis() - queryParameters.getFinish()) / 1000).
+                        append(",\"duration\":").append((queryParameters.getFinish() - queryParameters.getStart()) / 1000).
+                        append(",\"ttl\":").append(queryParameters.getTtlInSeconds()).append(",\"refresh\":").
+                        append(queryParameters.getRefreshDurationInSeconds());
+//                      +",\"eager\":"+ queryParameters.isEagerCached() +"},");
             } catch (JsonProcessingException e) {
                 logger.error("JsonProcessingException{}", key);
-                continue;
             }
-
-            sb.append("{\"key\":\"" + key
-                    + "\",\"name\":\""+ QueryParameters.getName()
-                    + "\",\"start\":"+ QueryParameters.getStart()
-                    + ",\"startSeconds\":"+ ((System.currentTimeMillis() - QueryParameters.getStart())/1000)
-                    +",\"stop\":"+ QueryParameters.getFinish()
-                    +",\"stopSeconds\":"+ ((System.currentTimeMillis() - QueryParameters.getFinish())/1000)
-                    +",\"duration\":"+ ((QueryParameters.getFinish() - QueryParameters.getStart())/1000)
-                    +",\"ttl\":"+ QueryParameters.getTtlInSeconds()
-                    +",\"refresh\":"+ QueryParameters.getRefreshDurationInSeconds());
-//                    +",\"eager\":"+ QueryParameters.isEagerCached() +"},");
         }
         sb.append("]");
-        logger.debug("Running stats: \n\t{}", sb.toString());
+        logger.debug("Running stats: \n\t{}", sb);
     }
     @Override
     public void run() {
+        String jedisConnExceptionString = "JedisConnectionException";
         Map<String,CompletableFuture<?>> futures = new LinkedHashMap<>();
         while(true) {
             boolean sleepWorked = false;
@@ -105,7 +103,7 @@ public class RedisCacheWorker extends Thread{
                 sleep(1);
                 sleepWorked=true;
             } catch (InterruptedException e) {
-                logger.error("JedisConnectionException", e);
+                logger.error("JedisInterruptedException", e);
             }
             //if not sleep worked then do not clutch
             if(sleepWorked) {
@@ -113,8 +111,8 @@ public class RedisCacheWorker extends Thread{
                 JedisPool pool = null;
                 try {
                     pool = getJedisPool();
-                }catch (Throwable e){
-                    logger.error("JedisConnectionException", e);
+                }catch (Exception e){
+                    logger.error("ThrowableException", e);
                 }
                 if (pool == null) {
                     continue;
@@ -151,7 +149,7 @@ public class RedisCacheWorker extends Thread{
 //                                                logger.error("Hash does not match: " + currentRedisKey + "/"
 //                                                        + queryParameters.getHash());
 //                                            }
-                                        } catch (Throwable e) {
+                                        } catch (JsonProcessingException e) {
                                             logger.error("JsonProcessingException", e);
                                             continue;
                                         }
@@ -178,8 +176,8 @@ public class RedisCacheWorker extends Thread{
                                                     //|| (queryParameters.getRows().size() == 0)
                                                     // && queryParameters.isEagerCached()
 
-                                            logger.debug("Seconds passed : " + passed
-                                                    + " for " + queryParameters.getHash());
+                                            logger.debug("Seconds passed : {} for {}", passed,
+                                                    queryParameters.getHash());
 
                                             futures.put(currentRedisKey,
                                                     CompletableFuture.supplyAsync(
@@ -190,8 +188,8 @@ public class RedisCacheWorker extends Thread{
                                             for (Object key : futures.keySet()) {
                                                 sb.append(key + ",");
                                             }
-                                            logger.debug("Running stats: \n\tRunning Count: " + futures.size()
-                                                + "\n\tRunning keys: " + sb);
+                                            logger.debug("Running stats: \n\tRunning Count: {}\n\tRunning keys: {}",
+                                                    futures.size(), sb);
 
                                             printUsage(jedis,futures.keySet().toArray());
                                             if(System.currentTimeMillis() - lastAllPrint>10000) {
@@ -200,15 +198,15 @@ public class RedisCacheWorker extends Thread{
                                             }
                                         }
                                     } catch (JedisConnectionException e) {
-                                        logger.error("JedisConnectionException", e);
+                                        logger.error(jedisConnExceptionString, e);
                                     }
                                 }
                             }
                         } catch (JedisConnectionException e) {
-                            logger.error("JedisConnectionException", e);
+                            logger.error(jedisConnExceptionString, e);
                         }
                     } catch (JedisDataException e) {
-                        logger.error("JedisConnectionException", e);
+                        logger.error(jedisConnExceptionString, e);
                     }
                 }
             }
