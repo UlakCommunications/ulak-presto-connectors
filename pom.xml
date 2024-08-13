@@ -4,13 +4,13 @@
 
   <groupId>com.facebook.presto</groupId>
   <version>0.432-SNAPSHOT</version>
-  <artifactId>ulak-connector-base</artifactId>
+  <artifactId>ulak-presto-connectors</artifactId>
 <!--  <packaging>presto-plugin</packaging>-->
       <packaging>pom</packaging>
 <!--  <packaging>pom</packaging>-->
   <description>Ulak presto connector libraries</description>
 
-  <name>ulak-connector-base</name>
+  <name>ulak-presto-connectors</name>
   <url>http://maven.apache.org</url>
 
   <properties>
@@ -74,10 +74,10 @@
 
   <modules>
 <!--    <module>presto-maya-caching</module>-->
-    <module>presto-ulak-postgres-connector</module>
-    <module>presto-ulak-quickwit-connector</module>
-    <module>presto-ulak-influxdb-connector</module>
-    <module>presto-ulak-connector-base</module>
+    <module>ulak-presto-postgres-connector</module>
+    <module>ulak-presto-quickwit-connector</module>
+    <module>ulak-presto-influxdb-connector</module>
+    <module>ulak-presto-connector-base</module>
   </modules>
 
 </project>
