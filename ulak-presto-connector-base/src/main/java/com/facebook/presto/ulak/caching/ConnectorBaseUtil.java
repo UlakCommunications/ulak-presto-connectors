@@ -36,11 +36,11 @@ import java.util.function.Function;
 
 
 public class ConnectorBaseUtil {
-    public static final  int NONE_CACHE_TTL_IN_SECONDS = 5;
+    public static final int NONE_CACHE_TTL_IN_SECONDS = 5;
     public static boolean isCoordinator;
     public static String workerId;
     public static String workerIndexToRunIn;
-    private final static Map<String, String> const_keywords = new HashMap<String, String>() {
+    private static final Map<String, String> const_keywords = new HashMap<String, String>() {
         {
             put("aggregatewindow", "aggregateWindow");
             put("createempty", "createEmpty");
@@ -59,7 +59,8 @@ public class ConnectorBaseUtil {
     };
     private static Map<String, String> keywords =new LinkedHashMap<>(const_keywords);
     public static void setKeywords(String ks){
-        logger.error("Current keywords count :" + keywords.size());
+        String errorString = "Configuration Error: keyword split: {}";
+        logger.error("Current keywords count : {}", keywords.size());
         synchronized (inProgressLock) {
             if (ks != null && !ks.trim().equals("")) {
                 String[] splits = ks.split(";");
@@ -68,21 +69,21 @@ public class ConnectorBaseUtil {
                         String[] kv = split.split(",");
                         if (kv.length > 1) {
                             if (kv.length > 2) {
-                                logger.error("Configuration Error: keyword split:" + split);
+                                logger.error(errorString, split);
                             }
                             String key = kv[0].toLowerCase(Locale.ENGLISH);
                             if (!keywords.containsKey(key)) {
                                 keywords.put(key, kv[1]);
                             }
                         } else {
-                            logger.error("Configuration Error: keyword split:" + split);
+                            logger.error(errorString, split);
                         }
                     }
                 } else {
-                    logger.error("Configuration Error: keyword split:" + ks);
+                    logger.error(errorString, ks);
                 }
             } else {
-                logger.info("Empty keywords :" + ks);
+                logger.info("Empty keywords : {}", ks);
             }
         }
     }
@@ -92,6 +93,7 @@ public class ConnectorBaseUtil {
     public static String redisUrl = null;
     private static Logger logger = LoggerFactory.getLogger(ConnectorBaseUtil.class);
     private static ObjectMapper objectMapper = null;
+
     private static JedisPoolConfig buildPoolConfig() {
         final JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(128);
@@ -100,8 +102,8 @@ public class ConnectorBaseUtil {
         poolConfig.setTestOnBorrow(true);
         poolConfig.setTestOnReturn(true);
         poolConfig.setTestWhileIdle(true);
-        poolConfig.setMinEvictableIdleTimeMillis(Duration.ofSeconds(60).toMillis());
-        poolConfig.setTimeBetweenEvictionRunsMillis(Duration.ofSeconds(30).toMillis());
+        poolConfig.setMinEvictableIdleDuration(Duration.ofSeconds(60));
+        poolConfig.setTimeBetweenEvictionRuns(Duration.ofSeconds(30));
         poolConfig.setNumTestsPerEvictionRun(3);
         poolConfig.setBlockWhenExhausted(true);
         return poolConfig;
@@ -130,11 +132,11 @@ public class ConnectorBaseUtil {
         }
         for (Map.Entry<String, String> kv: ktr.entrySet()){
             query = query.replaceAll(kv.getKey(),kv.getValue());
-            logger.debug("Replacing keyword :" + kv.getKey() + " with " + kv.getValue() + " : Resulting in :" + query);
+            logger.debug("Replacing keyword : {} with {} : Resulting in {}",kv.getKey(), kv.getValue(), query);
         }
         return query;
     }
-    public static Map<Integer, Object> inProgressLocks = new LinkedHashMap<>();
+    public static final Map<Integer, Object> inProgressLocks = new LinkedHashMap<>();
 //    private static Object columnsGetLock = new Object();
     public static Object inProgressLock = new Object();
     public static <T> List<T> parseJsonArray(String json,
@@ -231,7 +233,7 @@ public class ConnectorBaseUtil {
 
                     queryParameters.setError("");
                     List<UlakRow> list = exec1.apply(queryParameters);
-                    logger.debug("Running: " + hash);
+                    logger.debug("Running: {}", hash);
 
                     if (jedis != null) {
                         queryParameters.setRows(Lists.newArrayList(list));
@@ -312,7 +314,7 @@ public class ConnectorBaseUtil {
                 return queryParameters.getRows();
             }
         }
-        return null;
+        return Collections.emptyList();
     }
 
 
@@ -323,14 +325,14 @@ public class ConnectorBaseUtil {
         if (tables!=null) {
             for (UlakRow fluxTable :tables) {
                 Map<String, Object> records = fluxTable.getColumnMap();
-                for (String record : records.keySet()) {
-                    if (!res.stream().anyMatch(t -> t.getName().equals(record))) {
-                        res.add(new ColumnMetadata(record, VarcharType.VARCHAR));
+                for (String rec : records.keySet()) {
+                    if (res.stream().noneMatch(t -> t.getName().equals(rec))) {
+                        res.add(new ColumnMetadata(rec, VarcharType.VARCHAR));
                     }
                 }
             }
         } else {
-            throw new Exception("Empty Query");
+            throw new NullPointerException("Empty Query");
             //TODO: eager caching is to be added
 //            String[] cols = QueryParameters.getQueryParameters(tableName).getColumns();
 //            if (cols.length > 0) {
