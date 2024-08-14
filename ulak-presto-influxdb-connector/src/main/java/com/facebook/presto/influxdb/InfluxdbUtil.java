@@ -38,29 +38,28 @@ public class InfluxdbUtil {
     public static boolean isCoordinator;
     public static String workerId;
     public static String workerIndexToRunIn;
-    private final static Map<String, String> const_keywords = new HashMap<String, String>() {
-        {
-            put("aggregatewindow", "aggregateWindow");
-            put("createempty", "createEmpty");
-            put("columnkey", "columnKey");
-            put("nonnegative", "nonNegative");
-            put("rowkey", "rowKey");
-            put("useprevious", "usePrevious");
-            put("valuecolumn", "valueColumn");
-            put("windowperiod", "windowPeriod");
-            put("timesrc", "timeSrc");
-            put("tolower", "toLower");
-            put("toupper", "toUpper");
-            put("\\:in \\[", "\\:IN \\[");
-            put(" and ", " AND ");
-        }
-    };
+    private static final Map<String, String> const_keywords = new HashMap<>();
+    static {
+        const_keywords.put("aggregatewindow", "aggregateWindow");
+        const_keywords.put("createempty", "createEmpty");
+        const_keywords.put("columnkey", "columnKey");
+        const_keywords.put("nonnegative", "nonNegative");
+        const_keywords.put("rowkey", "rowKey");
+        const_keywords.put("useprevious", "usePrevious");
+        const_keywords.put("valuecolumn", "valueColumn");
+        const_keywords.put("windowperiod", "windowPeriod");
+        const_keywords.put("timesrc", "timeSrc");
+        const_keywords.put("tolower", "toLower");
+        const_keywords.put("toupper", "toUpper");
+        const_keywords.put("\\:in \\[", "\\:IN \\[");
+        const_keywords.put(" and ", " AND ");
+    }
     private static Map<String, String> keywords = new LinkedHashMap<>(const_keywords);
 
     private static String token;
     private static String org;
     private static String bucket;
-    private static final String time_interval = "-5m";
+    private static final String TIMEINTERVAL = "-5m";
     private static Logger logger = LoggerFactory.getLogger(InfluxdbUtil.class);
     private static InfluxDBClient influxDBClient;
     private static ObjectMapper objectMapper = null;
@@ -69,7 +68,8 @@ public class InfluxdbUtil {
     }
 
     public static void instance(String url, String org, String token, String bucket)
-            throws IOException {
+            throws
+            IOException {
         InfluxdbUtil.org = org;
         InfluxdbUtil.token = token;
         InfluxdbUtil.bucket = bucket;
@@ -89,7 +89,7 @@ public class InfluxdbUtil {
     }
 
     public static List<String> getTableNames(String bucket) {
-        logger.debug("influxdbUtil- bucket->tableNames:" + bucket);
+        logger.debug("influxdbUtil- bucket->tableNames: {}", bucket);
         List<String> res = new ArrayList<>();
         QueryApi queryApi = influxDBClient.getQueryApi();
         String flux = "import  \"influxdata/influxdb/schema\"\n" + "import \"strings\"\n" + "schema.measurements(bucket: \"" + bucket + "\")\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"task\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"storage\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"service\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"query\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"qc\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"influxdb\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"http\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"go\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"boltdb\"))";
@@ -98,7 +98,7 @@ public class InfluxdbUtil {
             List<FluxRecord> records = fluxTable.getRecords();
             for (FluxRecord fluxRecord : records) {
                 res.add((String) fluxRecord.getValue());
-                logger.debug(String.valueOf(fluxRecord.getValue()));
+                logger.debug("{}",fluxRecord.getValue());
             }
         }
         return res;
@@ -106,23 +106,34 @@ public class InfluxdbUtil {
 
     public static String arrangeCase(String query) {
         Map<String, String> ktr = keywords;
-        if (ktr == null || ktr.size() == 0) {
+        if (ktr == null || ktr.isEmpty()) {
             ktr = const_keywords;
         }
         for (Map.Entry<String, String> kv : ktr.entrySet()) {
             query = query.replaceAll(kv.getKey(), kv.getValue());
-            logger.debug("Replacing keyword :" + kv.getKey() + " with " + kv.getValue() + " : Resulting in :" + query);
+            logger.debug("Replacing keyword : {} with {} : Resulting in : {}",kv.getKey(), kv.getValue(), query);
         }
         return query;
     }
 
-    public static List<ColumnMetadata> getColumns(String bucket, String tableName) throws Exception {
-        logger.debug("influxdbUtil bucket:" + bucket + "table:" + tableName + " columnsMetadata");
+    public static List<ColumnMetadata> columnMetadataAdder (List<UlakRow> tables) {
         List<ColumnMetadata> res = new ArrayList<>();
+        for (UlakRow fluxTable : tables) {
+            Map<String, Object> records = fluxTable.getColumnMap();
+            for (String rec : records.keySet()) {
+                if (res.stream().noneMatch(t -> t.getName().equals(rec))) {
+                    res.add(new ColumnMetadata(rec, VarcharType.VARCHAR));
+                }
+            }
+        }
+        return res;
+    }
 
+
+    public static List<ColumnMetadata> getColumns(String bucket, String tableName) throws Exception {
+        logger.debug("influxdbUtil bucket: {} table: {} columnsMetadata",bucket, tableName);
+        List<ColumnMetadata> res;
         List<UlakRow> tables = null;
-//        switch (dbType){
-//            case  INFLUXDB2:
         try {
             tables = InfluxdbUtil.exec(tableName);
         } catch (IOException e) {
@@ -135,18 +146,10 @@ public class InfluxdbUtil {
             logger.error("ApiException", e);
         }
 
-
         if (tables!=null) {
-            for ( UlakRow  fluxTable : tables) {
-                Map<String, Object> records = fluxTable.getColumnMap();
-                for (String record : records.keySet()) {
-                    if (!res.stream().anyMatch(t -> t.getName().equals(record))) {
-                        res.add(new ColumnMetadata(record, VarcharType.VARCHAR));
-                    }
-                }
-            }
+            res = columnMetadataAdder(tables);
         } else {
-            throw  new Exception("Empty Query");
+            throw new Exception("Empty Query");
         }
         for (ColumnMetadata columnMetadata : res) {
             logger.debug("{}:{}", columnMetadata.getName(), columnMetadata.getType().getDisplayName());
@@ -161,7 +164,7 @@ public class InfluxdbUtil {
 
     public static List<UlakRow> exec(QueryParameters influxdbQueryParameters) throws IOException, ClassNotFoundException, SQLException, ApiException {
         influxdbQueryParameters.setError("");
-        ArrayList<UlakRow> list = new ArrayList<UlakRow>();
+        ArrayList<UlakRow> list = new ArrayList<>();
         QueryApi queryApi = influxDBClient.getQueryApi();
         String flux = influxdbQueryParameters.getQuery();
         List<FluxTable> tables = queryApi.query(flux, org);
