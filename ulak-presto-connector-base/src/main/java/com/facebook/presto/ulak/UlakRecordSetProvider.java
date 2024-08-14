@@ -28,7 +28,7 @@ import java.util.function.Function;
 public class UlakRecordSetProvider
         implements ConnectorRecordSetProvider
 {
-    private static Logger logger = LoggerFactory.getLogger(UlakRecordSetProvider.class);
+    private static final Logger logger = LoggerFactory.getLogger(UlakRecordSetProvider.class);
     private static UlakRecordSetProvider single;
     private final Function<String, List<UlakRow>> exec1;
 
