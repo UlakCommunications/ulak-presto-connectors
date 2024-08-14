@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
@@ -72,6 +73,7 @@ public class UlakRecordCursor
     @Override
     public void close()
     {
+        // Empty method
     }
 
     private void checkFieldType(int field, Type expected)
@@ -104,14 +106,13 @@ public class UlakRecordCursor
         if(value==null){
             value = 0.0;
         }
-        logger.debug(value.toString());
+        logger.debug("{}",value);
         return Double.parseDouble(value == null ? "1" : value.toString());
     }
 
     @Override
     public long getLong(int field)
     {
-        //checkFieldType(field, BigintType.BIGINT);
         String columnName = columnHandles.get(field).getColumnName();
         Object value = row.getColumnMap().get(columnName);
         if (getType(field).equals(TimestampType.TIMESTAMP_MILLIS)) { // timestamp type, especially
