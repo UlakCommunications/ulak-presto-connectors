@@ -90,7 +90,7 @@ public class QueryParameters {
     }
     public static String replaceAll(String tableName, String find, String replace){
         String lastTableName = tableName;
-        String beforeTableName = tableName;
+        String beforeTableName = null;
         do{
             beforeTableName = lastTableName;
             lastTableName = StringUtils.replace(lastTableName,find,replace);
@@ -113,10 +113,8 @@ public class QueryParameters {
     }
 
     public static String stringTrimmer (String current) {
-        //TODO: onay gelirse getQueryParameters methodundaki trim ve split işleri bu methodda yapılacak
-        //TODO: sonar için iyi olur ve okunaklılık artar
         current = current.trim();
-        while (!current.equals("") && current.length() > 0) {
+        while (!current.isEmpty()) {
             if (current.startsWith("/") || current.startsWith("-")) {
                 current = current.substring(1).trim();
             } else {
