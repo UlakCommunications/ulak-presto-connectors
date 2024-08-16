@@ -91,10 +91,7 @@ public class UlakQuickwitMetadata
         } catch (IOException e) {
             logger.error("IOException", e);
             throw new RuntimeException(e);
-        } catch (ClassNotFoundException e) {
-            logger.error("ClassNotFoundException", e);
-            throw new RuntimeException(e);
-        }catch (Exception e) {
+        } catch (Exception e) {
             logger.error("Exception - Empty query", e);
         }
         SchemaTableName tableName = new SchemaTableName(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
@@ -122,10 +119,7 @@ public class UlakQuickwitMetadata
         } catch (IOException e) {
             logger.error("IOException", e);
             throw new RuntimeException(e);
-        } catch (ClassNotFoundException e) {
-            logger.error("ClassNotFoundException", e);
-            throw new RuntimeException(e);
-        }catch (Exception e) {
+        } catch (Exception e) {
             logger.error("Exception - Empty query", e);
         }
         for (int i = 0; i < list.size(); ++i) {
@@ -155,10 +149,7 @@ public class UlakQuickwitMetadata
                 } catch (IOException e) {
                     logger.error("IOException", e);
                     throw new RuntimeException(e);
-                } catch (ClassNotFoundException e) {
-                    logger.error("ClassNotFoundException", e);
-                    throw new RuntimeException(e);
-                }catch (Exception e) {
+                } catch (Exception e) {
                     logger.error("Exception - Empty query", e);
                 }
             }

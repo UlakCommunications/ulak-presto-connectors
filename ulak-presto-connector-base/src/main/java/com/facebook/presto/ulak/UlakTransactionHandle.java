@@ -16,8 +16,7 @@ package com.facebook.presto.ulak;
 
 import io.trino.spi.connector.ConnectorTransactionHandle;
 
-public enum UlakTransactionHandle
-        implements ConnectorTransactionHandle
+public enum UlakTransactionHandle implements ConnectorTransactionHandle
 {
     INSTANCE
 }
