@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InvalidObjectException;
 import java.util.*;
 
 public class InfluxdbMetadata
@@ -28,7 +29,7 @@ public class InfluxdbMetadata
 {
     private static Logger logger = LoggerFactory.getLogger(InfluxdbMetadata.class);
     private static InfluxdbMetadata single;
-    private static String connectorId;
+    private final String connectorId;
 
     private InfluxdbMetadata(String catalogName)
     {
@@ -63,7 +64,7 @@ public class InfluxdbMetadata
     {
         List<SchemaTableName> listTable = new ArrayList<>();
         if (!schemaName.isPresent()) {
-            return null;
+            return Collections.emptyList();
         }
         List<String> tables = null;
         String schema = schemaName.get();
@@ -82,11 +83,11 @@ public class InfluxdbMetadata
         try {
             list = InfluxdbUtil.getColumns(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
         } catch (IOException e) {
-            logger.error("IOException", e);
+            logger.error("InfluxdbMetadata getTableMetadata IOException", e);
         } catch (ClassNotFoundException e) {
-            logger.error("ClassNotFoundException", e);
+            logger.error("InfluxdbMetadata getTableMetadata ClassNotFoundException", e);
         }catch (Exception e) {
-            logger.error("Exception - Empty query", e);
+            logger.error("InfluxdbMetadata getTableMetadata Exception - Empty query", e);
         }
         SchemaTableName tableName = new SchemaTableName(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
 
@@ -107,12 +108,11 @@ public class InfluxdbMetadata
                 res.put(metadata.getName(), new UlakColumnHandle(connectorId, metadata.getName(), metadata.getType(), i));
             }
         } catch (IOException e) {
-            logger.error("IOException", e);
-            throw new RuntimeException(e);
+            logger.error("InfluxdbMetadata getColumnHandles IOException", e);
         } catch (ClassNotFoundException e) {
-            logger.error("ClassNotFoundException", e);
+            logger.error("InfluxdbMetadata getColumnHandles ClassNotFoundException", e);
         }catch (Exception e) {
-            logger.error("Exception - Empty query", e);
+            logger.error("InfluxdbMetadata getColumnHandles Exception - Empty query", e);
         }
         return res;
     }
@@ -127,12 +127,11 @@ public class InfluxdbMetadata
                 try {
                     columns.put(tableName, InfluxdbUtil.getColumns(session.getSource().get(), tableName.getTableName()));
                 } catch (IOException e) {
-                    logger.error("IOException", e);
-                    throw new RuntimeException(e);
+                    logger.error("InfluxdbMetadata listTableColumns IOException", e);
                 } catch (ClassNotFoundException e) {
-                    logger.error("ClassNotFoundException", e);
+                    logger.error("InfluxdbMetadata listTableColumns ClassNotFoundException", e);
                 }catch (Exception e) {
-                    logger.error("Exception - Empty query", e);
+                    logger.error("InfluxdbMetadata listTableColumns Exception - Empty query", e);
                 }
             }
         }

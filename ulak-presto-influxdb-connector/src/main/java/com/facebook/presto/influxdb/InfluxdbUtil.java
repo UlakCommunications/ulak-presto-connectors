@@ -35,44 +35,13 @@ import java.sql.SQLException;
 import java.util.*;
 
 public class InfluxdbUtil {
-    public static boolean isCoordinator;
-    public static String workerId;
-    public static String workerIndexToRunIn;
-    private final static Map<String, String> const_keywords = new HashMap<String, String>() {
-        {
-            put("aggregatewindow", "aggregateWindow");
-            put("createempty", "createEmpty");
-            put("columnkey", "columnKey");
-            put("nonnegative", "nonNegative");
-            put("rowkey", "rowKey");
-            put("useprevious", "usePrevious");
-            put("valuecolumn", "valueColumn");
-            put("windowperiod", "windowPeriod");
-            put("timesrc", "timeSrc");
-            put("tolower", "toLower");
-            put("toupper", "toUpper");
-            put("\\:in \\[", "\\:IN \\[");
-            put(" and ", " AND ");
-        }
-    };
-    private static Map<String, String> keywords = new LinkedHashMap<>(const_keywords);
 
-    private static String token;
-    private static String org;
-    private static String bucket;
-    private static final String time_interval = "-5m";
     private static Logger logger = LoggerFactory.getLogger(InfluxdbUtil.class);
     private static InfluxDBClient influxDBClient;
-    private static ObjectMapper objectMapper = null;
 
-    private InfluxdbUtil() {
-    }
-
-    public static void instance(String url, String org, String token, String bucket)
-            throws IOException {
-        InfluxdbUtil.org = org;
-        InfluxdbUtil.token = token;
-        InfluxdbUtil.bucket = bucket;
+    public static void instance(String url, String org, String token)
+            throws
+            IOException {
         influxDBClient = InfluxDBClientFactory.create(url, token.toCharArray(), org);
     }
 
@@ -89,7 +58,7 @@ public class InfluxdbUtil {
     }
 
     public static List<String> getTableNames(String bucket) {
-        logger.debug("influxdbUtil- bucket->tableNames:" + bucket);
+        logger.debug("influxdbUtil- bucket->tableNames: {}", bucket);
         List<String> res = new ArrayList<>();
         QueryApi queryApi = influxDBClient.getQueryApi();
         String flux = "import  \"influxdata/influxdb/schema\"\n" + "import \"strings\"\n" + "schema.measurements(bucket: \"" + bucket + "\")\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"task\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"storage\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"service\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"query\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"qc\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"influxdb\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"http\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"go\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"boltdb\"))";
@@ -98,31 +67,30 @@ public class InfluxdbUtil {
             List<FluxRecord> records = fluxTable.getRecords();
             for (FluxRecord fluxRecord : records) {
                 res.add((String) fluxRecord.getValue());
-                logger.debug(String.valueOf(fluxRecord.getValue()));
+                logger.debug("{}",fluxRecord.getValue());
             }
         }
         return res;
     }
 
-    public static String arrangeCase(String query) {
-        Map<String, String> ktr = keywords;
-        if (ktr == null || ktr.size() == 0) {
-            ktr = const_keywords;
+    public static List<ColumnMetadata> columnMetadataAdder (List<UlakRow> tables) {
+        List<ColumnMetadata> res = new ArrayList<>();
+        for (UlakRow fluxTable : tables) {
+            Map<String, Object> records = fluxTable.getColumnMap();
+            for (String rec : records.keySet()) {
+                if (res.stream().noneMatch(t -> t.getName().equals(rec))) {
+                    res.add(new ColumnMetadata(rec, VarcharType.VARCHAR));
+                }
+            }
         }
-        for (Map.Entry<String, String> kv : ktr.entrySet()) {
-            query = query.replaceAll(kv.getKey(), kv.getValue());
-            logger.debug("Replacing keyword :" + kv.getKey() + " with " + kv.getValue() + " : Resulting in :" + query);
-        }
-        return query;
+        return res;
     }
 
-    public static List<ColumnMetadata> getColumns(String bucket, String tableName) throws Exception {
-        logger.debug("influxdbUtil bucket:" + bucket + "table:" + tableName + " columnsMetadata");
-        List<ColumnMetadata> res = new ArrayList<>();
 
+    public static List<ColumnMetadata> getColumns(String bucket, String tableName) throws Exception {
+        logger.debug("influxdbUtil bucket: {} table: {} columnsMetadata",bucket, tableName);
+        List<ColumnMetadata> res;
         List<UlakRow> tables = null;
-//        switch (dbType){
-//            case  INFLUXDB2:
         try {
             tables = InfluxdbUtil.exec(tableName);
         } catch (IOException e) {
@@ -135,18 +103,10 @@ public class InfluxdbUtil {
             logger.error("ApiException", e);
         }
 
-
         if (tables!=null) {
-            for ( UlakRow  fluxTable : tables) {
-                Map<String, Object> records = fluxTable.getColumnMap();
-                for (String record : records.keySet()) {
-                    if (!res.stream().anyMatch(t -> t.getName().equals(record))) {
-                        res.add(new ColumnMetadata(record, VarcharType.VARCHAR));
-                    }
-                }
-            }
+            res = columnMetadataAdder(tables);
         } else {
-            throw  new Exception("Empty Query");
+            throw new Exception("Empty Query");
         }
         for (ColumnMetadata columnMetadata : res) {
             logger.debug("{}:{}", columnMetadata.getName(), columnMetadata.getType().getDisplayName());
@@ -161,10 +121,10 @@ public class InfluxdbUtil {
 
     public static List<UlakRow> exec(QueryParameters influxdbQueryParameters) throws IOException, ClassNotFoundException, SQLException, ApiException {
         influxdbQueryParameters.setError("");
-        ArrayList<UlakRow> list = new ArrayList<UlakRow>();
+        ArrayList<UlakRow> list = new ArrayList<>();
         QueryApi queryApi = influxDBClient.getQueryApi();
         String flux = influxdbQueryParameters.getQuery();
-        List<FluxTable> tables = queryApi.query(flux, org);
+        List<FluxTable> tables = queryApi.query(flux);
         List<Map<String, Object>> resMap = new LinkedList<>();
         for (FluxTable fluxTable : tables) {
             List<FluxRecord> records = fluxTable.getRecords();
