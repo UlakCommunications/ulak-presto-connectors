@@ -55,7 +55,7 @@ public class InfluxdbConnector
         // need to get database connection here
         logger.debug("Connector by url: {}", url);
         try {
-            InfluxdbUtil.instance(url, org, token, bucket);
+            InfluxdbUtil.instance(url, org, token);
         } catch (IOException e) {
             logger.error(ERRORSTRING, e.toString());
         }

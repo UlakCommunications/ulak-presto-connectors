@@ -35,44 +35,13 @@ import java.sql.SQLException;
 import java.util.*;
 
 public class InfluxdbUtil {
-    public static boolean isCoordinator;
-    public static String workerId;
-    public static String workerIndexToRunIn;
-    private static final Map<String, String> const_keywords = new HashMap<>();
-    static {
-        const_keywords.put("aggregatewindow", "aggregateWindow");
-        const_keywords.put("createempty", "createEmpty");
-        const_keywords.put("columnkey", "columnKey");
-        const_keywords.put("nonnegative", "nonNegative");
-        const_keywords.put("rowkey", "rowKey");
-        const_keywords.put("useprevious", "usePrevious");
-        const_keywords.put("valuecolumn", "valueColumn");
-        const_keywords.put("windowperiod", "windowPeriod");
-        const_keywords.put("timesrc", "timeSrc");
-        const_keywords.put("tolower", "toLower");
-        const_keywords.put("toupper", "toUpper");
-        const_keywords.put("\\:in \\[", "\\:IN \\[");
-        const_keywords.put(" and ", " AND ");
-    }
-    private static Map<String, String> keywords = new LinkedHashMap<>(const_keywords);
 
-    private static String token;
-    private static String org;
-    private static String bucket;
-    private static final String TIMEINTERVAL = "-5m";
     private static Logger logger = LoggerFactory.getLogger(InfluxdbUtil.class);
     private static InfluxDBClient influxDBClient;
-    private static ObjectMapper objectMapper = null;
 
-    private InfluxdbUtil() {
-    }
-
-    public static void instance(String url, String org, String token, String bucket)
+    public static void instance(String url, String org, String token)
             throws
             IOException {
-        InfluxdbUtil.org = org;
-        InfluxdbUtil.token = token;
-        InfluxdbUtil.bucket = bucket;
         influxDBClient = InfluxDBClientFactory.create(url, token.toCharArray(), org);
     }
 
@@ -102,18 +71,6 @@ public class InfluxdbUtil {
             }
         }
         return res;
-    }
-
-    public static String arrangeCase(String query) {
-        Map<String, String> ktr = keywords;
-        if (ktr == null || ktr.isEmpty()) {
-            ktr = const_keywords;
-        }
-        for (Map.Entry<String, String> kv : ktr.entrySet()) {
-            query = query.replaceAll(kv.getKey(), kv.getValue());
-            logger.debug("Replacing keyword : {} with {} : Resulting in : {}",kv.getKey(), kv.getValue(), query);
-        }
-        return query;
     }
 
     public static List<ColumnMetadata> columnMetadataAdder (List<UlakRow> tables) {
@@ -167,7 +124,7 @@ public class InfluxdbUtil {
         ArrayList<UlakRow> list = new ArrayList<>();
         QueryApi queryApi = influxDBClient.getQueryApi();
         String flux = influxdbQueryParameters.getQuery();
-        List<FluxTable> tables = queryApi.query(flux, org);
+        List<FluxTable> tables = queryApi.query(flux);
         List<Map<String, Object>> resMap = new LinkedList<>();
         for (FluxTable fluxTable : tables) {
             List<FluxRecord> records = fluxTable.getRecords();

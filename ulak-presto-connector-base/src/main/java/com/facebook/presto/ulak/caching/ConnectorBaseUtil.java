@@ -56,6 +56,7 @@ public class ConnectorBaseUtil {
         const_keywords.put("toupper", "toUpper");
         const_keywords.put("\\:in \\[", "\\:IN \\[");
         const_keywords.put(" and ", " AND ");
+        const_keywords.put("\\\"\\\"", "\"\"");
     }
 
     private static Map<String, String> keywords =new LinkedHashMap<>(const_keywords);
@@ -122,10 +123,6 @@ public class ConnectorBaseUtil {
         return jedisPool;
     }
 
-    private ConnectorBaseUtil() {
-    }
-
-
     public static String arrangeCase(String query) {
         Map<String, String> ktr = keywords;
         if (ktr == null || ktr.size() == 0) {
@@ -139,14 +136,7 @@ public class ConnectorBaseUtil {
     }
     public static final Map<Integer, Object> inProgressLocks = new LinkedHashMap<>();
     public static Object inProgressLock = new Object();
-    public static <T> List<T> parseJsonArray(String json,
-                                             Class<T> classOnWhichArrayIsDefined)
-            throws IOException, ClassNotFoundException {
-        ObjectMapper mapper = getObjectMapper();
-        Class<T[]> arrayClass = (Class<T[]>) Class.forName("[L" + classOnWhichArrayIsDefined.getName() + ";");
-        T[] objects = mapper.readValue(json, arrayClass);
-        return Arrays.asList(objects);
-    }
+
 
     static ObjectMapper getObjectMapper() {
         if(objectMapper==null) {
