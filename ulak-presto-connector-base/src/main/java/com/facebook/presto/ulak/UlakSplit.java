@@ -58,7 +58,7 @@ public class UlakSplit
 
     @Override
     public List<HostAddress> getAddresses() {
-        return  new ArrayList<HostAddress>();
+        return new ArrayList<>();
     }
 
     @Override

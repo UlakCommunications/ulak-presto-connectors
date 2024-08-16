@@ -20,6 +20,7 @@ import io.trino.spi.connector.ConnectorFactory;
 public class UlakPostgresPlugin
         implements Plugin
 {
+    @Override
     public Iterable<ConnectorFactory> getConnectorFactories()
     {
         return ImmutableList.of(new UlakPostgresConnectorFactory());
