@@ -46,7 +46,7 @@ public class UlakPostgresConnectorFactory
         if(sNumThreads != null && !sNumThreads.trim().equals("")){
             try {
                 numThreads = Integer.parseInt(sNumThreads);
-            }catch (Throwable e){
+            }catch (Exception e){
                 logger.error("Unable to parse sNumThreads: {}", sNumThreads, e);
             }
         }
@@ -57,10 +57,7 @@ public class UlakPostgresConnectorFactory
             runInCoordinatorOnly = sRunInCoordinatorOnly.trim().toLowerCase(Locale.ENGLISH).equals("true");
         }
         String sWorkerIndexToRunIn = config.get("worker_id_to_run_in");
-        UlakPostgresConnector connector = null;
-        switch ( getName()){
-            case TEXT_CONNECTOR_PG:
-                connector = new UlakPostgresConnector(
+        return new UlakPostgresConnector(
                         url,
                         catalogName,
                         config.get("redis-url"),
@@ -73,8 +70,5 @@ public class UlakPostgresConnectorFactory
                         config.get("pg-connection-url"),
                         config.get("pg-connection-user"),
                         config.get("pg-connection-password") );
-        }
-
-        return connector;
     }
 }

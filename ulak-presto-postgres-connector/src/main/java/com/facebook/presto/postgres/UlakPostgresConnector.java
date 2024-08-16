@@ -36,6 +36,7 @@ public class UlakPostgresConnector
     private final UlakPostgresMetadata metadata;
     private final UlakSplitManager splitManager;
     private final UlakRecordSetProvider recordSetProvider;
+    private static final String ERRORSTRING = "UlakPostgresConnector Error: {}";
 
     public UlakPostgresConnector(String url,
                              String catalogName,
@@ -50,25 +51,22 @@ public class UlakPostgresConnector
                              String pgUsername,
                              String pgPassword) {
         // need to get database connection here
-        logger.debug("Connector by url: " + url);
-        if (pgUrl != null && !pgUrl.trim().equals("")) {
+        logger.debug("Connector by url: {}", url);
+        if (pgUrl != null && !pgUrl.trim().isEmpty()) {
             try {
                 PGUtil.instance(pgUrl, pgUsername, pgPassword);
             } catch (IOException e) {
-                logger.error("InfluxdbConnector", e);
+                logger.error(ERRORSTRING, e.toString());
             }
         }
 
         this.metadata = UlakPostgresMetadata.getInstance(catalogName);
         this.splitManager = UlakSplitManager.getInstance();
-        this.recordSetProvider = UlakRecordSetProvider.getInstance((s)-> {
+        this.recordSetProvider = UlakRecordSetProvider.getInstance(s-> {
             try {
                 return PGUtil.select(s);
-            } catch (IOException e) {
-                logger.error("InfluxdbConnector", e);
-                throw new RuntimeException(e);
-            } catch (SQLException e) {
-                logger.error("InfluxdbConnector", e);
+            } catch (IOException | SQLException e) {
+                logger.error(ERRORSTRING, e.toString());
                 throw new RuntimeException(e);
             }
         });
@@ -78,21 +76,16 @@ public class UlakPostgresConnector
         ConnectorBaseUtil.setKeywords(keywords);
         redisCacheWorker.setNumThreads(numThreads);
         ConnectorBaseUtil.isCoordinator = true;
-        if (isCoordinator && runInCoordinatorOnly) {
-            if (redisCacheWorker == null) {
-                redisCacheWorker = new RedisCacheWorker((QueryParameters s)-> {
-                    try {
-                        return  PGUtil.select(s) ;
-                    } catch (IOException e) {
-                        logger.error("InfluxdbConnector", e);
-                        throw new RuntimeException(e);
-                    } catch (SQLException e) {
-                        logger.error("InfluxdbConnector", e);
-                        throw new RuntimeException(e);
-                    }
-                },numThreads, DBType.PG);
-                redisCacheWorker.start();
-            }
+        if ((isCoordinator && runInCoordinatorOnly) && redisCacheWorker == null) {
+            redisCacheWorker = new RedisCacheWorker((QueryParameters s)-> {
+                try {
+                    return  PGUtil.select(s) ;
+                } catch (IOException | SQLException e) {
+                    logger.error(ERRORSTRING, e.toString());
+                    throw new RuntimeException(e);
+                }
+            },numThreads, DBType.PG);
+            redisCacheWorker.start();
         }
     }
 

@@ -16,17 +16,16 @@ public class QueryParameters {
     public static final String TEXT_CACHE = "cache";
     public static final String TEXT_REFRESH = "refresh";
     //TODO: eager caching is to be added
-//    public static final String TEXT_COLUMNS = "columns";
+    //public static final String TEXT_COLUMNS = "columns";
     public static final String TEXT_DBTYPE = "dbtype";
     //TODO: eager caching is to be added
-//    public static final String TEXT_EAGER_CACHE = "eagercache";
+    //public static final String TEXT_EAGER_CACHE = "eagercache";
     public static final String TEXT_NAME = "name";
     public static final String TEXT_QWINDEX = "qwindex";
     public static final String TEXT_QWURL = "qwurl";
     public static final String TEXT_HASJS = "hasjs";
     public static final String TEXT_QWREPLACEFROMCOLUMN = "replacefromcolumns";
-    private static Logger logger = LoggerFactory.getLogger(QueryParameters.class);
-
+    private static final Logger logger = LoggerFactory.getLogger(QueryParameters.class);
     public static final String NEW_LINE_CHAR = System.lineSeparator();
     public static final int DEFAULT_CACHE_TTL = 60 * 60 * 24;
     public static final int DEFAULT_TTL = 10;
@@ -38,10 +37,10 @@ public class QueryParameters {
     private List<UlakRow> rows;
     private boolean toBeCached = false;
     //TODO: eager caching is to be added
-//    private boolean eagerCached = false;
+    //private boolean eagerCached = false;
     private boolean hasJs = false;
-    private long ttlInSeconds = DEFAULT_TTL;
-    private long refreshDurationInSeconds = DEFAULT_TTL + 5;
+    private int ttlInSeconds = DEFAULT_TTL;
+    private int refreshDurationInSeconds = DEFAULT_TTL + 5;
     private long start;
     private long finish;
     private String error;
@@ -87,11 +86,11 @@ public class QueryParameters {
     }
 
     public QueryParameters() {
-
+        // Empty method
     }
     public static String replaceAll(String tableName, String find, String replace){
         String lastTableName = tableName;
-        String beforeTableName = tableName;
+        String beforeTableName = null;
         do{
             beforeTableName = lastTableName;
             lastTableName = StringUtils.replace(lastTableName,find,replace);
@@ -106,11 +105,23 @@ public class QueryParameters {
         List<String> newLines = new ArrayList<>();
         for (int i = 0; i < splits.length; i++) {
             String current = splits[i].trim();
-            if(current!=""){
+            if(!current.isEmpty()){
                 newLines.add(current);
             }
         }
         return String.join(NEW_LINE_CHAR,newLines).replaceAll("[ \r\n]","");
+    }
+
+    public static String stringTrimmer (String current) {
+        current = current.trim();
+        while (!current.isEmpty()) {
+            if (current.startsWith("/") || current.startsWith("-")) {
+                current = current.substring(1).trim();
+            } else {
+                break;
+            }
+        }
+        return current;
     }
     public static QueryParameters getQueryParameters(String tableName) {
         tableName = ConnectorBaseUtil.arrangeCase(tableName);
@@ -124,24 +135,17 @@ public class QueryParameters {
 
         String[] splits = tableName.split(NEW_LINE_CHAR);
         for (int i = 0; i < splits.length; i++) {
-            String current = splits[i];
             //get query parameters
-            current = current.trim();
-            while (!current.equals("") && current.length() > 0) {
-                if (current.startsWith("/") || current.startsWith("-")) {
-                    current = current.substring(1).trim();
-                } else {
-                    break;
-                }
-            }
+            String current = stringTrimmer(splits[i]);
             String[] params = current.split("=");
             if (params.length > 1) {
                 String param = params[0].trim();
                 String value = params[1].trim();
+                int v;
                 try {
                     switch (param.toLowerCase(Locale.ENGLISH)) {
                         case TEXT_TTL:
-                            long v = Long.parseLong(value);
+                            v = Integer.parseInt(value);
                             if (v > 0) {
                                 ret.setTtlInSeconds(v);
                             }
@@ -153,23 +157,23 @@ public class QueryParameters {
                             }
                             break;
                         case TEXT_REFRESH:
-                            v = Long.parseLong(value);
+                            v = Integer.parseInt(value);
                             if (v > 0) {
                                 ret.setRefreshDurationInSeconds(v);
                             }
                             break;
                         //TODO: eager caching is to be added
-//                        case TEXT_COLUMNS:
-//                            String[] vs = value.split(",");
-//                            ret.setColumns(vs);
-//                            break;
+                        //case TEXT_COLUMNS:
+                            //String[] vs = value.split(",");
+                            //ret.setColumns(vs);
+                            //break;
                         case TEXT_DBTYPE:
                             ret.setDbType(DBType.valueOf(value.toUpperCase(Locale.ENGLISH)));
                             break;
                         //TODO: eager caching is to be added
-//                        case TEXT_EAGER_CACHE:
-//                            ret.setEagerCached(Boolean.parseBoolean(value));
-//                            break;
+                        //case TEXT_EAGER_CACHE:
+                            //ret.setEagerCached(Boolean.parseBoolean(value));
+                            //break;
                         case TEXT_HASJS:
                             ret.setHasJs(Boolean.parseBoolean(value));
                             break;
@@ -186,8 +190,8 @@ public class QueryParameters {
                             ret.setReplaceFromColumns(value);
                             break;
                     }
-                } catch (Throwable e) {
-                    logger.error("getQueryParameters: " + param + "/" + value);
+                } catch (Exception e) {
+                    logger.error("getQueryParameters: {} / {}", param, value);
                 }
             }
         }
@@ -219,7 +223,7 @@ public class QueryParameters {
         return ttlInSeconds;
     }
 
-    public void setTtlInSeconds(long ttlInSeconds) {
+    public void setTtlInSeconds(int ttlInSeconds) {
         this.ttlInSeconds = ttlInSeconds;
     }
 
@@ -227,7 +231,7 @@ public class QueryParameters {
         return refreshDurationInSeconds;
     }
 
-    public void setRefreshDurationInSeconds(long refreshDurationInSeconds) {
+    public void setRefreshDurationInSeconds(int refreshDurationInSeconds) {
         this.refreshDurationInSeconds = refreshDurationInSeconds;
     }
     //TODO: eager caching is to be added
@@ -280,6 +284,7 @@ public class QueryParameters {
     public String getQwUrl() {
         return qwUrl;
     }
+
     public void setQwIndex(String qwIndex) {
         this.qwIndex = qwIndex;
     }
@@ -287,6 +292,7 @@ public class QueryParameters {
     public String getQwIndex() {
         return qwIndex;
     }
+
     public void setReplaceFromColumns(String replaceFromColumns) {
         this.replaceFromColumns = replaceFromColumns;
     }
