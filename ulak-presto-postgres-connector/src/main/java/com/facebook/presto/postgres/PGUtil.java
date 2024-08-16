@@ -18,7 +18,6 @@ import com.facebook.presto.ulak.DBType;
 import com.facebook.presto.ulak.QueryParameters;
 import com.facebook.presto.ulak.UlakRow;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.quickwit.javaclient.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +27,7 @@ import java.util.*;
 
 public class PGUtil {
 
-    private static Logger logger = LoggerFactory.getLogger(PGUtil.class);
+    private static final Logger logger = LoggerFactory.getLogger(PGUtil.class);
     public static String pgUrl;
     public static String pgUser;
     public static String pgPwd;
@@ -70,7 +69,7 @@ public class PGUtil {
     }
 
     public static List<String> getTableNames(String schema) throws SQLException, JsonProcessingException {
-        logger.debug("PGUtil- bucket->tableNames:" + schema);
+        logger.debug("PGUtil- bucket->tableNames: {}", schema);
         List<String> res = new ArrayList<>();
         List<UlakRow> rows = executeOneQuery("SELECT table_name\n" +
                 "  FROM information_schema.tables\n" +
@@ -107,9 +106,8 @@ public class PGUtil {
         DBCPDataSource dbPool = getPool();
         try (Connection connection = dbPool.getConnection()) {
             try (Statement statement = connection.createStatement()) {
-                //logger.debug("select all rows in table: {}", tableName);
-                ArrayList<UlakRow> list = new ArrayList<UlakRow>();
-                logger.debug("Running: " + query);
+                ArrayList<UlakRow> list = new ArrayList<>();
+                logger.debug("Running: {}",query);
                 try (ResultSet tables = statement.executeQuery(query)) {
                     ResultSetMetaData rsmd = tables.getMetaData();
                     while (tables.next()) {
@@ -122,6 +120,8 @@ public class PGUtil {
                     return list;
                 }
             }
+        } catch (NullPointerException e) {
+            throw new NullPointerException(e.toString());
         }
     }
 }

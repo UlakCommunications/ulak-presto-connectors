@@ -27,7 +27,7 @@ public class UlakInfluxDbConnectorFactory
         implements ConnectorFactory
 {
     public static final String TEXT_CONNECTOR_INFLUXDB = "influxdb";
-    private static Logger logger = LoggerFactory.getLogger(UlakInfluxDbConnectorFactory.class);
+    private static final Logger logger = LoggerFactory.getLogger(UlakInfluxDbConnectorFactory.class);
 
     public String getName()
     {
@@ -39,12 +39,12 @@ public class UlakInfluxDbConnectorFactory
     {
         String url = config.get("connection-url");
         String sNumThreads = config.get("number_of_worker_threads");
-        int numThreads =10;// DEFAULT_N_THREADS;
+        int numThreads =10;  //DEFAULT_N_THREADS;
         if(sNumThreads != null && !sNumThreads.trim().equals("")){
             try {
                 numThreads = Integer.parseInt(sNumThreads);
-            }catch (Throwable e){
-                logger.error("Unable to parse sNumThreads: " + sNumThreads,e);
+            }catch (Exception e){
+                logger.error("Unable to parse sNumThreads: {}",sNumThreads, e);
             }
         }
         String sRunInCoordinatorOnly = config.get("run_in_coordinator_only");
@@ -54,10 +54,7 @@ public class UlakInfluxDbConnectorFactory
             runInCoordinatorOnly = sRunInCoordinatorOnly.trim().toLowerCase(Locale.ENGLISH).equals("true");
         }
         String sWorkerIndexToRunIn = config.get("worker_id_to_run_in");
-        InfluxdbConnector connector = null;
-        switch ( getName()){
-            case TEXT_CONNECTOR_INFLUXDB:
-                connector = new InfluxdbConnector(
+        return new InfluxdbConnector(
                         url,
                         catalogName,
                         config.get("connection-org"),
@@ -70,25 +67,5 @@ public class UlakInfluxDbConnectorFactory
                         sWorkerIndexToRunIn,
                         context.getNodeManager().getCurrentNode().isCoordinator(),
                         numThreads);
-//            case TEXT_CONNECTOR_PG:
-//                connector = new InfluxdbConnector(DBType.PG,
-//                        url,
-//                        catalogName,
-//                        config.get("connection-org"),
-//                        config.get("connection-token"),
-//                        config.get("connection-bucket"),
-//                        config.get("redis-url"),
-//                        config.get("keywords"),
-//                        runInCoordinatorOnly,
-//                        context.getNodeManager().getCurrentNode().getNodeIdentifier(),
-//                        sWorkerIndexToRunIn,
-//                        context.getNodeManager().getCurrentNode().isCoordinator(),
-//                        numThreads,
-//                        config.get("pg-connection-url"),
-//                        config.get("pg-connection-user"),
-//                        config.get("pg-connection-password"));
-        }
-
-        return connector;
     }
 }

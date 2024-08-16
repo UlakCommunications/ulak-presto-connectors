@@ -40,23 +40,25 @@ public class ConnectorBaseUtil {
     public static boolean isCoordinator;
     public static String workerId;
     public static String workerIndexToRunIn;
-    private static final Map<String, String> const_keywords = new HashMap<String, String>() {
-        {
-            put("aggregatewindow", "aggregateWindow");
-            put("createempty", "createEmpty");
-            put("columnkey", "columnKey");
-            put("nonnegative", "nonNegative");
-            put("rowkey", "rowKey");
-            put("useprevious", "usePrevious");
-            put("valuecolumn", "valueColumn");
-            put("windowperiod", "windowPeriod");
-            put("timesrc", "timeSrc");
-            put("tolower", "toLower");
-            put("toupper", "toUpper");
-            put("\\:in \\[", "\\:IN \\[");
-            put(" and ", " AND ");
-        }
-    };
+    private static final Map<String, String> const_keywords = new HashMap<>();
+
+    static {
+        const_keywords.put("aggregatewindow", "aggregateWindow");
+        const_keywords.put("createempty", "createEmpty");
+        const_keywords.put("columnkey", "columnKey");
+        const_keywords.put("nonnegative", "nonNegative");
+        const_keywords.put("rowkey", "rowKey");
+        const_keywords.put("useprevious", "usePrevious");
+        const_keywords.put("valuecolumn", "valueColumn");
+        const_keywords.put("windowperiod", "windowPeriod");
+        const_keywords.put("timesrc", "timeSrc");
+        const_keywords.put("tolower", "toLower");
+        const_keywords.put("toupper", "toUpper");
+        const_keywords.put("\\:in \\[", "\\:IN \\[");
+        const_keywords.put(" and ", " AND ");
+        const_keywords.put("\\\"\\\"", "\"\"");
+    }
+
     private static Map<String, String> keywords =new LinkedHashMap<>(const_keywords);
     public static void setKeywords(String ks){
         String errorString = "Configuration Error: keyword split: {}";
@@ -121,10 +123,6 @@ public class ConnectorBaseUtil {
         return jedisPool;
     }
 
-    private ConnectorBaseUtil() {
-    }
-
-
     public static String arrangeCase(String query) {
         Map<String, String> ktr = keywords;
         if (ktr == null || ktr.size() == 0) {
@@ -137,16 +135,8 @@ public class ConnectorBaseUtil {
         return query;
     }
     public static final Map<Integer, Object> inProgressLocks = new LinkedHashMap<>();
-//    private static Object columnsGetLock = new Object();
     public static Object inProgressLock = new Object();
-    public static <T> List<T> parseJsonArray(String json,
-                                             Class<T> classOnWhichArrayIsDefined)
-            throws IOException, ClassNotFoundException {
-        ObjectMapper mapper = getObjectMapper();
-        Class<T[]> arrayClass = (Class<T[]>) Class.forName("[L" + classOnWhichArrayIsDefined.getName() + ";");
-        T[] objects = mapper.readValue(json, arrayClass);
-        return Arrays.asList(objects);
-    }
+
 
     static ObjectMapper getObjectMapper() {
         if(objectMapper==null) {
@@ -304,7 +294,6 @@ public class ConnectorBaseUtil {
                                                          int hash) throws JsonProcessingException {
         if(jedis != null) {
             String json;
-            List<UlakRow> list;
             json = jedis.get(getTrinoCacheString(hash));
             if(json!=null){
 //                addOneStat(hash, 1);
@@ -318,7 +307,7 @@ public class ConnectorBaseUtil {
     }
 
 
-    public static List<ColumnMetadata> getColumnsBase(List<UlakRow> tables) throws Exception {
+    public static List<ColumnMetadata> getColumnsBase(List<UlakRow> tables) {
         List<ColumnMetadata> res = new ArrayList<>();
 
 

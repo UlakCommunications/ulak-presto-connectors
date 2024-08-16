@@ -34,12 +34,11 @@ public class InfluxdbConnector
         implements Connector
 {
     private RedisCacheWorker redisCacheWorker = null;
-    private static Logger logger = LoggerFactory.getLogger(InfluxdbConnector.class);
+    private static final Logger logger = LoggerFactory.getLogger(InfluxdbConnector.class);
     private final InfluxdbMetadata metadata;
-
     private final UlakSplitManager splitManager;
-
     private final UlakRecordSetProvider recordSetProvider;
+    private static final String ERRORSTRING = "InfluxDbConnector exception: {}";
 
     public InfluxdbConnector(String url,
                              String catalogName,
@@ -56,27 +55,18 @@ public class InfluxdbConnector
         // need to get database connection here
         logger.debug("Connector by url: {}", url);
         try {
-            InfluxdbUtil.instance(url, org, token, bucket);
+            InfluxdbUtil.instance(url, org, token);
         } catch (IOException e) {
-            logger.error("InfluxdbConnector", e);
+            logger.error(ERRORSTRING, e.toString());
         }
 
         this.metadata = InfluxdbMetadata.getInstance(catalogName);
         this.splitManager = UlakSplitManager.getInstance();
-        this.recordSetProvider = UlakRecordSetProvider.getInstance((s)-> {
+        this.recordSetProvider = UlakRecordSetProvider.getInstance(s-> {
             try {
                 return InfluxdbUtil.exec(s);
-            } catch (IOException e) {
-                logger.error("InfluxdbConnector", e);
-                throw new RuntimeException(e);
-            } catch (ClassNotFoundException e) {
-                logger.error("InfluxdbConnector", e);
-                throw new RuntimeException(e);
-            } catch (SQLException e) {
-                logger.error("InfluxdbConnector", e);
-                throw new RuntimeException(e);
-            } catch (ApiException e) {
-                logger.error("InfluxdbConnector", e);
+            } catch (IOException | ClassNotFoundException | SQLException | ApiException e) {
+                logger.error(ERRORSTRING, e.toString());
                 throw new RuntimeException(e);
             }
         });
@@ -86,27 +76,16 @@ public class InfluxdbConnector
         ConnectorBaseUtil.setKeywords(keywords);
         redisCacheWorker.setNumThreads(numThreads);
         ConnectorBaseUtil.isCoordinator = true;
-        if (isCoordinator && runInCoordinatorOnly) {
-            if (redisCacheWorker == null) {
-                redisCacheWorker = new RedisCacheWorker((QueryParameters s)-> {
-                    try {
-                        return  InfluxdbUtil.exec(s) ;
-                    } catch (IOException e) {
-                        logger.error("InfluxdbConnector", e);
-                        throw new RuntimeException(e);
-                    } catch (ClassNotFoundException e) {
-                        logger.error("InfluxdbConnector", e);
-                        throw new RuntimeException(e);
-                    } catch (SQLException e) {
-                        logger.error("InfluxdbConnector", e);
-                        throw new RuntimeException(e);
-                    } catch (ApiException e) {
-                        logger.error("InfluxdbConnector", e);
-                        throw new RuntimeException(e);
-                    }
-                },numThreads, DBType.INFLUXDB2);
-                redisCacheWorker.start();
-            }
+        if ((isCoordinator && runInCoordinatorOnly) && redisCacheWorker == null) {
+            redisCacheWorker = new RedisCacheWorker((QueryParameters s)-> {
+                try {
+                    return  InfluxdbUtil.exec(s) ;
+                } catch (IOException | ClassNotFoundException | SQLException | ApiException e) {
+                    logger.error(ERRORSTRING, e.toString());
+                    throw new RuntimeException(e);
+                }
+            },numThreads, DBType.INFLUXDB2);
+            redisCacheWorker.start();
         }
     }
 
