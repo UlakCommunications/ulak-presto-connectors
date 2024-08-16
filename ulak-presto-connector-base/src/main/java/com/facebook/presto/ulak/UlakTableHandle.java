@@ -28,10 +28,10 @@ import static java.util.Objects.requireNonNull;
 public class UlakTableHandle
         implements ConnectorTableHandle
 {
-    private static Logger logger = LoggerFactory.getLogger(UlakTableHandle.class);
-    private String schemaName;
-    private String tableName;
-    private String connectorId;
+    private static final Logger logger = LoggerFactory.getLogger(UlakTableHandle.class);
+    private final String schemaName;
+    private final String tableName;
+    private final String connectorId;
 
     @JsonCreator
     public UlakTableHandle(@JsonProperty("connectorId") String connectorId,
