@@ -18,7 +18,6 @@ import com.facebook.presto.ulak.UlakConnectorId;
 import com.facebook.presto.ulak.UlakTableHandle;
 import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
 import com.facebook.presto.ulak.QueryParameters;
-import com.quickwit.javaclient.ApiException;
 import io.trino.spi.connector.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +34,7 @@ public class UlakPostgresMetadata
     private static Logger logger = LoggerFactory.getLogger(UlakPostgresMetadata.class);
     private static UlakPostgresMetadata single;
     private static String connectorId;
-
+    private static final String ERRORSTRING = "UlakPostgresConnector Error: {}";
     private UlakPostgresMetadata(String catalogName)
     {
         connectorId = new UlakConnectorId(catalogName).toString();
@@ -53,7 +52,7 @@ public class UlakPostgresMetadata
     @Override
     public List<String> listSchemaNames(ConnectorSession session)
     {
-         return null;//TODO:
+         return Collections.emptyList();//TODO:
     }
 
     @Override
@@ -66,7 +65,7 @@ public class UlakPostgresMetadata
     @Override
     public List<SchemaTableName> listTables(ConnectorSession session, Optional<String> schemaName)
     {
-        return null; //TODO:
+        return Collections.emptyList(); //TODO:
     }
 
     @Override
@@ -80,18 +79,12 @@ public class UlakPostgresMetadata
                 try {
                     return  PGUtil.select(s);
                 } catch (IOException | SQLException e) {
-                    logger.error("Exception", e);
+                    logger.error(ERRORSTRING, e);
                     throw new RuntimeException(e);
                 }
             }));
-        } catch (IOException e) {
-            logger.error("IOException", e);
-            throw new RuntimeException(e);
-        } catch (ClassNotFoundException e) {
-            logger.error("ClassNotFoundException", e);
-            throw new RuntimeException(e);
         } catch (Exception e) {
-            logger.error("Exception - empty query", e);
+            logger.error(ERRORSTRING, e);
             throw new RuntimeException(e);
         }
         SchemaTableName tableName = new SchemaTableName(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
@@ -110,11 +103,8 @@ public class UlakPostgresMetadata
             list = getColumnsBase(ConnectorBaseUtil.select(tableName,false, s-> {
                 try {
                     return PGUtil.select(s);
-                } catch (SQLException e) {
-                    logger.error("SQLException", e);
-                    throw new RuntimeException(e);
-                } catch (IOException e) {
-                    logger.error("IOException", e);
+                } catch (SQLException | IOException e) {
+                    logger.error(ERRORSTRING, e);
                     throw new RuntimeException(e);
                 }
             }));
@@ -123,13 +113,9 @@ public class UlakPostgresMetadata
                 ColumnMetadata metadata = list.get(i);
                 res.put(metadata.getName(), new UlakColumnHandle(connectorId, metadata.getName(), metadata.getType(), i));
             }
-        } catch (IOException e) {
-            logger.error("IOException", e);
+        } catch (Exception e) {
+            logger.error(ERRORSTRING, e);
             throw new RuntimeException(e);
-        } catch (ClassNotFoundException e) {
-            logger.error("ClassNotFoundException", e);
-        }catch (Exception e) {
-            logger.error("Exception - Empty query", e);
         }
         return res;
     }
@@ -145,21 +131,14 @@ public class UlakPostgresMetadata
                     columns.put(tableName, getColumnsBase(ConnectorBaseUtil.select(tableName.getTableName(),false, (QueryParameters s)-> {
                         try {
                             return PGUtil.select(s);
-                        } catch (SQLException e) {
-                            logger.error("SQLException", e);
-                            throw new RuntimeException(e);
-                        } catch (IOException e) {
-                            logger.error("IOException", e);
+                        } catch (SQLException | IOException e) {
+                            logger.error(ERRORSTRING, e);
                             throw new RuntimeException(e);
                         }
                     })));
-                } catch (IOException e) {
-                    logger.error("IOException", e);
+                } catch (Exception e) {
+                    logger.error(ERRORSTRING, e);
                     throw new RuntimeException(e);
-                } catch (ClassNotFoundException e) {
-                    logger.error("ClassNotFoundException", e);
-                }catch (Exception e) {
-                    logger.error("Exception - Empty query", e);
                 }
             }
         }
