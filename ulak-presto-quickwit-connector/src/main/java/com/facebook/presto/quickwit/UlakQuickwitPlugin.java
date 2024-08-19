@@ -20,6 +20,7 @@ import io.trino.spi.connector.ConnectorFactory;
 public class UlakQuickwitPlugin
         implements Plugin
 {
+    @Override
     public Iterable<ConnectorFactory> getConnectorFactories()
     {
         return ImmutableList.of(new UlakQuickwitConnectorFactory());
