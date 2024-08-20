@@ -85,9 +85,6 @@ public class QueryParameters {
         this.rows = rows;
     }
 
-    public QueryParameters() {
-        // Empty method
-    }
     public static String replaceAll(String tableName, String find, String replace){
         String lastTableName = tableName;
         String beforeTableName = null;

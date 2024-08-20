@@ -40,37 +40,31 @@ public class UlakQuickwitConnectorFactory
         String url = config.get("connection-url");
         String sNumThreads = config.get("number_of_worker_threads");
         int numThreads =10;// DEFAULT_N_THREADS;
-        if(sNumThreads != null && !sNumThreads.trim().equals("")){
+        if(sNumThreads != null && !sNumThreads.trim().isEmpty()){
             try {
                 numThreads = Integer.parseInt(sNumThreads);
-            }catch (Throwable e){
+            }catch (Exception e){
                 logger.error("Unable to parse sNumThreads: " + sNumThreads,e);
             }
         }
         String sRunInCoordinatorOnly = config.get("run_in_coordinator_only");
         boolean runInCoordinatorOnly = false;
-        if(sRunInCoordinatorOnly != null && !sRunInCoordinatorOnly.trim().equals(""))
+        if(sRunInCoordinatorOnly != null && !sRunInCoordinatorOnly.trim().isEmpty())
         {
             runInCoordinatorOnly = sRunInCoordinatorOnly.trim().toLowerCase(Locale.ENGLISH).equals("true");
         }
         String sWorkerIndexToRunIn = config.get("worker_id_to_run_in");
-        UlakQuickwitConnector connector = null;
-        switch ( getName()){
-            case TEXT_CONNECTOR_QW:
-                connector = new UlakQuickwitConnector(
-                        url,
-                        catalogName,
-                        config.get("redis-url"),
-                        config.get("keywords"),
-                        runInCoordinatorOnly,
-                        context.getNodeManager().getCurrentNode().getNodeIdentifier(),
-                        sWorkerIndexToRunIn,
-                        context.getNodeManager().getCurrentNode().isCoordinator(),
-                        numThreads,
-                        config.get("qw-connection-url"),
-                        config.get("qw-index"));
-        }
-
-        return connector;
+        return new UlakQuickwitConnector(
+            url,
+            catalogName,
+            config.get("redis-url"),
+            config.get("keywords"),
+            runInCoordinatorOnly,
+            context.getNodeManager().getCurrentNode().getNodeIdentifier(),
+            sWorkerIndexToRunIn,
+            context.getNodeManager().getCurrentNode().isCoordinator(),
+            numThreads,
+            config.get("qw-connection-url"),
+            config.get("qw-index"));
     }
 }
