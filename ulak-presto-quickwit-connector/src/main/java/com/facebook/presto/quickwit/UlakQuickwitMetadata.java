@@ -31,11 +31,12 @@ import static com.facebook.presto.ulak.caching.ConnectorBaseUtil.getColumnsBase;
 public class UlakQuickwitMetadata
         implements ConnectorMetadata
 {
-    private static Logger logger = LoggerFactory.getLogger(UlakQuickwitMetadata.class);
+    private static final Logger logger = LoggerFactory.getLogger(UlakQuickwitMetadata.class);
     private static UlakQuickwitMetadata single;
     private static String connectorId;
     private String qwIndex;
     private String qwUrl;
+    private static final String ERRORSTRING = "UlakQuickwitMetadata.java Error: {}";
 
     private UlakQuickwitMetadata(String catalogName, String qwUrl, String qwIndex)
     {
@@ -57,7 +58,7 @@ public class UlakQuickwitMetadata
     @Override
     public List<String> listSchemaNames(ConnectorSession session)
     {
-        return null; //TODO:
+        return Collections.emptyList(); //TODO:
     }
 
     @Override
@@ -70,7 +71,7 @@ public class UlakQuickwitMetadata
     @Override
     public List<SchemaTableName> listTables(ConnectorSession session, Optional<String> schemaName)
     {
-        return null; //TODO
+        return Collections.emptyList(); //TODO
     }
 
     @Override
@@ -84,15 +85,15 @@ public class UlakQuickwitMetadata
                             try {
                                 return  QwUtil.select(s, qwUrl, qwIndex);
                             } catch (ApiException e) {
-                                logger.error("ApiException", e);
+                                logger.error(ERRORSTRING, e);
                                 throw new RuntimeException(e);
                             }
                         }));
         } catch (IOException e) {
-            logger.error("IOException", e);
+            logger.error(ERRORSTRING, e);
             throw new RuntimeException(e);
         } catch (Exception e) {
-            logger.error("Exception - Empty query", e);
+            logger.error(ERRORSTRING, e);
         }
         SchemaTableName tableName = new SchemaTableName(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
 
@@ -111,16 +112,16 @@ public class UlakQuickwitMetadata
                         try {
                             return QwUtil.select(s, qwUrl, qwIndex);
                         } catch (ApiException e) {
-                            logger.error("ApiException", e);
+                            logger.error(ERRORSTRING, e);
                             throw new RuntimeException(e);
                         }
                     }));
 
         } catch (IOException e) {
-            logger.error("IOException", e);
+            logger.error(ERRORSTRING, e);
             throw new RuntimeException(e);
         } catch (Exception e) {
-            logger.error("Exception - Empty query", e);
+            logger.error(ERRORSTRING, e);
         }
         for (int i = 0; i < list.size(); ++i) {
             ColumnMetadata metadata = list.get(i);
@@ -142,15 +143,15 @@ public class UlakQuickwitMetadata
                                         try {
                                             return QwUtil.select(s, qwUrl, qwIndex);
                                         } catch (ApiException e) {
-                                            logger.error("ClassNotFoundException", e);
+                                            logger.error(ERRORSTRING, e);
                                             throw new RuntimeException(e);
                                         }
                                     })));
                 } catch (IOException e) {
-                    logger.error("IOException", e);
+                    logger.error(ERRORSTRING, e);
                     throw new RuntimeException(e);
                 } catch (Exception e) {
-                    logger.error("Exception - Empty query", e);
+                    logger.error(ERRORSTRING, e);
                 }
             }
         }
