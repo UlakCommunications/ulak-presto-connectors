@@ -44,7 +44,7 @@ import static com.facebook.presto.ulak.QueryParameters.replaceAll;
 
 public class QwUtil {
 
-    private static Logger logger = LoggerFactory.getLogger(QwUtil.class);
+    private static final Logger logger = LoggerFactory.getLogger(QwUtil.class);
 
     private static ApiClient defaultClient = null;
 
@@ -142,7 +142,7 @@ public class QwUtil {
             Object result = cx.evaluateString(scope, query, "<cmd>", 1, null);
 
             // Convert the result to a string and print it.
-            logger.debug(Context.toString(result));
+            logger.debug(result.toString());
             return (String) result;
         } finally {
             // Exit from the context.
@@ -193,15 +193,14 @@ public class QwUtil {
         parseResponseAggregations(ret);
         return parseResponseHits(influxdbQueryParameters, ret);
     }
-    public static List<UlakRow> parseResponseAggregations(SearchResponseRest ret) {
-        Object g = ret.getAggregations();
-        if (g == null) {
-            return null;
-        }
 
-        arrangeAggregations((Map<String,Object>)g,null);
-        return null;
+    public static void parseResponseAggregations(SearchResponseRest ret) {
+        Object g = ret.getAggregations();
+        if (g != null) {
+            arrangeAggregations((Map<String, Object>)g, null );
+        }
     }
+
     public static  void arrangeAggregations(Map<String,Object> aggregation, Map<String,Object> currentValuesIn){
         if (currentValuesIn == null) {
             currentValuesIn = new HashMap<>();
@@ -261,7 +260,7 @@ public class QwUtil {
                 }
             }
         }
-        if(buckets==null && value==null&aggValue.size()==0){
+        if((buckets==null && value==null) && aggValue.isEmpty()){
             aggValue.putAll(currentValues);
             return null;
         }

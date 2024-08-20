@@ -54,12 +54,12 @@ public class UlakQuickwitConnector
                              String qwUrl,
                              String qwIndex) {
         // need to get database connection here
-        logger.debug("Connector by url: " + url);
+        logger.debug("Connector by url: {}", url);
 
-        if (qwUrl != null && !qwUrl.trim().equals("")) {
+        if (qwUrl != null && !qwUrl.trim().isEmpty()) {
             this.setQwUrl(qwUrl);
         }
-        if (qwIndex != null && !qwIndex.trim().equals("")) {
+        if (qwIndex != null && !qwIndex.trim().isEmpty()) {
             this.setQwIndex(qwIndex);
         }
 
@@ -69,19 +69,10 @@ public class UlakQuickwitConnector
         this.recordSetProvider = UlakRecordSetProvider.getInstance((s-> {
             try {
                 return QwUtil.select(s,this.qwUrl,this.qwIndex);
-            } catch (IOException e) {
+            } catch (IOException | ClassNotFoundException | SQLException | ApiException e) {
                 logger.error("Connector by url: {}", url, e);
                 throw new RuntimeException(e);
-            } catch (ClassNotFoundException e) {
-                logger.error("Connector by url: {}", url, e);
-                throw new RuntimeException(e);
-            } catch (SQLException e) {
-                logger.error("Connector by url: {}", url, e);
-                throw new RuntimeException(e);
-            } catch (ApiException e) {
-                logger.error("Connector by url: {}", url, e);
-                throw new RuntimeException(e);
-            }
+                }
         }));
 
         ConnectorBaseUtil.redisUrl = redisUrl;
@@ -90,8 +81,7 @@ public class UlakQuickwitConnector
         ConnectorBaseUtil.setKeywords(keywords);
         redisCacheWorker.setNumThreads(numThreads);
         ConnectorBaseUtil.isCoordinator = true;
-        if (isCoordinator && runInCoordinatorOnly) {
-            if (redisCacheWorker == null) {
+        if ((isCoordinator && runInCoordinatorOnly) && redisCacheWorker == null) {
                 redisCacheWorker = new RedisCacheWorker((QueryParameters s)-> {
                     try {
                         return  QwUtil.select(s, qwUrl, qwIndex) ;
@@ -101,7 +91,6 @@ public class UlakQuickwitConnector
                     }
                 },numThreads, DBType.QW);
                 redisCacheWorker.start();
-            }
         }
     }
 
