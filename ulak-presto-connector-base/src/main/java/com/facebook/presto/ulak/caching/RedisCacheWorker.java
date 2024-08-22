@@ -141,7 +141,7 @@ public class RedisCacheWorker extends Thread{
                                         try {
                                             String json = jedis.get(currentRedisKey);
                                             if (json == null) {
-                                                logger.error("Key does not exists (ttl expired?): {}", currentRedisKey);
+                                                logger.debug("Key does not exists (ttl expired?): {}", currentRedisKey);
                                             }
                                             queryParameters = getObjectMapper().readValue(json,
                                                     QueryParameters.class);
@@ -154,7 +154,7 @@ public class RedisCacheWorker extends Thread{
                                             continue;
                                         }
                                         if(queryParameters.getDbType()!=this.dbType){
-                                            logger.info("not the same db type {}/{}",queryParameters.getDbType(), this.dbType);
+                                            logger.debug("not the same db type {}/{}",queryParameters.getDbType(), this.dbType);
                                             continue;
                                         }
 
