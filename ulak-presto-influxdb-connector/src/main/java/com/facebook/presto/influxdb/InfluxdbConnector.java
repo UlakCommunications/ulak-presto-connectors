@@ -74,7 +74,6 @@ public class InfluxdbConnector
         ConnectorBaseUtil.workerId = workerId;
         ConnectorBaseUtil.workerIndexToRunIn = workerIndexToRunIn;
         ConnectorBaseUtil.setKeywords(keywords);
-        redisCacheWorker.setNumThreads(numThreads);
         ConnectorBaseUtil.isCoordinator = true;
         if ((isCoordinator && runInCoordinatorOnly) && redisCacheWorker == null) {
             redisCacheWorker = new RedisCacheWorker((QueryParameters s)-> {

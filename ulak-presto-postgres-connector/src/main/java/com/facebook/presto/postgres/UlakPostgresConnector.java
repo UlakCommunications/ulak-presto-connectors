@@ -47,14 +47,13 @@ public class UlakPostgresConnector
                              String workerIndexToRunIn,
                              boolean isCoordinator,
                              int numThreads,
-                             String pgUrl,
                              String pgUsername,
                              String pgPassword) {
         // need to get database connection here
         logger.debug("Connector by url: {}", url);
-        if (pgUrl != null && !pgUrl.trim().isEmpty()) {
+        if (url != null && !url.trim().isEmpty()) {
             try {
-                PGUtil.instance(pgUrl, pgUsername, pgPassword);
+                PGUtil.instance(url, pgUsername, pgPassword);
             } catch (IOException e) {
                 logger.error(ERRORSTRING, e.toString());
             }
@@ -74,7 +73,6 @@ public class UlakPostgresConnector
         ConnectorBaseUtil.workerId = workerId;
         ConnectorBaseUtil.workerIndexToRunIn = workerIndexToRunIn;
         ConnectorBaseUtil.setKeywords(keywords);
-        redisCacheWorker.setNumThreads(numThreads);
         ConnectorBaseUtil.isCoordinator = true;
         if ((isCoordinator && runInCoordinatorOnly) && redisCacheWorker == null) {
             redisCacheWorker = new RedisCacheWorker((QueryParameters s)-> {

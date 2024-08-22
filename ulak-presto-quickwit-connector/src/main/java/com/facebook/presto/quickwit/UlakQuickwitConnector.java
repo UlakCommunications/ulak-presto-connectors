@@ -51,13 +51,12 @@ public class UlakQuickwitConnector
                              String workerIndexToRunIn,
                              boolean isCoordinator,
                              int numThreads,
-                             String qwUrl,
                              String qwIndex) {
         // need to get database connection here
         logger.debug("Connector by url: {}", url);
 
-        if (qwUrl != null && !qwUrl.trim().isEmpty()) {
-            this.setQwUrl(qwUrl);
+        if (url != null && !url.trim().isEmpty()) {
+            this.setQwUrl(url);
         }
         if (qwIndex != null && !qwIndex.trim().isEmpty()) {
             this.setQwIndex(qwIndex);
@@ -79,7 +78,6 @@ public class UlakQuickwitConnector
         ConnectorBaseUtil.workerId = workerId;
         ConnectorBaseUtil.workerIndexToRunIn = workerIndexToRunIn;
         ConnectorBaseUtil.setKeywords(keywords);
-        redisCacheWorker.setNumThreads(numThreads);
         ConnectorBaseUtil.isCoordinator = true;
         if ((isCoordinator && runInCoordinatorOnly) && redisCacheWorker == null) {
                 redisCacheWorker = new RedisCacheWorker((QueryParameters s)-> {
