@@ -37,7 +37,7 @@ public class UlakQuickwitConnectorFactory
     @Override
     public Connector create(String catalogName, Map<String, String> config, ConnectorContext context)
     {
-        String url = config.get("connection-url");
+        String url = config.get("qw-connection-url");
         String sNumThreads = config.get("number_of_worker_threads");
         int numThreads =10;// DEFAULT_N_THREADS;
         if(sNumThreads != null && !sNumThreads.trim().isEmpty()){
@@ -64,7 +64,6 @@ public class UlakQuickwitConnectorFactory
             sWorkerIndexToRunIn,
             context.getNodeManager().getCurrentNode().isCoordinator(),
             numThreads,
-            config.get("qw-connection-url"),
             config.get("qw-index"));
     }
 }

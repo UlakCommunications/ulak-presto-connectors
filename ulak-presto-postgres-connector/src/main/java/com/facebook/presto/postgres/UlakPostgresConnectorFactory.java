@@ -40,7 +40,7 @@ public class UlakPostgresConnectorFactory
     @Override
     public Connector create(String catalogName, Map<String, String> config, ConnectorContext context)
     {
-        String url = config.get("connection-url");
+        String url = config.get("pg-connection-url");
         String sNumThreads = config.get("number_of_worker_threads");
         int numThreads = DEFAULT_N_THREADS;
         if(sNumThreads != null && !sNumThreads.trim().equals("")){
@@ -67,7 +67,6 @@ public class UlakPostgresConnectorFactory
                         sWorkerIndexToRunIn,
                         context.getNodeManager().getCurrentNode().isCoordinator(),
                         numThreads,
-                        config.get("pg-connection-url"),
                         config.get("pg-connection-user"),
                         config.get("pg-connection-password") );
     }

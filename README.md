@@ -374,10 +374,10 @@ order by _value desc
 
 ```
     maya_pg_grafana: >-
-      connector.name=mayapg   
-      connection-url=jdbc:postgresql://postgres:5432/grafana
-      connection-user=postgres
-      connection-password=*****
+      connector.name=mayapostgres   
+      pg-connection-url=jdbc:postgresql://postgres:5432/grafana
+      pg-connection-user=*****
+      pg-connection-password=*****
       redis-url=http://default:*****@redis:6379
       keywords= 
       number_of_worker_threads=10
@@ -385,7 +385,34 @@ order by _value desc
       worker_index_to_run_in=1
 ````
 
+# Quickwit Entry in Trino Catalog
 
+```
+  quickwit.properties: |
+    connector.name=quickwit 
+    redis-url=http://<user>:<*****>@redis:6379
+    keywords= 
+    number_of_worker_threads=5
+    run_in_coordinator_only=true
+    worker_index_to_run_in=1 
+    qw-connection-url=http://10.20.4.53:32215
+    qw-index=metrics3 
+````
+
+# Influxdb Entry in Trino Catalog
+
+```
+  influxdb.properties: >
+    connector.name=influxdb
+    connection-url=http://influxdb?readTimeout=600m&connectTimeout=100m&writeTimeout=200m
+    connection-org=*****
+    connection-token=<*****>
+    redis-url=http://*****:*****@redis:6379
+    keywords= 
+    number_of_worker_threads=5
+    run_in_coordinator_only=true
+    worker_index_to_run_in=1 
+````
 # Query Parameters
 
 ```
