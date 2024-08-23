@@ -38,6 +38,10 @@ public class UlakPostgresConnector
     private final UlakRecordSetProvider recordSetProvider;
     private static final String ERRORSTRING = "UlakPostgresConnector Error: {}";
 
+    public String pgUrl;
+    public String pgUser;
+    public String pgPwd;
+
     public UlakPostgresConnector(String url,
                              String catalogName,
                              String redisUrl,
@@ -51,19 +55,16 @@ public class UlakPostgresConnector
                              String pgPassword) {
         // need to get database connection here
         logger.debug("Connector by url: {}", url);
-        if (url != null && !url.trim().isEmpty()) {
-            try {
-                PGUtil.instance(url, pgUsername, pgPassword);
-            } catch (IOException e) {
-                logger.error(ERRORSTRING, e.toString());
-            }
-        }
 
-        this.metadata = UlakPostgresMetadata.getInstance(catalogName);
+        this.pgUser = pgUsername;
+        this.pgPwd = pgPassword;
+        this.pgUrl = url;
+
+        this.metadata = new UlakPostgresMetadata(catalogName, this.pgUrl, this.pgUser, this.pgPwd);
         this.splitManager = UlakSplitManager.getInstance();
         this.recordSetProvider = UlakRecordSetProvider.getInstance((q,s)-> {
             try {
-                return PGUtil.select(q.getQuery());
+                return PGUtil.select(q.getQuery(), this.pgUrl, this.pgUser, this.pgPwd);
             } catch (IOException | SQLException e) {
                 logger.error(ERRORSTRING, e.toString());
                 throw new RuntimeException(e);
@@ -77,7 +78,7 @@ public class UlakPostgresConnector
         if ((isCoordinator && runInCoordinatorOnly) && redisCacheWorker == null) {
             redisCacheWorker = new RedisCacheWorker((q,s)-> {
                 try {
-                    return  PGUtil.select(q) ;
+                    return  PGUtil.select(q, this.pgUrl, this.pgUser, this.pgPwd) ;
                 } catch (IOException | SQLException e) {
                     logger.error(ERRORSTRING, e.toString());
                     throw new RuntimeException(e);

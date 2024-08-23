@@ -54,17 +54,13 @@ public class InfluxdbConnector
                              int numThreads ) {
         // need to get database connection here
         logger.debug("Connector by url: {}", url);
-        try {
-            InfluxdbUtil.instance(url, org, token);
-        } catch (IOException e) {
-            logger.error(ERRORSTRING, e.toString());
-        }
 
-        this.metadata = InfluxdbMetadata.getInstance(catalogName);
+
+        this.metadata = new InfluxdbMetadata(catalogName,url,org,token);
         this.splitManager = UlakSplitManager.getInstance();
         this.recordSetProvider = UlakRecordSetProvider.getInstance((q,s)-> {
             try {
-                return InfluxdbUtil.exec(q.getQuery());
+                return InfluxdbUtil.exec(q.getQuery(),url,org,token);
             } catch (IOException | ClassNotFoundException | SQLException | ApiException e) {
                 logger.error(ERRORSTRING, e.toString());
                 throw new RuntimeException(e);
@@ -78,7 +74,7 @@ public class InfluxdbConnector
         if ((isCoordinator && runInCoordinatorOnly) && redisCacheWorker == null) {
             redisCacheWorker = new RedisCacheWorker((q,s)-> {
                 try {
-                    return  InfluxdbUtil.exec(q.getQuery()) ;
+                    return  InfluxdbUtil.exec(q.getQuery(),url,org,token) ;
                 } catch (IOException | ClassNotFoundException | SQLException | ApiException e) {
                     logger.error(ERRORSTRING, e.toString());
                     throw new RuntimeException(e);
