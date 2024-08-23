@@ -17,7 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import static com.facebook.presto.ulak.caching.ConnectorBaseUtil.*;
 
@@ -29,11 +29,11 @@ public class RedisCacheWorker extends Thread{
     private static final Object statLock = new Object();
     private long lastAllPrint = System.currentTimeMillis();
     private int numThreads = DEFAULT_N_THREADS;
-    private final Function<QueryParameters, List<UlakRow>> exec1;
+    private final BiFunction<QueryParameters,String[], List<UlakRow>> exec1;
     private final DBType dbType;
     private ExecutorService executor = null;
 
-    public RedisCacheWorker(Function<QueryParameters, List<UlakRow>> exec1,
+    public RedisCacheWorker(BiFunction<QueryParameters,String[], List<UlakRow>> exec1,
                             int numThreads, DBType dbType) {
         this.exec1 = exec1;
         this.dbType = dbType;

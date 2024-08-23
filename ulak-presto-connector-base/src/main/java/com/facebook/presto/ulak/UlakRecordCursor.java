@@ -26,12 +26,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -40,6 +39,7 @@ public class UlakRecordCursor
 {
     private static Logger logger = LoggerFactory.getLogger(UlakRecordCursor.class);
     private final List<UlakColumnHandle> columnHandles;
+    private String[] defaultParams = null;
 
     private final Iterator<UlakRow> iterator;
 
@@ -47,13 +47,16 @@ public class UlakRecordCursor
 
     public UlakRecordCursor(List<UlakColumnHandle> columnHandles,
                                 UlakSplit split,
-                                Function<String, List<UlakRow>> exec1)
+                                String[] defaultParams,
+                                BiFunction<QueryParameters,String[], List<UlakRow>> exec1)
     {
         this.columnHandles = columnHandles;
+        this.defaultParams = defaultParams;
         try {
-            this.iterator = ConnectorBaseUtil.select(split.getTableName(),
+            this.iterator = ConnectorBaseUtil.select(QueryParameters.getQueryParameters(split.getTableName()),
                     false,
-                    s->  exec1.apply(split.getTableName())).iterator();
+                    this.defaultParams,
+                    (s,y)->  exec1.apply(s,y)).iterator();
         } catch (IOException e) {
             logger.error("Error getting cursor: " , e);
             throw new RuntimeException(e);

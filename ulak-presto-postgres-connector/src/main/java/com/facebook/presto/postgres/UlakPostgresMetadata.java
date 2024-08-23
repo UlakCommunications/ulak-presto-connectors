@@ -75,9 +75,10 @@ public class UlakPostgresMetadata
         List<ColumnMetadata> list = null;
         try {
             String tableName = influxdbTableHandle.getTableName();
-            list =  getColumnsBase(ConnectorBaseUtil.select(tableName,false, s-> {
+            list =  getColumnsBase(ConnectorBaseUtil.select(QueryParameters.getQueryParameters(tableName),
+                    false,new String[]{}, (q,s)-> {
                 try {
-                    return  PGUtil.select(s);
+                    return  PGUtil.select(q.getQuery());
                 } catch (IOException | SQLException e) {
                     logger.error(ERRORSTRING, e);
                     throw new RuntimeException(e);
@@ -100,9 +101,9 @@ public class UlakPostgresMetadata
         List<ColumnMetadata> list = null;
         try {
             String tableName = influxdbTableHandle.getTableName();
-            list = getColumnsBase(ConnectorBaseUtil.select(tableName,false, s-> {
+            list = getColumnsBase(ConnectorBaseUtil.select(QueryParameters.getQueryParameters(tableName),false,new String[]{}, (q,s)-> {
                 try {
-                    return PGUtil.select(s);
+                    return PGUtil.select(q.getQuery());
                 } catch (SQLException | IOException e) {
                     logger.error(ERRORSTRING, e);
                     throw new RuntimeException(e);
@@ -128,9 +129,10 @@ public class UlakPostgresMetadata
         for (SchemaTableName tableName : list) {
             if (tableName.getTableName().startsWith(prefix.getTable().get())) {
                 try {
-                    columns.put(tableName, getColumnsBase(ConnectorBaseUtil.select(tableName.getTableName(),false, (QueryParameters s)-> {
+                    columns.put(tableName, getColumnsBase(ConnectorBaseUtil.select(QueryParameters.getQueryParameters(tableName.getTableName()),
+                            false,new String[]{}, (q,s)-> {
                         try {
-                            return PGUtil.select(s);
+                            return PGUtil.select(q.getQuery());
                         } catch (SQLException | IOException e) {
                             logger.error(ERRORSTRING, e);
                             throw new RuntimeException(e);

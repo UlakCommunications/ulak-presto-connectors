@@ -25,7 +25,7 @@ public class QueryParameters {
     public static final String TEXT_QWURL = "qwurl";
     public static final String TEXT_HASJS = "hasjs";
     public static final String TEXT_QWREPLACEFROMCOLUMN = "replacefromcolumns";
-    private static final Logger logger = LoggerFactory.getLogger(QueryParameters.class);
+    private static Logger logger = LoggerFactory.getLogger(QueryParameters.class);
     public static final String NEW_LINE_CHAR = System.lineSeparator();
     public static final int DEFAULT_CACHE_TTL = 60 * 60 * 24;
     public static final int DEFAULT_TTL = 10;

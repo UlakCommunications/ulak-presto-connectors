@@ -65,14 +65,19 @@ public class UlakQuickwitConnector
         this.setQwIndex(qwIndex);
         this.metadata = UlakQuickwitMetadata.getInstance(catalogName,qwUrl,qwIndex);
         this.splitManager = UlakSplitManager.getInstance();
-        this.recordSetProvider = UlakRecordSetProvider.getInstance((s-> {
+        this.recordSetProvider = UlakRecordSetProvider.getInstance(((q,s)-> {
             try {
-                return QwUtil.select(s,this.qwUrl,this.qwIndex);
-            } catch (IOException | ClassNotFoundException | SQLException | ApiException e) {
+//                logger.error("From connector : {}\n\n\nurl:{}\n\n\nindex:{}",
+//                        s[0],
+//                        s[1],
+//                        s[2]);
+
+                return QwUtil.select(q,s[1],s[2]);
+            } catch (ApiException e) {
                 logger.error("Connector by url: {}", url, e);
                 throw new RuntimeException(e);
                 }
-        }));
+        }), new String[]{qwUrl,qwIndex});
 
         ConnectorBaseUtil.redisUrl = redisUrl;
         ConnectorBaseUtil.workerId = workerId;
@@ -80,9 +85,9 @@ public class UlakQuickwitConnector
         ConnectorBaseUtil.setKeywords(keywords);
         ConnectorBaseUtil.isCoordinator = true;
         if ((isCoordinator && runInCoordinatorOnly) && redisCacheWorker == null) {
-                redisCacheWorker = new RedisCacheWorker((QueryParameters s)-> {
+                redisCacheWorker = new RedisCacheWorker((q,s)-> {
                     try {
-                        return  QwUtil.select(s, qwUrl, qwIndex) ;
+                        return  QwUtil.select(q, qwUrl, qwIndex) ;
                     } catch (ApiException e) {
                         logger.error("InfluxdbConnector", e);
                         throw new RuntimeException(e);

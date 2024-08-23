@@ -61,23 +61,23 @@ public class UlakPostgresConnector
 
         this.metadata = UlakPostgresMetadata.getInstance(catalogName);
         this.splitManager = UlakSplitManager.getInstance();
-        this.recordSetProvider = UlakRecordSetProvider.getInstance(s-> {
+        this.recordSetProvider = UlakRecordSetProvider.getInstance((q,s)-> {
             try {
-                return PGUtil.select(s);
+                return PGUtil.select(q.getQuery());
             } catch (IOException | SQLException e) {
                 logger.error(ERRORSTRING, e.toString());
                 throw new RuntimeException(e);
             }
-        });
+        }, new String[]{});
         ConnectorBaseUtil.redisUrl = redisUrl;
         ConnectorBaseUtil.workerId = workerId;
         ConnectorBaseUtil.workerIndexToRunIn = workerIndexToRunIn;
         ConnectorBaseUtil.setKeywords(keywords);
         ConnectorBaseUtil.isCoordinator = true;
         if ((isCoordinator && runInCoordinatorOnly) && redisCacheWorker == null) {
-            redisCacheWorker = new RedisCacheWorker((QueryParameters s)-> {
+            redisCacheWorker = new RedisCacheWorker((q,s)-> {
                 try {
-                    return  PGUtil.select(s) ;
+                    return  PGUtil.select(q) ;
                 } catch (IOException | SQLException e) {
                     logger.error(ERRORSTRING, e.toString());
                     throw new RuntimeException(e);
