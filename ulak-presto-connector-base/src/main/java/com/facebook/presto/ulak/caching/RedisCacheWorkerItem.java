@@ -8,7 +8,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import static com.facebook.presto.ulak.caching.ConnectorBaseUtil.getJedisPool;
@@ -19,9 +19,9 @@ public class RedisCacheWorkerItem extends Thread implements Supplier<String> {
 
     private static Logger logger = LoggerFactory.getLogger(RedisCacheWorkerItem.class);
     private final String key;
-    private final Function<QueryParameters, List<UlakRow>> exec1;
+    private final BiFunction<QueryParameters,String[], List<UlakRow>> exec1;
 
-    public RedisCacheWorkerItem(String key, Function<QueryParameters, List<UlakRow>> exec1) {
+    public RedisCacheWorkerItem(String key, BiFunction<QueryParameters,String[], List<UlakRow>> exec1) {
         this.key = key;
         this.exec1 = exec1;
     }
@@ -44,7 +44,7 @@ public class RedisCacheWorkerItem extends Thread implements Supplier<String> {
                     }
                     influxdbQueryParameters = getObjectMapper().readValue(json, QueryParameters.class);
 
-                    ConnectorBaseUtil.select(influxdbQueryParameters,true, exec1);
+                    ConnectorBaseUtil.select(influxdbQueryParameters,true,new String[]{},  exec1);
                 } catch (Throwable e) {
                     logger.error("Query Execution Error: {}/{}", this.key, influxdbQueryParameters != null ? influxdbQueryParameters.getName() : "", e);
                 }

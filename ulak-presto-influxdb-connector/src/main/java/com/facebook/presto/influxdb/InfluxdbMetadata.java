@@ -30,26 +30,30 @@ public class InfluxdbMetadata
     private static Logger logger = LoggerFactory.getLogger(InfluxdbMetadata.class);
     private static InfluxdbMetadata single;
     private final String connectorId;
+    private String url;
+    private String org;
+    private String token;
 
-    private InfluxdbMetadata(String catalogName)
+    InfluxdbMetadata(String catalogName, String url, String org, String token)
     {
         connectorId = new UlakConnectorId(catalogName).toString();
+        this.url = url;
+        this.org = org;
+        this.token = token;
     }
 
-    public static InfluxdbMetadata getInstance(String catalogName)
-    {
-        if (single == null) {
-            single = new InfluxdbMetadata(catalogName);
-        }
-        return single;
-    }
 
     // list all bucket names
     @Override
     public List<String> listSchemaNames(ConnectorSession session)
     {
         logger.debug("influxdbMetadata--bucket names");
-        return InfluxdbUtil.getSchemas();
+        try {
+            return InfluxdbUtil.getSchemas(this.url,this.org,this.token);
+        } catch (IOException e) {
+            logger.error("listSchemaNames",e);
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -81,7 +85,7 @@ public class InfluxdbMetadata
         UlakTableHandle influxdbTableHandle = (UlakTableHandle) table;
         List<ColumnMetadata> list = null;
         try {
-            list = InfluxdbUtil.getColumns(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
+            list = InfluxdbUtil.getColumns(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName(),this.url,this.org,this.token);
         } catch (IOException e) {
             logger.error("InfluxdbMetadata getTableMetadata IOException", e);
         } catch (ClassNotFoundException e) {
@@ -101,7 +105,7 @@ public class InfluxdbMetadata
         Map<String, ColumnHandle> res = new HashMap<>();
         List<ColumnMetadata> list = null;
         try {
-            list = InfluxdbUtil.getColumns(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName());
+            list = InfluxdbUtil.getColumns(influxdbTableHandle.getSchemaName(), influxdbTableHandle.getTableName(),this.url,this.org,this.token);
 
             for (int i = 0; i < list.size(); ++i) {
                 ColumnMetadata metadata = list.get(i);
@@ -125,7 +129,7 @@ public class InfluxdbMetadata
         for (SchemaTableName tableName : list) {
             if (tableName.getTableName().startsWith(prefix.getTable().get())) {
                 try {
-                    columns.put(tableName, InfluxdbUtil.getColumns(session.getSource().get(), tableName.getTableName()));
+                    columns.put(tableName, InfluxdbUtil.getColumns(session.getSource().get(), tableName.getTableName(),this.url,this.org,this.token));
                 } catch (IOException e) {
                     logger.error("InfluxdbMetadata listTableColumns IOException", e);
                 } catch (ClassNotFoundException e) {

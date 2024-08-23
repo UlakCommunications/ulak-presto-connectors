@@ -17,7 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import static com.facebook.presto.ulak.caching.ConnectorBaseUtil.*;
 
@@ -29,11 +29,11 @@ public class RedisCacheWorker extends Thread{
     private static final Object statLock = new Object();
     private long lastAllPrint = System.currentTimeMillis();
     private int numThreads = DEFAULT_N_THREADS;
-    private final Function<QueryParameters, List<UlakRow>> exec1;
+    private final BiFunction<QueryParameters,String[], List<UlakRow>> exec1;
     private final DBType dbType;
     private ExecutorService executor = null;
 
-    public RedisCacheWorker(Function<QueryParameters, List<UlakRow>> exec1,
+    public RedisCacheWorker(BiFunction<QueryParameters,String[], List<UlakRow>> exec1,
                             int numThreads, DBType dbType) {
         this.exec1 = exec1;
         this.dbType = dbType;
@@ -141,7 +141,7 @@ public class RedisCacheWorker extends Thread{
                                         try {
                                             String json = jedis.get(currentRedisKey);
                                             if (json == null) {
-                                                logger.error("Key does not exists (ttl expired?): {}", currentRedisKey);
+                                                logger.debug("Key does not exists (ttl expired?): {}", currentRedisKey);
                                             }
                                             queryParameters = getObjectMapper().readValue(json,
                                                     QueryParameters.class);
@@ -154,7 +154,7 @@ public class RedisCacheWorker extends Thread{
                                             continue;
                                         }
                                         if(queryParameters.getDbType()!=this.dbType){
-                                            logger.info("not the same db type {}/{}",queryParameters.getDbType(), this.dbType);
+                                            logger.debug("not the same db type {}/{}",queryParameters.getDbType(), this.dbType);
                                             continue;
                                         }
 

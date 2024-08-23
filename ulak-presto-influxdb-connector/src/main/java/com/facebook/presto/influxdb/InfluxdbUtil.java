@@ -37,19 +37,34 @@ import java.util.*;
 public class InfluxdbUtil {
 
     private static Logger logger = LoggerFactory.getLogger(InfluxdbUtil.class);
-    private static InfluxDBClient influxDBClient;
+    private static Map<String, InfluxDBClient> influxDBClients;
 
-    public static void instance(String url, String org, String token)
+    public static InfluxDBClient getClient(String url, String org, String token)
             throws
             IOException {
-        influxDBClient = InfluxDBClientFactory.create(url, token.toCharArray(), org);
+
+        if (url == null) {
+            return null;
+        }
+        if (influxDBClients == null) {
+            influxDBClients =  new LinkedHashMap<>();
+
+        }
+        InfluxDBClient  influxDBClient = null;
+        if (!influxDBClients.containsKey(url)) {
+            influxDBClient = InfluxDBClientFactory.create(url, token.toCharArray(), org);
+            influxDBClients.put(url, influxDBClient);
+        }else {
+            influxDBClient = influxDBClients.get(url);
+        }
+        return influxDBClient;
     }
 
-    public static List<String> getSchemas() {
+    public static List<String> getSchemas(String url, String org, String token) throws IOException {
         logger.debug("getSchemas");
         logger.debug("influxdbUtil-getSchemas");
         List<String> res = new ArrayList<>();
-        BucketsApi bucketsApi = influxDBClient.getBucketsApi();
+        BucketsApi bucketsApi = getClient( url,  org,  token).getBucketsApi();
         for (Bucket bucket1 : bucketsApi.findBuckets()) {
             res.add(bucket1.getName());
             logger.debug(bucket1.getName());
@@ -57,10 +72,10 @@ public class InfluxdbUtil {
         return res;
     }
 
-    public static List<String> getTableNames(String bucket) {
+    public static List<String> getTableNames(String bucket,String url, String org, String token) throws IOException {
         logger.debug("influxdbUtil- bucket->tableNames: {}", bucket);
         List<String> res = new ArrayList<>();
-        QueryApi queryApi = influxDBClient.getQueryApi();
+        QueryApi queryApi = getClient(url, org, token).getQueryApi();
         String flux = "import  \"influxdata/influxdb/schema\"\n" + "import \"strings\"\n" + "schema.measurements(bucket: \"" + bucket + "\")\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"task\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"storage\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"service\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"query\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"qc\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"influxdb\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"http\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"go\"))\n" + "|> filter(fn : (r) => not strings.hasPrefix(v: r._value, prefix: \"boltdb\"))";
         List<FluxTable> tables = queryApi.query(flux);
         for (FluxTable fluxTable : tables) {
@@ -87,12 +102,12 @@ public class InfluxdbUtil {
     }
 
 
-    public static List<ColumnMetadata> getColumns(String bucket, String tableName) throws Exception {
+    public static List<ColumnMetadata> getColumns(String bucket, String tableName,String url, String org, String token) throws Exception {
         logger.debug("influxdbUtil bucket: {} table: {} columnsMetadata",bucket, tableName);
         List<ColumnMetadata> res;
         List<UlakRow> tables = null;
         try {
-            tables = InfluxdbUtil.exec(tableName);
+            tables = InfluxdbUtil.exec(tableName,url, org, token);
         } catch (IOException e) {
             logger.error("IOException", e);
         } catch (ClassNotFoundException e) {
@@ -114,15 +129,15 @@ public class InfluxdbUtil {
         return res;
     }
 
-    public static List<UlakRow> exec(String tableName) throws IOException, ClassNotFoundException, SQLException, ApiException {
+    public static List<UlakRow> exec(String tableName,String url, String org, String token) throws IOException, ClassNotFoundException, SQLException, ApiException {
         QueryParameters influxdbQueryParameters = QueryParameters.getQueryParameters(tableName);
-        return exec(influxdbQueryParameters);
+        return exec(influxdbQueryParameters,  url,  org,  token);
     }
 
-    public static List<UlakRow> exec(QueryParameters influxdbQueryParameters) throws IOException, ClassNotFoundException, SQLException, ApiException {
+    public static List<UlakRow> exec(QueryParameters influxdbQueryParameters,String url, String org, String token) throws IOException, ClassNotFoundException, SQLException, ApiException {
         influxdbQueryParameters.setError("");
         ArrayList<UlakRow> list = new ArrayList<>();
-        QueryApi queryApi = influxDBClient.getQueryApi();
+        QueryApi queryApi = getClient(url, org, token).getQueryApi();
         String flux = influxdbQueryParameters.getQuery();
         List<FluxTable> tables = queryApi.query(flux);
         List<Map<String, Object>> resMap = new LinkedList<>();

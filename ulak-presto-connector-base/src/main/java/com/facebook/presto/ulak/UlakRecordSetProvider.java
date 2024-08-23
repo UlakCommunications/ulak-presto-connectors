@@ -13,32 +13,31 @@
  */
 package com.facebook.presto.ulak;
 
-import com.facebook.presto.ulak.UlakColumnHandle;
-import com.facebook.presto.ulak.UlakRecordSet;
 import com.google.common.collect.ImmutableList;
 import io.trino.spi.connector.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class UlakRecordSetProvider
         implements ConnectorRecordSetProvider
 {
-    private static final Logger logger = LoggerFactory.getLogger(UlakRecordSetProvider.class);
+    private static Logger logger = LoggerFactory.getLogger(UlakRecordSetProvider.class);
     private static UlakRecordSetProvider single;
-    private final Function<String, List<UlakRow>> exec1;
+    private final BiFunction<QueryParameters,String[], List<UlakRow>> exec1;
+    private String[] defaultParams;
 
-    public UlakRecordSetProvider(Function<String, List<UlakRow>> exec1){
+    public UlakRecordSetProvider(BiFunction<QueryParameters,String[], List<UlakRow>> exec1, String[] defaultParams){
         this.exec1 = exec1;
+        this.defaultParams = defaultParams;
     }
-    public static UlakRecordSetProvider getInstance(Function<String, List<UlakRow>> exec1)
+    public static UlakRecordSetProvider getInstance(BiFunction<QueryParameters,String[], List<UlakRow>> exec1,String[] defaultParams)
     {
         if (single == null) {
-            single = new UlakRecordSetProvider(exec1);
+            single = new UlakRecordSetProvider(exec1,defaultParams);
         }
         return single;
     }
@@ -56,7 +55,7 @@ public class UlakRecordSetProvider
             handles.add(influxdbColumnHandle);
             logger.debug("{}:{}", influxdbColumnHandle.getColumnName(), influxdbColumnHandle.getColumnType());
         }
-        return new UlakRecordSet(influxdbSplit, handles.build(),exec1);
+        return new UlakRecordSet(influxdbSplit, handles.build(),exec1,defaultParams);
     }
 
 }

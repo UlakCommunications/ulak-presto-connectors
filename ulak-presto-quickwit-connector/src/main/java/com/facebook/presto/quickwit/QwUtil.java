@@ -19,6 +19,7 @@ import com.facebook.presto.ulak.QueryParameters;
 import com.facebook.presto.ulak.UlakRow;
 import com.github.opendevl.JFlat;
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
@@ -44,9 +45,9 @@ import static com.facebook.presto.ulak.QueryParameters.replaceAll;
 
 public class QwUtil {
 
-    private static final Logger logger = LoggerFactory.getLogger(QwUtil.class);
+    private static Logger logger = LoggerFactory.getLogger(QwUtil.class);
 
-    private static ApiClient defaultClient = null;
+    private static Map<String, ApiClient> defaultClients = null;
 
     public static final String DOC_COUNT = "doc_count";
     public static final String KEY = "key";
@@ -58,14 +59,24 @@ public class QwUtil {
     public static ApiClient getDefaultClient(QueryParameters influxdbQueryParameters) {
         String qwUrl = influxdbQueryParameters!=null?influxdbQueryParameters.getQwUrl():null;
         if (StringUtils.isBlank(qwUrl) ) {
+            logger.error("url is null : {}\n\n\nurl:{}\n\n\nindex:{}",
+                    influxdbQueryParameters.getQuery(),
+                    influxdbQueryParameters.getQwUrl(),
+                    influxdbQueryParameters.getQwIndex());
             return null;
         }
-        if (defaultClient == null) {
-            defaultClient = Configuration.getDefaultApiClient();
-            defaultClient.setBasePath(qwUrl);
-
+        ApiClient client;
+        if (defaultClients == null) {
+            defaultClients = new LinkedHashMap<>();
         }
-        return defaultClient;
+        if(!defaultClients.containsKey(qwUrl)){
+            client = Configuration.getDefaultApiClient();
+            client.setBasePath(qwUrl);
+            defaultClients.put(qwUrl, client);
+        }else{
+            client  = defaultClients.get(qwUrl);
+        }
+        return client;
     }
 
     private QwUtil() {
@@ -99,11 +110,11 @@ public class QwUtil {
         return res;
     }
 
-    public static List<UlakRow> select(String tableName,String qwUrl, String qwIndex) throws IOException, ClassNotFoundException, SQLException, ApiException  {
-
-        QueryParameters influxdbQueryParameters = QueryParameters.getQueryParameters(tableName);
-        return select(influxdbQueryParameters, qwUrl, qwIndex);
-    }
+//    public static List<UlakRow> select(String tableName,String qwUrl, String qwIndex) throws IOException, ClassNotFoundException, SQLException, ApiException  {
+//
+//        QueryParameters influxdbQueryParameters = QueryParameters.getQueryParameters(tableName);
+//        return select(influxdbQueryParameters, qwUrl, qwIndex);
+//    }
 
 
     public static List<UlakRow> select(QueryParameters influxdbQueryParameters,
@@ -113,16 +124,23 @@ public class QwUtil {
         influxdbQueryParameters.setQuery(replaceAll(q,"|"," "));
         influxdbQueryParameters.setQuery(replaceAll(q," not "," NOT "));
         influxdbQueryParameters.setDbType(DBType.QW);
-        influxdbQueryParameters.setQwUrl(qwUrl);
-        influxdbQueryParameters.setQwIndex(qwIndex);
+        if(StringUtils.isBlank(influxdbQueryParameters.getQwUrl())) {
+            influxdbQueryParameters.setQwUrl(qwUrl);
+        }
+        if(StringUtils.isBlank(influxdbQueryParameters.getQwIndex())) {
+            influxdbQueryParameters.setQwIndex(qwIndex);
+        }
 
-        int hash = influxdbQueryParameters.getHash();
+        logger.error("Executing select : {}\n\n\nurl:{}\n\n\nindex:{}",
+                influxdbQueryParameters.getQuery(),
+                influxdbQueryParameters.getQwUrl(),
+                influxdbQueryParameters.getQwIndex());
         influxdbQueryParameters.setStart(System.currentTimeMillis());
 
         influxdbQueryParameters.setError("");
         String query = influxdbQueryParameters.getQuery();//"from(bucket: " + "\"" + bucket + "\"" + ")\n" + "|> range(start:" + time_interval + ")\n" + "|> filter(fn : (r) => r._measurement == " + "\"" + tableName + "\"" + ")";
 
-        List<UlakRow> ret = executeOneQuery( influxdbQueryParameters,influxdbQueryParameters.getQwIndex(),query);
+        List<UlakRow> ret = executeOneQuery( influxdbQueryParameters,query);
 
 //                    addOneStat(hash, 1);
         return ret ;
@@ -150,14 +168,18 @@ public class QwUtil {
         }
     }
     public static List<UlakRow> executeOneQuery( QueryParameters influxdbQueryParameters,
-                                                     String qwIndex,
                                                      String query) throws ApiException {
 
         query=replaceAll(query,"|"," ");
         query=replaceAll(query," not "," NOT ");
         long unixTime = System.currentTimeMillis() / 1000L;
 
+        logger.error("Executing executeOneQuery: {}\n\n\nurl:{}\n\n\nindex:{}",
+                influxdbQueryParameters.getQuery(),
+                influxdbQueryParameters.getQwUrl(),
+                influxdbQueryParameters.getQwIndex());
         if(influxdbQueryParameters.isHasJs()) {
+
             query =   executeScript(
                     "var now = " + unixTime + ";" +
                             "var d = 24*60*60 /*number of seconds in a day*/;" +
@@ -166,14 +188,25 @@ public class QwUtil {
                             "var s = 1 /*number of seconds in a second*/;" +
                             "var a = " + query + ";" +
                             "JSON.stringify(a);");
-        }
 
+            logger.error("After js executeOneQuery: {}\n\n\nurl:{}\n\n\nindex:{}",
+                    query,
+                    influxdbQueryParameters.getQwUrl(),
+                    influxdbQueryParameters.getQwIndex());
+        }
+        String qwIndex = influxdbQueryParameters.getQwIndex();
 
         SearchApi searchApi = new SearchApi(getDefaultClient(influxdbQueryParameters));
 
         SearchRequestQueryString toQuery = getGson().fromJson(query, SearchRequestQueryString.class);
         logger.debug("Running on {}/{}: {}", influxdbQueryParameters.getQwUrl(), qwIndex, query);
         SearchResponseRest ret = searchApi.searchPostHandler(qwIndex, toQuery);
+
+        logger.error("Query executed executeOneQuery: {}\n\n\nurl:{}\n\n\nindex:{}\n\n\nret size:{}",
+                query,
+                influxdbQueryParameters.getQwUrl(),
+                influxdbQueryParameters.getQwIndex(),
+                ret == null && ret.getAggregations() == null ? 0 : ((Map<String, Object>)ret.getAggregations()).size());
         List<UlakRow> parsed = parseResponse(influxdbQueryParameters,ret);
         return parsed;
     }
@@ -311,5 +344,83 @@ public class QwUtil {
             };
         }
         return toRet;
+    }
+
+    public static void main(String[] args)    {
+        long start = System.currentTimeMillis();
+        QueryParameters params = QueryParameters.getQueryParameters("{\n" +
+                "          \"aggs\": {\n" +
+                "            \"3\": {\n" +
+                "              \"aggs\": {\n" +
+                "                \"2\": {\n" +
+                "                  \"aggs\": {\n" +
+                "                    \"4\": {\n" +
+                "                      \"aggs\": {\n" +
+                "                        \"5\": {\n" +
+                "                          \"aggs\": {\n" +
+                "                            \"1\": {\n" +
+                "                              \"sum\": {\n" +
+                "                                \"field\": \"span_attributes.u\"\n" +
+                "                              }\n" +
+                "                            }\n" +
+                "                          },\n" +
+                "                          \"terms\": {\n" +
+                "                            \"field\": \"span_attributes.n\", \n" +
+                "                            \"size\":9999,\n" +
+                "                            \"order\": {\n" +
+                "                              \"1\": \"desc\"\n" +
+                "                            },\n" +
+                "                            \"min_doc_count\": 1\n" +
+                "                          }\n" +
+                "                        }\n" +
+                "                      },\n" +
+                "                      \"terms\": {\n" +
+                "                        \"field\": \"span_attributes.n\", \n" +
+                "                        \"size\":9999,\n" +
+                "                        \"order\": {\n" +
+                "                          \"_key\": \"desc\"\n" +
+                "                        },\n" +
+                "                        \"min_doc_count\": 1\n" +
+                "                      }\n" +
+                "                    }\n" +
+                "                  },\n" +
+                "                  \"terms\": {\n" +
+                "                    \"field\": \"span_attributes.n\", \n" +
+                "                    \"size\":9999,\n" +
+                "                    \"order\": {\n" +
+                "                      \"_key\": \"desc\"\n" +
+                "                    },\n" +
+                "                    \"min_doc_count\": 1\n" +
+                "                  }\n" +
+                "                }\n" +
+                "              },\n" +
+                "              \"date_histogram\": {\n" +
+                "                \"field\": \"span_start_timestamp_nanos\",\n" +
+                "                \"fixed_interval\": \"1d\",\n" +
+                "                \"min_doc_count\": 1\n" +
+                "              }\n" +
+                "            }\n" +
+                "          },\n" +
+                "          \"query\": \"*\",\n" +
+                "          \"max_hits\": 0,\n" +
+                "          \"start_timestamp\": now - (5*m),\n" +
+                "          \"end_timestamp\": now\n" +
+                "        }".toLowerCase());
+
+        params.setQuery(replaceAll(params.getQuery(),"|"," "));
+        params.setQuery(replaceAll(params.getQuery()," not "," NOT "));
+        params.setQwIndex("flows3");
+        params.setDbType(DBType.QW);
+        params.setQwUrl("http://10.20.4.53:32215");
+        params.setReplaceFromColumns("/3/buckets/2/buckets/4/buckets/5/buckets/1");
+        params.setHasJs(true);
+        List<UlakRow> ret = null;
+        try {
+            ret = Lists.newArrayList(QwUtil.select(params,params.getQwUrl(), params.getQwIndex()));
+        } catch (ApiException e) {
+            throw new RuntimeException(e);
+        }
+        logger.info(String.valueOf(System.currentTimeMillis() - start));
+
     }
 }

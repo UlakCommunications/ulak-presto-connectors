@@ -56,13 +56,13 @@ Trino lower cases all query. Inside `keywords` will be reverted to original form
 ```
 
     maya_pg_grafana: >-
-      connector.name=mayapg
+      connector.name=mayapostgres
       
-      connection-url=jdbc:postgresql://postgres:5432/grafana
+      pg-connection-url=jdbc:postgresql://postgres:5432/grafana
 
-      connection-user=postgres
+      pg-connection-user=postgres
 
-      connection-password=*****
+      pg-connection-password=*****
   
       redis-url=http://default:*****@redis:6379
   
