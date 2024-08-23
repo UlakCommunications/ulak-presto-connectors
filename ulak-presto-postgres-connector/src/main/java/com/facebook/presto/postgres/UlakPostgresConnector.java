@@ -38,6 +38,10 @@ public class UlakPostgresConnector
     private final UlakRecordSetProvider recordSetProvider;
     private static final String ERRORSTRING = "UlakPostgresConnector Error: {}";
 
+    public String pgUrl;
+    public String pgUser;
+    public String pgPwd;
+
     public UlakPostgresConnector(String url,
                              String catalogName,
                              String redisUrl,
@@ -47,39 +51,34 @@ public class UlakPostgresConnector
                              String workerIndexToRunIn,
                              boolean isCoordinator,
                              int numThreads,
-                             String pgUrl,
                              String pgUsername,
                              String pgPassword) {
         // need to get database connection here
         logger.debug("Connector by url: {}", url);
-        if (pgUrl != null && !pgUrl.trim().isEmpty()) {
-            try {
-                PGUtil.instance(pgUrl, pgUsername, pgPassword);
-            } catch (IOException e) {
-                logger.error(ERRORSTRING, e.toString());
-            }
-        }
 
-        this.metadata = UlakPostgresMetadata.getInstance(catalogName);
+        this.pgUser = pgUsername;
+        this.pgPwd = pgPassword;
+        this.pgUrl = url;
+
+        this.metadata = new UlakPostgresMetadata(catalogName, this.pgUrl, this.pgUser, this.pgPwd);
         this.splitManager = UlakSplitManager.getInstance();
-        this.recordSetProvider = UlakRecordSetProvider.getInstance(s-> {
+        this.recordSetProvider = UlakRecordSetProvider.getInstance((q,s)-> {
             try {
-                return PGUtil.select(s);
+                return PGUtil.select(q.getQuery(), this.pgUrl, this.pgUser, this.pgPwd);
             } catch (IOException | SQLException e) {
                 logger.error(ERRORSTRING, e.toString());
                 throw new RuntimeException(e);
             }
-        });
+        }, new String[]{});
         ConnectorBaseUtil.redisUrl = redisUrl;
         ConnectorBaseUtil.workerId = workerId;
         ConnectorBaseUtil.workerIndexToRunIn = workerIndexToRunIn;
         ConnectorBaseUtil.setKeywords(keywords);
-        redisCacheWorker.setNumThreads(numThreads);
         ConnectorBaseUtil.isCoordinator = true;
         if ((isCoordinator && runInCoordinatorOnly) && redisCacheWorker == null) {
-            redisCacheWorker = new RedisCacheWorker((QueryParameters s)-> {
+            redisCacheWorker = new RedisCacheWorker((q,s)-> {
                 try {
-                    return  PGUtil.select(s) ;
+                    return  PGUtil.select(q, this.pgUrl, this.pgUser, this.pgPwd) ;
                 } catch (IOException | SQLException e) {
                     logger.error(ERRORSTRING, e.toString());
                     throw new RuntimeException(e);

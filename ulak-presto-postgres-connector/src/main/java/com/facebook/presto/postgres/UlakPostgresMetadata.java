@@ -35,17 +35,16 @@ public class UlakPostgresMetadata
     private static UlakPostgresMetadata single;
     private static String connectorId;
     private static final String ERRORSTRING = "UlakPostgresConnector Error: {}";
-    private UlakPostgresMetadata(String catalogName)
+    private  String pgUrl;
+    private  String pgUser;
+    private  String pgPwd;
+
+    UlakPostgresMetadata(String catalogName, String pgUrl, String pgUser, String pgPwd)
     {
         connectorId = new UlakConnectorId(catalogName).toString();
-    }
-
-    public static UlakPostgresMetadata getInstance(String catalogName)
-    {
-        if (single == null) {
-            single = new UlakPostgresMetadata(catalogName);
-        }
-        return single;
+        this.pgUrl = pgUrl;
+        this.pgUser = pgUser;
+        this.pgPwd = pgPwd;
     }
 
     // list all bucket names
@@ -75,9 +74,10 @@ public class UlakPostgresMetadata
         List<ColumnMetadata> list = null;
         try {
             String tableName = influxdbTableHandle.getTableName();
-            list =  getColumnsBase(ConnectorBaseUtil.select(tableName,false, s-> {
+            list =  getColumnsBase(ConnectorBaseUtil.select(QueryParameters.getQueryParameters(tableName),
+                    false,new String[]{}, (q,s)-> {
                 try {
-                    return  PGUtil.select(s);
+                    return  PGUtil.select(q.getQuery(), this.pgUrl, this.pgUser, this.pgPwd);
                 } catch (IOException | SQLException e) {
                     logger.error(ERRORSTRING, e);
                     throw new RuntimeException(e);
@@ -100,9 +100,9 @@ public class UlakPostgresMetadata
         List<ColumnMetadata> list = null;
         try {
             String tableName = influxdbTableHandle.getTableName();
-            list = getColumnsBase(ConnectorBaseUtil.select(tableName,false, s-> {
+            list = getColumnsBase(ConnectorBaseUtil.select(QueryParameters.getQueryParameters(tableName),false,new String[]{}, (q,s)-> {
                 try {
-                    return PGUtil.select(s);
+                    return PGUtil.select(q.getQuery(), this.pgUrl, this.pgUser, this.pgPwd);
                 } catch (SQLException | IOException e) {
                     logger.error(ERRORSTRING, e);
                     throw new RuntimeException(e);
@@ -128,9 +128,10 @@ public class UlakPostgresMetadata
         for (SchemaTableName tableName : list) {
             if (tableName.getTableName().startsWith(prefix.getTable().get())) {
                 try {
-                    columns.put(tableName, getColumnsBase(ConnectorBaseUtil.select(tableName.getTableName(),false, (QueryParameters s)-> {
+                    columns.put(tableName, getColumnsBase(ConnectorBaseUtil.select(QueryParameters.getQueryParameters(tableName.getTableName()),
+                            false,new String[]{}, (q,s)-> {
                         try {
-                            return PGUtil.select(s);
+                            return PGUtil.select(q.getQuery(), this.pgUrl, this.pgUser, this.pgPwd);
                         } catch (SQLException | IOException e) {
                             logger.error(ERRORSTRING, e);
                             throw new RuntimeException(e);

@@ -19,7 +19,7 @@ import io.trino.spi.connector.RecordSet;
 import io.trino.spi.type.Type;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import static java.util.Objects.requireNonNull;
 
@@ -27,17 +27,20 @@ public class UlakRecordSet
         implements RecordSet
 {
     private final List<UlakColumnHandle> columnHandles;
-    private final Function<String, List<UlakRow>> exec1;
+    private final BiFunction<QueryParameters,String[], List<UlakRow>> exec1;
+    private final String[] defaultParams;
     private final List<Type> columnTypes;
     private final UlakSplit split;
 
     public UlakRecordSet(UlakSplit split,
-                             List<UlakColumnHandle> columnHandles,
-                             Function<String, List<UlakRow>> exec1)
+                            List<UlakColumnHandle> columnHandles,
+                            BiFunction<QueryParameters,String[], List<UlakRow>> exec1,
+                            String[] defaultParams)
     {
         this.split = requireNonNull(split, "split is null");
         this.columnHandles = requireNonNull(columnHandles, "column handles is null");
         this.exec1 = exec1;
+        this.defaultParams = defaultParams;
         ImmutableList.Builder<Type> types = ImmutableList.builder();
         for (UlakColumnHandle column : columnHandles) {
             types.add(column.getColumnType());
@@ -54,6 +57,6 @@ public class UlakRecordSet
     @Override
     public RecordCursor cursor()
     {
-        return new UlakRecordCursor(columnHandles, split,exec1);
+        return new UlakRecordCursor(columnHandles, split,defaultParams, exec1);
     }
 }

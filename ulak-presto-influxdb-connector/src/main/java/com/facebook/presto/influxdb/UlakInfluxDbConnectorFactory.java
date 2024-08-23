@@ -27,7 +27,7 @@ public class UlakInfluxDbConnectorFactory
         implements ConnectorFactory
 {
     public static final String TEXT_CONNECTOR_INFLUXDB = "influxdb";
-    private static final Logger logger = LoggerFactory.getLogger(UlakInfluxDbConnectorFactory.class);
+    private static Logger logger = LoggerFactory.getLogger(UlakInfluxDbConnectorFactory.class);
 
     public String getName()
     {

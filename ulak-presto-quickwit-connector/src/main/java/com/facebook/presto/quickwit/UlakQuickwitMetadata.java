@@ -13,16 +13,19 @@
  */
 package com.facebook.presto.quickwit;
 
+import com.facebook.presto.ulak.QueryParameters;
 import com.facebook.presto.ulak.UlakColumnHandle;
 import com.facebook.presto.ulak.UlakConnectorId;
 import com.facebook.presto.ulak.UlakTableHandle;
 import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
 import com.quickwit.javaclient.ApiException;
 import io.trino.spi.connector.*;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.*;
 
 import static com.facebook.presto.ulak.caching.ConnectorBaseUtil.getColumnsBase;
@@ -31,7 +34,10 @@ import static com.facebook.presto.ulak.caching.ConnectorBaseUtil.getColumnsBase;
 public class UlakQuickwitMetadata
         implements ConnectorMetadata
 {
-    private static final Logger logger = LoggerFactory.getLogger(UlakQuickwitMetadata.class);
+
+    public static final String DEFAULT_SCHEMA = "default_schema";
+    public static final String DEFAULT_TABLE = "default_Table";
+    private static Logger logger = LoggerFactory.getLogger(UlakQuickwitMetadata.class);
     private static UlakQuickwitMetadata single;
     private static String connectorId;
     private String qwIndex;
@@ -58,7 +64,7 @@ public class UlakQuickwitMetadata
     @Override
     public List<String> listSchemaNames(ConnectorSession session)
     {
-        return Collections.emptyList(); //TODO:
+        return  Collections.singletonList(DEFAULT_SCHEMA); //TODO:
     }
 
     @Override
@@ -71,7 +77,7 @@ public class UlakQuickwitMetadata
     @Override
     public List<SchemaTableName> listTables(ConnectorSession session, Optional<String> schemaName)
     {
-        return Collections.emptyList(); //TODO
+        return Collections.singletonList(new SchemaTableName(DEFAULT_SCHEMA, DEFAULT_TABLE)); //TODO
     }
 
     @Override
@@ -81,14 +87,27 @@ public class UlakQuickwitMetadata
         List<ColumnMetadata> list = null;
         try {
             String tableName = influxdbTableHandle.getTableName();
-            list = getColumnsBase(ConnectorBaseUtil.select(tableName,false, s-> {
+            QueryParameters qp = QueryParameters.getQueryParameters(tableName);
+
+            if(StringUtils.isBlank(qp.getQwUrl())) {
+                qp.setQwUrl(this.qwUrl);
+            }
+            if(StringUtils.isBlank(qp.getQwIndex())) {
+                qp.setQwIndex(this.qwIndex);
+            }
+            list = getColumnsBase(ConnectorBaseUtil.select(qp,
+                    false,new String[]{this.qwUrl, this.qwIndex}, (q, s)-> {
                             try {
-                                return  QwUtil.select(s, qwUrl, qwIndex);
+//                                logger.error("From UlakQuickwitMetadata getTableMetadata: {}\n\n\nurl:{}\n\n\nindex:{}",
+//                                        q.getQuery(),
+//                                        s[0],
+//                                        s[1]);
+                                return  QwUtil.select(q , s[0], s[1]);
                             } catch (ApiException e) {
                                 logger.error(ERRORSTRING, e);
                                 throw new RuntimeException(e);
                             }
-                        }));
+            }));
         } catch (IOException e) {
             logger.error(ERRORSTRING, e);
             throw new RuntimeException(e);
@@ -103,19 +122,39 @@ public class UlakQuickwitMetadata
     @Override
     public Map<String, ColumnHandle> getColumnHandles(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
+        logger.error("getColumnHandles: url:{}\n\n\nindex:{}",
+                this.qwUrl,
+                this.qwIndex);
         UlakTableHandle influxdbTableHandle = (UlakTableHandle) tableHandle;
         Map<String, ColumnHandle> res = new HashMap<>();
         List<ColumnMetadata> list = null;
         try {
             String tableName = influxdbTableHandle.getTableName();
-            list = getColumnsBase(ConnectorBaseUtil.select(tableName,false, s-> {
+
+            logger.error("getColumnHandles: tableName:{}",tableName);
+            QueryParameters qp = QueryParameters.getQueryParameters(tableName);
+
+            if(StringUtils.isBlank(qp.getQwUrl())) {
+                qp.setQwUrl(this.qwUrl);
+            }
+            if(StringUtils.isBlank(qp.getQwIndex())) {
+                qp.setQwIndex(this.qwIndex);
+            }
+            list = getColumnsBase(ConnectorBaseUtil.select(qp,
+                    false,new String[]{this.qwUrl, this.qwIndex}, (q,s)-> {
                         try {
-                            return QwUtil.select(s, qwUrl, qwIndex);
+                            logger.error("From UlakQuickwitMetadata getColumnHandles in exec: {}\n\n\nurl:{}\n\n\nindex:{}",
+                                    q.getQuery(),
+                                    s[0],
+                                    s[1]);
+                            return QwUtil.select(q, s[0],s[1]);
                         } catch (ApiException e) {
                             logger.error(ERRORSTRING, e);
                             throw new RuntimeException(e);
                         }
-                    }));
+            }));
+
+            logger.error("getColumnHandles: num columns:{}",list.size());
 
         } catch (IOException e) {
             logger.error(ERRORSTRING, e);
@@ -133,20 +172,41 @@ public class UlakQuickwitMetadata
     @Override
     public Map<SchemaTableName, List<ColumnMetadata>> listTableColumns(ConnectorSession session, SchemaTablePrefix prefix)
     {
+        logger.error("listTableColumns: url:{}\n\n\nindex:{}",
+                this.qwUrl,
+                this.qwIndex);
         Map<SchemaTableName, List<ColumnMetadata>> columns = new HashMap<>();
         List<SchemaTableName> list = listTables(session, session.getSource());
         for (SchemaTableName tableName : list) {
             if (tableName.getTableName().startsWith(prefix.getTable().get())) {
                 try {
+
+                    QueryParameters qp = QueryParameters.getQueryParameters(tableName.getTableName());
+
+                    if(StringUtils.isBlank(qp.getQwUrl())) {
+                        qp.setQwUrl(this.qwUrl);
+                    }
+                    if(StringUtils.isBlank(qp.getQwIndex())) {
+                        qp.setQwIndex(this.qwIndex);
+                    }
                     columns.put(tableName,
-                            getColumnsBase(ConnectorBaseUtil.select(tableName.getTableName(),false, s-> {
-                                        try {
-                                            return QwUtil.select(s, qwUrl, qwIndex);
-                                        } catch (ApiException e) {
-                                            logger.error(ERRORSTRING, e);
-                                            throw new RuntimeException(e);
-                                        }
-                                    })));
+                            getColumnsBase(
+                                    ConnectorBaseUtil.select(
+                                            qp,
+                                    false,
+                                            new String[]{this.qwUrl, this.qwIndex},
+                                            (q, s)-> {
+                                                try {
+        //                                            logger.error("From UlakQuickwitMetadata listTableColumns: {}\n\n\nurl:{}\n\n\nindex:{}",
+        //                                                    q.getQuery(),
+        //                                                    s[0],
+        //                                                    s[1]);
+                                                    return QwUtil.select(q, s[0], s[1]);
+                                                } catch (ApiException e) {
+                                                    logger.error(ERRORSTRING, e);
+                                                    throw new RuntimeException(e);
+                                                }
+                                            })));
                 } catch (IOException e) {
                     logger.error(ERRORSTRING, e);
                     throw new RuntimeException(e);
@@ -159,8 +219,13 @@ public class UlakQuickwitMetadata
     }
 
     @Override
-    public ColumnMetadata getColumnMetadata(ConnectorSession session, ConnectorTableHandle tableHandle, ColumnHandle columnHandle)
+    public ColumnMetadata getColumnMetadata(ConnectorSession session,
+                                            ConnectorTableHandle tableHandle,
+                                            ColumnHandle columnHandle)
     {
+        logger.error("getColumnMetadata: url:{}\n\n\nindex:{}",
+                this.qwUrl,
+                this.qwIndex);
         return ((UlakColumnHandle) columnHandle).getColumnMetadata();
     }
 
