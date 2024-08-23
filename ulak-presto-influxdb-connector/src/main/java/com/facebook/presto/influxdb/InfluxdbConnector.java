@@ -34,7 +34,7 @@ public class InfluxdbConnector
         implements Connector
 {
     private RedisCacheWorker redisCacheWorker = null;
-    private static final Logger logger = LoggerFactory.getLogger(InfluxdbConnector.class);
+    private static Logger logger = LoggerFactory.getLogger(InfluxdbConnector.class);
     private final InfluxdbMetadata metadata;
     private final UlakSplitManager splitManager;
     private final UlakRecordSetProvider recordSetProvider;
@@ -62,23 +62,23 @@ public class InfluxdbConnector
 
         this.metadata = InfluxdbMetadata.getInstance(catalogName);
         this.splitManager = UlakSplitManager.getInstance();
-        this.recordSetProvider = UlakRecordSetProvider.getInstance(s-> {
+        this.recordSetProvider = UlakRecordSetProvider.getInstance((q,s)-> {
             try {
-                return InfluxdbUtil.exec(s);
+                return InfluxdbUtil.exec(q.getQuery());
             } catch (IOException | ClassNotFoundException | SQLException | ApiException e) {
                 logger.error(ERRORSTRING, e.toString());
                 throw new RuntimeException(e);
             }
-        });
+        }, new String[]{});
         ConnectorBaseUtil.redisUrl = redisUrl;
         ConnectorBaseUtil.workerId = workerId;
         ConnectorBaseUtil.workerIndexToRunIn = workerIndexToRunIn;
         ConnectorBaseUtil.setKeywords(keywords);
         ConnectorBaseUtil.isCoordinator = true;
         if ((isCoordinator && runInCoordinatorOnly) && redisCacheWorker == null) {
-            redisCacheWorker = new RedisCacheWorker((QueryParameters s)-> {
+            redisCacheWorker = new RedisCacheWorker((q,s)-> {
                 try {
-                    return  InfluxdbUtil.exec(s) ;
+                    return  InfluxdbUtil.exec(q.getQuery()) ;
                 } catch (IOException | ClassNotFoundException | SQLException | ApiException e) {
                     logger.error(ERRORSTRING, e.toString());
                     throw new RuntimeException(e);

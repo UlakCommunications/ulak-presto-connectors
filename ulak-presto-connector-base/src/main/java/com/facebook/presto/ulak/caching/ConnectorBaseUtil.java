@@ -32,7 +32,7 @@ import redis.clients.jedis.params.SetParams;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.*;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 
 public class ConnectorBaseUtil {
@@ -165,24 +165,20 @@ public class ConnectorBaseUtil {
         return getTrinoCacheString(String.valueOf(hash));
     }
 
-    public static List<UlakRow> select(String tableName,
-                                               boolean forceRefresh,
-                                               Function<QueryParameters, List<UlakRow>> exec) throws IOException {
-
-        QueryParameters queryParameters = QueryParameters.getQueryParameters(tableName);
-        return select(queryParameters,
-                forceRefresh,
-                exec);
+    public static String getDefaultParameter(String[] s, int i) {
+        return s != null && i > 0 && s.length > i ? s[i] : "";
     }
     public static List<UlakRow> select(QueryParameters queryParameters,
                                                boolean forceRefresh,
-                                               Function<QueryParameters, List<UlakRow>> exec1) throws IOException {
+                                                String[] defaultParameters,
+                                       BiFunction<QueryParameters,String[], List<UlakRow>> exec1) throws IOException {
+
         int hash = queryParameters.getHash();
         queryParameters.setStart(System.currentTimeMillis());
 
         JedisPool pool = getJedisPool();
         Jedis jedis = null;
-        if(pool !=null){
+        if (pool != null) {
             jedis = pool.getResource();
         }
         try {
@@ -190,15 +186,16 @@ public class ConnectorBaseUtil {
             if (fromCache != null) {
                 queryParameters.setRows(fromCache);
                 setCacheItem(jedis, queryParameters);
-                return fromCache ;
+                return fromCache;
             }
             synchronized (inProgressLock) {
                 fromCache = getCacheResultAsList(forceRefresh, jedis, hash);
                 if (fromCache != null) {
                     queryParameters.setRows(fromCache);
                     setCacheItem(jedis, queryParameters);
-                    return fromCache ;
+                    return fromCache;
                 }
+
                 if (!inProgressLocks.containsKey(hash)) {
                     inProgressLocks.put(hash, new Object());
                 }
@@ -210,7 +207,7 @@ public class ConnectorBaseUtil {
                     if (fromCache != null) {
                         queryParameters.setRows(fromCache);
                         setCacheItem(jedis, queryParameters);
-                        return fromCache ;
+                        return fromCache;
                     } else {
                         //TODO: eager caching is to be added
 //                        if (queryParameters.isEagerCached() && !forceRefresh) {
@@ -222,7 +219,7 @@ public class ConnectorBaseUtil {
                     }
 
                     queryParameters.setError("");
-                    List<UlakRow> list = exec1.apply(queryParameters);
+                    List<UlakRow> list = exec1.apply(queryParameters, defaultParameters);
                     logger.debug("Running: {}", hash);
 
                     if (jedis != null) {
@@ -232,7 +229,7 @@ public class ConnectorBaseUtil {
                     }
                     //TODO: stat checking is to be added
 //                    addOneStat(hash, 1);
-                    return list ;
+                    return list;
                 }
             } finally {
                 synchronized (inProgressLock) {
@@ -241,8 +238,8 @@ public class ConnectorBaseUtil {
                     }
                 }
             }
-        }finally {
-            if(jedis!=null){
+        } finally {
+            if (jedis != null) {
                 jedis.close();
             }
         }
@@ -303,7 +300,7 @@ public class ConnectorBaseUtil {
                 return queryParameters.getRows();
             }
         }
-        return Collections.emptyList();
+        return null;
     }
 
 

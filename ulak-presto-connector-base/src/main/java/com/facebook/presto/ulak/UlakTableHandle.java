@@ -28,7 +28,7 @@ import static java.util.Objects.requireNonNull;
 public class UlakTableHandle
         implements ConnectorTableHandle
 {
-    private static final Logger logger = LoggerFactory.getLogger(UlakTableHandle.class);
+    private static Logger logger = LoggerFactory.getLogger(UlakTableHandle.class);
     private final String schemaName;
     private final String tableName;
     private final String connectorId;

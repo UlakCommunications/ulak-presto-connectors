@@ -27,7 +27,7 @@ import java.util.*;
 
 public class PGUtil {
 
-    private static final Logger logger = LoggerFactory.getLogger(PGUtil.class);
+    private static Logger logger = LoggerFactory.getLogger(PGUtil.class);
     public static String pgUrl;
     public static String pgUser;
     public static String pgPwd;
