@@ -5,7 +5,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -25,6 +27,8 @@ public class QueryParameters {
     public static final String TEXT_QWURL = "qwurl";
     public static final String TEXT_HASJS = "hasjs";
     public static final String TEXT_QWREPLACEFROMCOLUMN = "replacefromcolumns";
+    public static final String TEXT_FROM = "from";
+    public static final String TEXT_TO = "to";
     private static Logger logger = LoggerFactory.getLogger(QueryParameters.class);
     public static final String NEW_LINE_CHAR = System.lineSeparator();
     public static final int DEFAULT_CACHE_TTL = 60 * 60 * 24;
@@ -43,6 +47,8 @@ public class QueryParameters {
     private int refreshDurationInSeconds = DEFAULT_TTL + 5;
     private long start;
     private long finish;
+    private long from;
+    private long to;
     private String error;
     private String qwUrl;
     private String qwIndex;
@@ -102,7 +108,7 @@ public class QueryParameters {
         List<String> newLines = new ArrayList<>();
         for (int i = 0; i < splits.length; i++) {
             String current = splits[i].trim();
-            if(!current.isEmpty()){
+            if(!current.isEmpty() && !current.startsWith("//") && !current.startsWith("-")){
                 newLines.add(current);
             }
         }
@@ -139,6 +145,7 @@ public class QueryParameters {
                 String param = params[0].trim();
                 String value = params[1].trim();
                 int v;
+                long l;
                 try {
                     switch (param.toLowerCase(Locale.ENGLISH)) {
                         case TEXT_TTL:
@@ -157,6 +164,18 @@ public class QueryParameters {
                             v = Integer.parseInt(value);
                             if (v > 0) {
                                 ret.setRefreshDurationInSeconds(v);
+                            }
+                            break;
+                        case TEXT_FROM:
+                            l = Long.parseLong(value);
+                            if (l > 0) {
+                                ret.setFrom(l);
+                            }
+                            break;
+                        case TEXT_TO:
+                            l = Long.parseLong(value);
+                            if (l > 0) {
+                                ret.setTo(l);
                             }
                             break;
                         //TODO: eager caching is to be added
@@ -208,7 +227,7 @@ public class QueryParameters {
     public void setToBeCached(boolean toBeCached) {
         this.toBeCached = toBeCached;
     }
-    public boolean isHasJs() {
+    public boolean getHasJs() {
         return hasJs;
     }
 
@@ -257,6 +276,33 @@ public class QueryParameters {
     public void setFinish(long finish) {
         this.finish = finish;
     }
+
+    public long getFrom() {
+        return from;
+    }
+//    public Date getFromAsDate() {
+//        return getTsAsDate(from);
+//    }
+
+    public void setFrom(long from) {
+        this.from = from;
+    }
+//    public static Date getTsAsDate(long ts){
+//        Timestamp stamp = new Timestamp(ts);
+//        Date date = new Date(stamp.getTime());
+//        return date;
+//
+//    }
+    public long getTo() {
+        return to;
+    }
+//    public Date getToAsDate() {
+//        return getTsAsDate(to);
+//    }
+    public void setTo(long to) {
+        this.to = to;
+    }
+
 
     public String getError() {
         return error;

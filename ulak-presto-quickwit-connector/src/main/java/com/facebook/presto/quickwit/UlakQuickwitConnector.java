@@ -67,7 +67,7 @@ public class UlakQuickwitConnector
         this.splitManager = UlakSplitManager.getInstance();
         this.recordSetProvider = UlakRecordSetProvider.getInstance(((q,s)-> {
             try {
-//                logger.error("From connector : {}\n\n\nurl:{}\n\n\nindex:{}",
+//                logger.debug("From connector : {}\n\n\nurl:{}\n\n\nindex:{}",
 //                        s[0],
 //                        s[1],
 //                        s[2]);

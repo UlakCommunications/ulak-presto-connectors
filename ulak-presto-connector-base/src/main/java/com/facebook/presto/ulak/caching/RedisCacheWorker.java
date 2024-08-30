@@ -166,7 +166,7 @@ public class RedisCacheWorker extends Thread{
                                         if(usageStats==null){
                                             //maybe we have restarted.
                                             usageStats = addOneStat(queryParameters.getHash(),1);
-                                            //removeCacheFromRefreshWorker(influxdbQueryParameters.getHash());
+                                            //removeCacheFromRefreshWorker(queryParameters.getHash());
                                         }
 
                                         long ttl = jedis.ttl(currentRedisKey);

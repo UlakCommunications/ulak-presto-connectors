@@ -130,15 +130,15 @@ public class InfluxdbUtil {
     }
 
     public static List<UlakRow> exec(String tableName,String url, String org, String token) throws IOException, ClassNotFoundException, SQLException, ApiException {
-        QueryParameters influxdbQueryParameters = QueryParameters.getQueryParameters(tableName);
-        return exec(influxdbQueryParameters,  url,  org,  token);
+        QueryParameters queryParameters = QueryParameters.getQueryParameters(tableName);
+        return exec(queryParameters,  url,  org,  token);
     }
 
-    public static List<UlakRow> exec(QueryParameters influxdbQueryParameters,String url, String org, String token) throws IOException, ClassNotFoundException, SQLException, ApiException {
-        influxdbQueryParameters.setError("");
+    public static List<UlakRow> exec(QueryParameters queryParameters,String url, String org, String token) throws IOException, ClassNotFoundException, SQLException, ApiException {
+        queryParameters.setError("");
         ArrayList<UlakRow> list = new ArrayList<>();
         QueryApi queryApi = getClient(url, org, token).getQueryApi();
-        String flux = influxdbQueryParameters.getQuery();
+        String flux = queryParameters.getQuery();
         List<FluxTable> tables = queryApi.query(flux);
         List<Map<String, Object>> resMap = new LinkedList<>();
         for (FluxTable fluxTable : tables) {
