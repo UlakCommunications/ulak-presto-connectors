@@ -204,7 +204,16 @@ public class QwUtil {
         SearchRequestQueryString toQuery = getGson().fromJson(query, SearchRequestQueryString.class);
         logger.debug("Running on {}/{}: {}", queryParameters.getQwUrl(), qwIndex, query);
         SearchResponseRest ret = searchApi.searchPostHandler(qwIndex, toQuery);
-
+        List<String> errors = ret.getErrors();
+        if(errors!=null && !errors.isEmpty()) {
+            String error_text = String.join("\n\n",errors);
+            logger.error("Error from quickwit server: {}\n\n\nurl:{}\n\n\nindex:{}\n\n\nret size:{}",
+                    query,
+                    queryParameters.getQwUrl(),
+                    qwIndex,
+                    error_text);
+            throw new ApiException(error_text);
+        }
         logger.debug("Query executed executeOneQuery: {}\n\n\nurl:{}\n\n\nindex:{}\n\n\nret size:{}",
                 query,
                 queryParameters.getQwUrl(),
@@ -312,10 +321,23 @@ public class QwUtil {
         List<Object[]> flatted = flatMe.json2Sheet().getJsonAsSheet();
         Map<String, Integer> headerIndexes = new HashMap<>();
         Object[] headers = flatted.get(0);
+        if(headers==null || headers.length==0){
+            //get headers from columns
+            headers = queryParameters.getColumns();
+            if(headers!=null){
+//                headers = new Object[0];
+                //a simple empty row for columns
+                flatted.add(new Object[headers.length]);
+            }else{
+                headers =  flatted.get(0);
+            }
+        }
+
         for (int i = 0; i < headers.length; i++) {
             headerIndexes.put((String) headers[i], i);
         }
         List<UlakRow> toRet = new ArrayList<>();
+
         for (int i = 1; i < flatted.size(); i++) {
             Map<String, Object> r = new HashMap<>();
             Object[] c = flatted.get(i);
@@ -342,9 +364,9 @@ public class QwUtil {
                 }
                 r.put(k, value);
             }
-            if(!allNulls) {
+//            if(!allNulls) {
                 toRet.add(new UlakRow(r));
-            };
+//            };
         }
         return toRet;
     }

@@ -18,7 +18,7 @@ public class QueryParameters {
     public static final String TEXT_CACHE = "cache";
     public static final String TEXT_REFRESH = "refresh";
     //TODO: eager caching is to be added
-    //public static final String TEXT_COLUMNS = "columns";
+    public static final String TEXT_COLUMNS = "columns";
     public static final String TEXT_DBTYPE = "dbtype";
     //TODO: eager caching is to be added
     //public static final String TEXT_EAGER_CACHE = "eagercache";
@@ -178,11 +178,10 @@ public class QueryParameters {
                                 ret.setTo(l);
                             }
                             break;
-                        //TODO: eager caching is to be added
-                        //case TEXT_COLUMNS:
-                            //String[] vs = value.split(",");
-                            //ret.setColumns(vs);
-                            //break;
+                        case TEXT_COLUMNS:
+                            String[] vs = value.split(",");
+                            ret.setColumns(vs);
+                            break;
                         case TEXT_DBTYPE:
                             ret.setDbType(DBType.valueOf(value.toUpperCase(Locale.ENGLISH)));
                             break;
@@ -213,13 +212,12 @@ public class QueryParameters {
         }
         return ret;
     }
-    //TODO: eager caching is to be added
-//    public void setColumns(String[] vs) {
-//        columns = vs;
-//    }
-//    public String[] getColumns( ) {
-//        return columns;
-//    }
+    public void setColumns(String[] vs) {
+        columns = vs;
+    }
+    public String[] getColumns( ) {
+        return columns;
+    }
     public boolean isToBeCached() {
         return toBeCached;
     }
