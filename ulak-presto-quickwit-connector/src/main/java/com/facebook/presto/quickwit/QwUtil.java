@@ -374,45 +374,131 @@ public class QwUtil {
     public static void main(String[] args)    {
         long start = System.currentTimeMillis();
         QueryParameters params = QueryParameters.getQueryParameters(" \n" +
-                "          //cache=true\n" +
-                "          //name=1. Dataplane Status\n" +
-                "          //columns=host,_time,_value\n" +
-                "          //dbtype=qw\n" +
-                "          //qwindex=metrics3\n" +
-                "          //replacefromcolumns=/3/buckets/2/buckets/4/buckets/5/buckets/1\n" +
-                "          //hasjs=true\n" +
-                "          //ttl=150\n" +
-                "          //refresh=75\n" +
-                "          //from=1725019120\n" +
-                "          //to=1725019420\n" +
-                "          {\n" +
-                "          \"aggs\": {\n" +
-                "            \"3\": {\n" +
+                "  //ttl=150\n" +
+                "              //refresh=75\n" +
+                "              //cache=false\n" +
+                "              //name=Dataplane Status\n" +
+                "              //columns=1/5/key,1/10/key,1/4/key,1/9/key,1/8/key,1/7/key,11/value,1/6/key,1/2/key,1/value,111/value,222/value,abc\n" +
+                "              //dbtype=qw\n" +
+                "              //qwindex=metrics3\n" +
+                "              //replacefromcolumns=/3/buckets/2/buckets/4/buckets/5/buckets/6/buckets/7/buckets/8/buckets/9/buckets/10/buckets/\n" +
+                "              //hasjs=true\n" +
+                "              //from=1725547942\n" +
+                "              //to=1725548242\n" +
+                "              \n" +
+                "              {\n" +
                 "              \"aggs\": {\n" +
-                "                \"2\": {\n" +
+                "                \"3\": {\n" +
                 "                  \"aggs\": {\n" +
-                "                    \"4\": {\n" +
+                "                    \"2\": {\n" +
                 "                      \"aggs\": {\n" +
-                "                        \"5\": {\n" +
+                "                        \"4\": {\n" +
                 "                          \"aggs\": {\n" +
-                "                            \"1\": {\n" +
-                "                              \"sum\": {\n" +
-                "                                \"field\": \"span_attributes.u\"\n" +
+                "                            \"5\": {\n" +
+                "                              \"aggs\": {\n" +
+                "                                \"6\": {\n" +
+                "                                  \"aggs\": {\n" +
+                "                                    \"7\": {\n" +
+                "                                      \"aggs\": {\n" +
+                "                                        \"8\": {\n" +
+                "                                          \"aggs\": {\n" +
+                "                                            \"9\": {\n" +
+                "                                              \"aggs\": {\n" +
+                "                                                \"10\": {\n" +
+                "                                                  \"aggs\": {\n" +
+                "                                                    \"222\": {\n" +
+                "                                                      \"avg\": {\n" +
+                "                                                        \"field\": \"span_attributes.availability\"\n" +
+                "                                                      }\n" +
+                "                                                    },\n" +
+                "                                                    \"1\": {\n" +
+                "                                                      \"sum\": {\n" +
+                "                                                        \"field\": \"span_attributes.status_ni\"\n" +
+                "                                                      }\n" +
+                "                                                    },\n" +
+                "                                                    \"11\": {\n" +
+                "                                                      \"max\": {\n" +
+                "                                                        \"field\": \"span_start_timestamp_nanos\"\n" +
+                "                                                      }\n" +
+                "                                                    },\n" +
+                "                                                    \"111\": {\n" +
+                "                                                      \"value_count\": {\n" +
+                "                                                        \"field\": \"span_attributes.status_ni\"\n" +
+                "                                                      }\n" +
+                "                                                    }\n" +
+                "                                                  },\n" +
+                "                                                  \"terms\": {\n" +
+                "                                                    \"field\": \"span_attributes.m_ns_name\", \n" +
+                "                                                    \"size\":1,\n" +
+                "                                                    \"order\": {\n" +
+                "                                                      \"11\": \"desc\"\n" +
+                "                                                    },\n" +
+                "                                                    \"min_doc_count\": 1\n" +
+                "                                                  }\n" +
+                "                                                }\n" +
+                "                                              },\n" +
+                "                                              \"terms\": {\n" +
+                "                                                \"field\": \"span_attributes.m_target\", \n" +
+                "                                                \"size\":9999,\n" +
+                "                                                \"order\": {\n" +
+                "                                                  \"_key\": \"desc\"\n" +
+                "                                                },\n" +
+                "                                                \"min_doc_count\": 1\n" +
+                "                                              }\n" +
+                "                                            }\n" +
+                "                                          },\n" +
+                "                                          \"terms\": {\n" +
+                "                                            \"field\": \"span_attributes.m_ns_id\", \n" +
+                "                                            \"size\":9999,\n" +
+                "                                            \"order\": {\n" +
+                "                                              \"_key\": \"desc\"\n" +
+                "                                            },\n" +
+                "                                            \"min_doc_count\": 1\n" +
+                "                                          }\n" +
+                "                                        }\n" +
+                "                                      },\n" +
+                "                                      \"terms\": {\n" +
+                "                                        \"field\": \"span_attributes.m_uuid\", \n" +
+                "                                        \"size\":9999,\n" +
+                "                                        \"order\": {\n" +
+                "                                          \"_key\": \"desc\"\n" +
+                "                                        },\n" +
+                "                                        \"min_doc_count\": 1\n" +
+                "                                      }\n" +
+                "                                    }\n" +
+                "                                  },\n" +
+                "                                  \"terms\": {\n" +
+                "                                    \"field\": \"span_attributes.m_iface\", \n" +
+                "                                    \"size\":9999,\n" +
+                "                                    \"order\": {\n" +
+                "                                      \"_key\": \"desc\"\n" +
+                "                                    },\n" +
+                "                                    \"min_doc_count\": 1\n" +
+                "                                  }\n" +
+                "                                }\n" +
+                "                              },\n" +
+                "                              \"terms\": {\n" +
+                "                                \"field\": \"span_attributes.m_overlay\", \n" +
+                "                                \"size\":9999,\n" +
+                "                                \"order\": {\n" +
+                "                                  \"_key\": \"desc\"\n" +
+                "                                },\n" +
+                "                                \"min_doc_count\": 1\n" +
                 "                              }\n" +
                 "                            }\n" +
                 "                          },\n" +
                 "                          \"terms\": {\n" +
-                "                            \"field\": \"span_attributes.n\", \n" +
+                "                            \"field\": \"span_attributes.m_origin\", \n" +
                 "                            \"size\":9999,\n" +
                 "                            \"order\": {\n" +
-                "                              \"1\": \"desc\"\n" +
+                "                              \"_key\": \"desc\"\n" +
                 "                            },\n" +
                 "                            \"min_doc_count\": 1\n" +
                 "                          }\n" +
                 "                        }\n" +
                 "                      },\n" +
                 "                      \"terms\": {\n" +
-                "                        \"field\": \"span_attributes.n\", \n" +
+                "                        \"field\": \"span_attributes.h\", \n" +
                 "                        \"size\":9999,\n" +
                 "                        \"order\": {\n" +
                 "                          \"_key\": \"desc\"\n" +
@@ -421,28 +507,18 @@ public class QwUtil {
                 "                      }\n" +
                 "                    }\n" +
                 "                  },\n" +
-                "                  \"terms\": {\n" +
-                "                    \"field\": \"span_attributes.n\", \n" +
-                "                    \"size\":9999,\n" +
-                "                    \"order\": {\n" +
-                "                      \"_key\": \"desc\"\n" +
-                "                    },\n" +
+                "                  \"date_histogram\": {\n" +
+                "                    \"field\": \"span_start_timestamp_nanos\",\n" +
+                "                    \"fixed_interval\": \"10s\",\n" +
                 "                    \"min_doc_count\": 1\n" +
                 "                  }\n" +
                 "                }\n" +
                 "              },\n" +
-                "              \"date_histogram\": {\n" +
-                "                \"field\": \"span_start_timestamp_nanos\",\n" +
-                "                \"fixed_interval\": \"1d\",\n" +
-                "                \"min_doc_count\": 1\n" +
-                "              }\n" +
-                "            }\n" +
-                "          },\n" +
-                "          \"query\": \"*\",\n" +
-                "          \"max_hits\": 0,\n" +
-                "            \"start_timestamp\": 1725019120,\n" +
-                "            \"end_timestamp\": 1725019420 \n" +
-                "        }".toLowerCase());
+                "              \"query\": \"span_attributes.p:maya_probe AND span_attributes.h:IN [ee7b566c-68d7-4ffb-9d0a-29477a39b195 ee7b566c-68d7-4ffb-9d0a-29477a39b196 ee7b566c-68d7-4ffb-9d0a-29477a39b197 ee7b566c-68d7-4ffb-9d0a-29477a39b198 ee7b566c-68d7-4ffb-9d0a-29477a39b199]\",\n" +
+                "              \"max_hits\": 0,\n" +
+                "              \"start_timestamp\": 1725547942,\n" +
+                "              \"end_timestamp\": 1725548242\n" +
+                "            }".toLowerCase());
 
         params.setQuery(replaceAll(params.getQuery(),"|"," "));
         params.setQuery(replaceAll(params.getQuery()," not "," NOT "));
