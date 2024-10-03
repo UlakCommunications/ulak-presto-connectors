@@ -17,6 +17,7 @@ package com.facebook.presto.quickwit;
 import io.trino.spi.connector.Connector;
 import io.trino.spi.connector.ConnectorContext;
 import io.trino.spi.connector.ConnectorFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +38,7 @@ public class UlakQuickwitConnectorFactory
     @Override
     public Connector create(String catalogName, Map<String, String> config, ConnectorContext context)
     {
-        String url = config.get("qw-connection-url");
+        String url = StringUtils.strip(config.get("qw-connection-url")," /");
         String sNumThreads = config.get("number_of_worker_threads");
         int numThreads =10;// DEFAULT_N_THREADS;
         if(sNumThreads != null && !sNumThreads.trim().isEmpty()){

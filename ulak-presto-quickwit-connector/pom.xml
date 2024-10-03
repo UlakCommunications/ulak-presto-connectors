@@ -120,6 +120,7 @@
       <version>0.432-SNAPSHOT</version>
       <artifactId>ulak-presto-connector-base</artifactId>
     </dependency>
+
   </dependencies>
 
   <build>
