@@ -28,7 +28,9 @@ public class IPToCountry {
 
         // A File object pointing to your GeoIP2 or GeoLite2 database
         File countryDatabase = new File("/usr/lib/trino/plugin/GeoLite2-Country.mmdb");
+//        File countryDatabase = new File("/usr/lib/trino/plugin/IP2LOCATION-LITE-DB11.CSV.MMDB");
         File cityDatabase = new File("/usr/lib/trino/plugin/GeoLite2-City.mmdb");
+//        File cityDatabase = new File("/usr/lib/trino/plugin/IP2LOCATION-LITE-DB11.CSV.MMDB");
 // This creates the DatabaseReader object. To improve performance, reuse
 // the object across lookups. The object is thread-safe.
         countryReader = null;

@@ -124,6 +124,8 @@ public class QwUtil {
         String q = queryParameters.getQuery();
         queryParameters.setQuery(replaceAll(q,"|"," "));
         queryParameters.setQuery(replaceAll(q," not "," NOT "));
+        queryParameters.setQuery(replaceAll(q,":IN [*]",":*"));
+        queryParameters.setQuery(replaceAll(q,":IN [-]",":*"));
         queryParameters.setDbType(DBType.QW);
         if(StringUtils.isBlank(queryParameters.getQwUrl())) {
             queryParameters.setQwUrl(qwUrl);
@@ -187,6 +189,8 @@ public class QwUtil {
 
         query=replaceAll(query,"|"," ");
         query=replaceAll(query," not "," NOT ");
+        queryParameters.setQuery(replaceAll(query,":IN [*]",":*"));
+        queryParameters.setQuery(replaceAll(query,":IN [-]",":*"));
 
         if(queryParameters.getHasJs()) {
             query= executeQueryScript(query);
@@ -522,6 +526,8 @@ public class QwUtil {
 
         params.setQuery(replaceAll(params.getQuery(),"|"," "));
         params.setQuery(replaceAll(params.getQuery()," not "," NOT "));
+        params.setQuery(replaceAll(params.getQuery(),":IN [*]",":*"));
+        params.setQuery(replaceAll(params.getQuery(),":IN [-]",":*"));
         params.setQwIndex("flows3");
         params.setDbType(DBType.QW);
         params.setQwUrl("http://10.20.4.53:32215");
