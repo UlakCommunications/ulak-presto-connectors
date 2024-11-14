@@ -3,7 +3,7 @@ VERSION=$1
 platform=$2
 set -x
 
-docker pull  trinodb/trino:432
+#docker pull  trinodb/trino:432
  ./mvnw clean package
 
 docker buildx create  --use --config=../../buildx_config.toml
