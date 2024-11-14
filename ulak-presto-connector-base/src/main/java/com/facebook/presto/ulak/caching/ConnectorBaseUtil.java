@@ -100,7 +100,7 @@ public class ConnectorBaseUtil {
 
     private static JedisPoolConfig buildPoolConfig() {
         final JedisPoolConfig poolConfig = new JedisPoolConfig();
-        poolConfig.setMaxTotal(128);
+        poolConfig.setMaxTotal(1000);
         poolConfig.setMaxIdle(128);
         poolConfig.setMinIdle(16);
         poolConfig.setTestOnBorrow(true);
