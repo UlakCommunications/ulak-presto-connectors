@@ -25,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.*;
 
 import static com.facebook.presto.ulak.caching.ConnectorBaseUtil.getColumnsBase;
@@ -34,7 +33,6 @@ import static com.facebook.presto.ulak.caching.ConnectorBaseUtil.getColumnsBase;
 public class UlakQuickwitMetadata
         implements ConnectorMetadata
 {
-
     public static final String DEFAULT_SCHEMA = "default_schema";
     public static final String DEFAULT_TABLE = "default_Table";
     private static Logger logger = LoggerFactory.getLogger(UlakQuickwitMetadata.class);
@@ -98,10 +96,6 @@ public class UlakQuickwitMetadata
             list = getColumnsBase(ConnectorBaseUtil.select(qp,
                     false,new String[]{this.qwUrl, this.qwIndex}, (q, s)-> {
                             try {
-//                                logger.debug("From UlakQuickwitMetadata getTableMetadata: {}\n\n\nurl:{}\n\n\nindex:{}",
-//                                        q.getQuery(),
-//                                        s[0],
-//                                        s[1]);
                                 return  QwUtil.select(q , s[0], s[1]);
                             } catch (ApiException e) {
                                 logger.error(ERRORSTRING, e);
@@ -197,10 +191,6 @@ public class UlakQuickwitMetadata
                                             new String[]{this.qwUrl, this.qwIndex},
                                             (q, s)-> {
                                                 try {
-        //                                            logger.debug("From UlakQuickwitMetadata listTableColumns: {}\n\n\nurl:{}\n\n\nindex:{}",
-        //                                                    q.getQuery(),
-        //                                                    s[0],
-        //                                                    s[1]);
                                                     return QwUtil.select(q, s[0], s[1]);
                                                 } catch (ApiException e) {
                                                     logger.error(ERRORSTRING, e);

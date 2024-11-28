@@ -222,7 +222,7 @@ public class QwUtil {
                 query,
                 queryParameters.getQwUrl(),
                 queryParameters.getQwIndex(),
-                ret == null && ret.getAggregations() == null ? 0 : ((Map<String, Object>)ret.getAggregations()).size());
+                ret == null || ret.getAggregations() == null ? 0 : ((Map<String, Object>)ret.getAggregations()).size());
         List<UlakRow> parsed = parseResponse(queryParameters,ret);
         return parsed;
     }

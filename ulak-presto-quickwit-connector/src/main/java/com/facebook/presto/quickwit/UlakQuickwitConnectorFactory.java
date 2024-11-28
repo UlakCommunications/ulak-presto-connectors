@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import java.util.Locale;
 import java.util.Map;
 
+import static com.facebook.presto.ulak.caching.RedisCacheWorker.DEFAULT_N_THREADS;
+
 
 public class UlakQuickwitConnectorFactory
         implements ConnectorFactory
@@ -40,12 +42,12 @@ public class UlakQuickwitConnectorFactory
     {
         String url = StringUtils.strip(config.get("qw-connection-url")," /");
         String sNumThreads = config.get("number_of_worker_threads");
-        int numThreads =10;// DEFAULT_N_THREADS;
+        int numThreads =DEFAULT_N_THREADS;
         if(sNumThreads != null && !sNumThreads.trim().isEmpty()){
             try {
                 numThreads = Integer.parseInt(sNumThreads);
             }catch (Exception e){
-                logger.error("Unable to parse sNumThreads: " + sNumThreads,e);
+                logger.error("Unable to parse sNumThreads: {}", sNumThreads, e);
             }
         }
         String sRunInCoordinatorOnly = config.get("run_in_coordinator_only");
