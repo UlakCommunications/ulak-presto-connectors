@@ -117,16 +117,18 @@ public class QwUtil {
 //        return select(queryParameters, qwUrl, qwIndex);
 //    }
 
-
+    public static String replaceTrinoQWVars(String query){
+        query=replaceAll(query,"|"," ");
+        query=replaceAll(query," not "," NOT ");
+        query=replaceAll(query,":IN [*]",":*");
+        query=replaceAll(query,":IN [-]",":*");
+        query=replaceAll(query,":IN []",":*");
+        return query;
+    }
     public static List<UlakRow> select(QueryParameters queryParameters,
                                            String qwUrl,
                                            String qwIndex ) throws ApiException {
-        String q = queryParameters.getQuery();
-        queryParameters.setQuery(replaceAll(q,"|"," "));
-        queryParameters.setQuery(replaceAll(q," not "," NOT "));
-        queryParameters.setQuery(replaceAll(q,":IN [*]",":*"));
-        queryParameters.setQuery(replaceAll(q,":IN [-]",":*"));
-        queryParameters.setQuery(replaceAll(q,":IN []",":*"));
+        queryParameters.setQuery(replaceTrinoQWVars(queryParameters.getQuery()));
         queryParameters.setDbType(DBType.QW);
         if(StringUtils.isBlank(queryParameters.getQwUrl())) {
             queryParameters.setQwUrl(qwUrl);
@@ -142,9 +144,8 @@ public class QwUtil {
         queryParameters.setStart(System.currentTimeMillis());
 
         queryParameters.setError("");
-        String query = queryParameters.getQuery();//"from(bucket: " + "\"" + bucket + "\"" + ")\n" + "|> range(start:" + time_interval + ")\n" + "|> filter(fn : (r) => r._measurement == " + "\"" + tableName + "\"" + ")";
 
-        List<UlakRow> ret = executeOneQuery( queryParameters,query);
+        List<UlakRow> ret = executeOneQuery( queryParameters,queryParameters.getQuery());
 
 //                    addOneStat(hash, 1);
         return ret ;
@@ -188,12 +189,7 @@ public class QwUtil {
     public static List<UlakRow> executeOneQuery( QueryParameters queryParameters,
                                                      String query) throws ApiException {
 
-        query=replaceAll(query,"|"," ");
-        query=replaceAll(query," not "," NOT ");
-        queryParameters.setQuery(replaceAll(query,":IN [*]",":*"));
-        queryParameters.setQuery(replaceAll(query,":IN [-]",":*"));
-        queryParameters.setQuery(replaceAll(query,":IN []",":*"));
-
+        queryParameters.setQuery(replaceTrinoQWVars(queryParameters.getQuery()));
         if(queryParameters.getHasJs()) {
             query= executeQueryScript(query);
         }
