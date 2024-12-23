@@ -164,7 +164,9 @@
         <version>3.13.0</version>
         <configuration combine.children="append">
           <fork>false</fork>
-<!--          <target>1.8</target>-->
+            <source>16</source>
+            <target>16</target>
+            <!--          <target>1.8</target>-->
 <!--          <source>1.8</source>-->
         </configuration>
 

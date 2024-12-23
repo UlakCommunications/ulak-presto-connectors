@@ -21,9 +21,12 @@ import com.facebook.presto.ulak.DBType;
 import com.facebook.presto.ulak.caching.RedisCacheWorker;
 import com.quickwit.javaclient.ApiException;
 import io.trino.spi.connector.*;
+import io.trino.spi.function.table.ConnectorTableFunction;
 import io.trino.spi.transaction.IsolationLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Set;
 
 public class UlakQuickwitConnector
         implements Connector
@@ -102,6 +105,12 @@ public class UlakQuickwitConnector
         return metadata;
     }
 
+    @Override
+    public Set<ConnectorTableFunction> getTableFunctions() {
+        var tf = new QWQuery();
+
+        return Connector.super.getTableFunctions();
+    }
 
     @Override
     public ConnectorSplitManager getSplitManager()
