@@ -1,10 +1,12 @@
 package com.facebook.presto.ulak;
 
 import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
+import com.google.common.io.BaseEncoding;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -125,6 +127,13 @@ public class QueryParameters {
         return current;
     }
     public static QueryParameters getQueryParameters(String tableName) {
+        if (BaseEncoding.base32().canDecode(tableName.toUpperCase())) {
+            logger.debug("Encoded: {}\n", tableName);
+            byte[] decodedBytes = BaseEncoding.base32().decode(tableName.toUpperCase());
+            tableName = (new String(decodedBytes, StandardCharsets.UTF_8));
+            logger.debug("Decoded: {}\n", tableName);
+        }
+
         tableName = ConnectorBaseUtil.arrangeCase(tableName);
         String tableNameForHash = getTableNameForHash(tableName);
 
