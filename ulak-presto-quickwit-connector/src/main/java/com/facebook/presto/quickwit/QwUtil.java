@@ -122,7 +122,6 @@ public class QwUtil {
         query=replaceAll(query," not "," NOT ");
         query=replaceAll(query,":IN [*]",":*");
         query=replaceAll(query,":IN [-]",":*");
-        query=replaceAll(query,":IN []",":*");
         return query;
     }
     public static List<UlakRow> select(QueryParameters queryParameters,
@@ -526,7 +525,6 @@ public class QwUtil {
         params.setQuery(replaceAll(params.getQuery()," not "," NOT "));
         params.setQuery(replaceAll(params.getQuery(),":IN [*]",":*"));
         params.setQuery(replaceAll(params.getQuery(),":IN [-]",":*"));
-        params.setQuery(replaceAll(params.getQuery(),":IN []",":*"));
         params.setQwIndex("flows3");
         params.setDbType(DBType.QW);
         params.setQwUrl("http://10.20.4.53:32215");
