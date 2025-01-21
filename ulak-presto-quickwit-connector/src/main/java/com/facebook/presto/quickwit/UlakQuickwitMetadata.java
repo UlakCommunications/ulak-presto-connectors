@@ -36,7 +36,6 @@ public class UlakQuickwitMetadata
     public static final String DEFAULT_SCHEMA = "default_schema";
     public static final String DEFAULT_TABLE = "default_Table";
     private static Logger logger = LoggerFactory.getLogger(UlakQuickwitMetadata.class);
-    private static UlakQuickwitMetadata single;
     private static String connectorId;
     private String qwIndex;
     private String qwUrl;
@@ -51,10 +50,7 @@ public class UlakQuickwitMetadata
 
     public static UlakQuickwitMetadata getInstance(String catalogName, String qwUrl, String qwIndex)
     {
-        if (single == null) {
-            single = new UlakQuickwitMetadata(catalogName,qwUrl,qwIndex);
-        }
-        return single;
+       return new UlakQuickwitMetadata(catalogName,qwUrl,qwIndex);
     }
 
 

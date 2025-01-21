@@ -5,7 +5,7 @@ prod=$3
 set -x
 
 #docker pull  trinodb/trino:432
- ./mvnw clean package
+./mvnw clean package
 
 #docker buildx create  --use --config=../../buildx_config.toml
 #DOCKER_BUILDKIT=0 
@@ -22,7 +22,7 @@ if [ "$prod" == "true" ]; then
     echo "Prod seçildi, sadece Nexus repo'yu baz alarak build yapılıyor."
 
 
-docker buildx build --no-cache --output=type=registry,registry.insecure=true --platform=${platform}   -f Dockerfile --add-host=maya-nexus.ulakhaberlesme.com.tr:192.168.13.47   --progress plain -t  $nexus_repo .  --push
+    docker buildx build --no-cache --output=type=registry,registry.insecure=true --platform=${platform}   -f Dockerfile --add-host=maya-nexus.ulakhaberlesme.com.tr:192.168.13.47   --progress plain -t  $nexus_repo .  --push
 
 
     docker pull $nexus_repo
@@ -33,7 +33,7 @@ else
     # 4- Eğer prod false ise, sadece Nexus repo'yu baz alarak build işlemi yapılır
     echo "Prod seçilmedi, sadece Nexus repo'yu baz alarak build yapılıyor."
 
-docker buildx build --no-cache --output=type=registry,registry.insecure=true --platform=${platform}   -f Dockerfile --add-host=maya-nexus.ulakhaberlesme.com.tr:192.168.13.47   --progress plain -t  $nexus_repo .  --push
+    docker buildx build --no-cache --output=type=registry,registry.insecure=true --platform=${platform}   -f Dockerfile --add-host=maya-nexus.ulakhaberlesme.com.tr:192.168.13.47   --progress plain -t  $nexus_repo .  --push
 
 fi
 
