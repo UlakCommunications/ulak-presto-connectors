@@ -22,12 +22,18 @@ import java.util.List;
 public class UlakSplitManager
         implements ConnectorSplitManager
 {
+    public static UlakSplitManager single;
+
     private UlakSplitManager()
     {
     }
 
-    public static UlakSplitManager getInstance() {
-        return new UlakSplitManager();
+    public static UlakSplitManager getInstance()
+    {
+        if (single == null) {
+            single = new UlakSplitManager();
+        }
+        return single;
     }
 
     @Override
