@@ -18,16 +18,12 @@ import com.facebook.presto.ulak.UlakRecordSetProvider;
 import com.facebook.presto.ulak.UlakSplitManager;
 import com.facebook.presto.ulak.UlakTransactionHandle;
 import com.facebook.presto.ulak.DBType;
-import com.facebook.presto.ulak.QueryParameters;
 import com.facebook.presto.ulak.caching.RedisCacheWorker;
 import com.quickwit.javaclient.ApiException;
 import io.trino.spi.connector.*;
 import io.trino.spi.transaction.IsolationLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.sql.SQLException;
 
 public class UlakQuickwitConnector
         implements Connector
@@ -67,11 +63,6 @@ public class UlakQuickwitConnector
         this.splitManager = UlakSplitManager.getInstance();
         this.recordSetProvider = UlakRecordSetProvider.getInstance(((q,s)-> {
             try {
-//                logger.error("From connector : {}\n\n\nurl:{}\n\n\nindex:{}",
-//                        s[0],
-//                        s[1],
-//                        s[2]);
-
                 return QwUtil.select(q,s[1],s[2]);
             } catch (ApiException e) {
                 logger.error("Connector by url: {}", url, e);

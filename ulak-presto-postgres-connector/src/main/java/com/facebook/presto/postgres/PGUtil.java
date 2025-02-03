@@ -88,16 +88,16 @@ public class PGUtil {
 
 
     public static List<UlakRow> select(String tableName ,String   pgUrl,   String  pgUser,   String  pgPwd) throws IOException, SQLException {
-        QueryParameters influxdbQueryParameters = QueryParameters.getQueryParameters(tableName);
-        return select(influxdbQueryParameters,  pgUrl,   pgUser,   pgPwd);
+        QueryParameters queryParameters = QueryParameters.getQueryParameters(tableName);
+        return select(queryParameters,  pgUrl,   pgUser,   pgPwd);
     }
 
-    public static List<UlakRow> select(QueryParameters influxdbQueryParameters,String   pgUrl,   String  pgUser,   String  pgPwd) throws IOException, SQLException {
-        influxdbQueryParameters.setDbType(DBType.PG);
-        influxdbQueryParameters.setStart(System.currentTimeMillis());
+    public static List<UlakRow> select(QueryParameters queryParameters,String   pgUrl,   String  pgUser,   String  pgPwd) throws IOException, SQLException {
+        queryParameters.setDbType(DBType.PG);
+        queryParameters.setStart(System.currentTimeMillis());
 
-        influxdbQueryParameters.setError("");
-        String query = influxdbQueryParameters.getQuery();//"from(bucket: " + "\"" + bucket + "\"" + ")\n" + "|> range(start:" + time_interval + ")\n" + "|> filter(fn : (r) => r._measurement == " + "\"" + tableName + "\"" + ")";
+        queryParameters.setError("");
+        String query = queryParameters.getQuery();//"from(bucket: " + "\"" + bucket + "\"" + ")\n" + "|> range(start:" + time_interval + ")\n" + "|> filter(fn : (r) => r._measurement == " + "\"" + tableName + "\"" + ")";
 
         List<UlakRow> ret = executeOneQuery(query,  pgUrl,   pgUser,   pgPwd);
 //                    addOneStat(hash, 1);

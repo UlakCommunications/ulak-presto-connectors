@@ -25,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.*;
 
 import static com.facebook.presto.ulak.caching.ConnectorBaseUtil.getColumnsBase;
@@ -34,7 +33,6 @@ import static com.facebook.presto.ulak.caching.ConnectorBaseUtil.getColumnsBase;
 public class UlakQuickwitMetadata
         implements ConnectorMetadata
 {
-
     public static final String DEFAULT_SCHEMA = "default_schema";
     public static final String DEFAULT_TABLE = "default_Table";
     private static Logger logger = LoggerFactory.getLogger(UlakQuickwitMetadata.class);
@@ -98,10 +96,6 @@ public class UlakQuickwitMetadata
             list = getColumnsBase(ConnectorBaseUtil.select(qp,
                     false,new String[]{this.qwUrl, this.qwIndex}, (q, s)-> {
                             try {
-//                                logger.error("From UlakQuickwitMetadata getTableMetadata: {}\n\n\nurl:{}\n\n\nindex:{}",
-//                                        q.getQuery(),
-//                                        s[0],
-//                                        s[1]);
                                 return  QwUtil.select(q , s[0], s[1]);
                             } catch (ApiException e) {
                                 logger.error(ERRORSTRING, e);
@@ -122,7 +116,7 @@ public class UlakQuickwitMetadata
     @Override
     public Map<String, ColumnHandle> getColumnHandles(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
-        logger.error("getColumnHandles: url:{}\n\n\nindex:{}",
+        logger.debug("getColumnHandles: url:{}\n\n\nindex:{}",
                 this.qwUrl,
                 this.qwIndex);
         UlakTableHandle influxdbTableHandle = (UlakTableHandle) tableHandle;
@@ -131,7 +125,7 @@ public class UlakQuickwitMetadata
         try {
             String tableName = influxdbTableHandle.getTableName();
 
-            logger.error("getColumnHandles: tableName:{}",tableName);
+            logger.debug("getColumnHandles: tableName:{}",tableName);
             QueryParameters qp = QueryParameters.getQueryParameters(tableName);
 
             if(StringUtils.isBlank(qp.getQwUrl())) {
@@ -143,7 +137,7 @@ public class UlakQuickwitMetadata
             list = getColumnsBase(ConnectorBaseUtil.select(qp,
                     false,new String[]{this.qwUrl, this.qwIndex}, (q,s)-> {
                         try {
-                            logger.error("From UlakQuickwitMetadata getColumnHandles in exec: {}\n\n\nurl:{}\n\n\nindex:{}",
+                            logger.debug("From UlakQuickwitMetadata getColumnHandles in exec: {}\n\n\nurl:{}\n\n\nindex:{}",
                                     q.getQuery(),
                                     s[0],
                                     s[1]);
@@ -154,7 +148,7 @@ public class UlakQuickwitMetadata
                         }
             }));
 
-            logger.error("getColumnHandles: num columns:{}",list.size());
+            logger.debug("getColumnHandles: num columns:{}",list.size());
 
         } catch (IOException e) {
             logger.error(ERRORSTRING, e);
@@ -172,7 +166,7 @@ public class UlakQuickwitMetadata
     @Override
     public Map<SchemaTableName, List<ColumnMetadata>> listTableColumns(ConnectorSession session, SchemaTablePrefix prefix)
     {
-        logger.error("listTableColumns: url:{}\n\n\nindex:{}",
+        logger.debug("listTableColumns: url:{}\n\n\nindex:{}",
                 this.qwUrl,
                 this.qwIndex);
         Map<SchemaTableName, List<ColumnMetadata>> columns = new HashMap<>();
@@ -197,10 +191,6 @@ public class UlakQuickwitMetadata
                                             new String[]{this.qwUrl, this.qwIndex},
                                             (q, s)-> {
                                                 try {
-        //                                            logger.error("From UlakQuickwitMetadata listTableColumns: {}\n\n\nurl:{}\n\n\nindex:{}",
-        //                                                    q.getQuery(),
-        //                                                    s[0],
-        //                                                    s[1]);
                                                     return QwUtil.select(q, s[0], s[1]);
                                                 } catch (ApiException e) {
                                                     logger.error(ERRORSTRING, e);
@@ -223,7 +213,7 @@ public class UlakQuickwitMetadata
                                             ConnectorTableHandle tableHandle,
                                             ColumnHandle columnHandle)
     {
-        logger.error("getColumnMetadata: url:{}\n\n\nindex:{}",
+        logger.debug("getColumnMetadata: url:{}\n\n\nindex:{}",
                 this.qwUrl,
                 this.qwIndex);
         return ((UlakColumnHandle) columnHandle).getColumnMetadata();

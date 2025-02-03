@@ -1,10 +1,12 @@
 package com.facebook.presto.ulak;
 
 import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
+import com.google.common.io.BaseEncoding;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -16,7 +18,7 @@ public class QueryParameters {
     public static final String TEXT_CACHE = "cache";
     public static final String TEXT_REFRESH = "refresh";
     //TODO: eager caching is to be added
-    //public static final String TEXT_COLUMNS = "columns";
+    public static final String TEXT_COLUMNS = "columns";
     public static final String TEXT_DBTYPE = "dbtype";
     //TODO: eager caching is to be added
     //public static final String TEXT_EAGER_CACHE = "eagercache";
@@ -25,6 +27,8 @@ public class QueryParameters {
     public static final String TEXT_QWURL = "qwurl";
     public static final String TEXT_HASJS = "hasjs";
     public static final String TEXT_QWREPLACEFROMCOLUMN = "replacefromcolumns";
+    public static final String TEXT_FROM = "from";
+    public static final String TEXT_TO = "to";
     private static Logger logger = LoggerFactory.getLogger(QueryParameters.class);
     public static final String NEW_LINE_CHAR = System.lineSeparator();
     public static final int DEFAULT_CACHE_TTL = 60 * 60 * 24;
@@ -43,6 +47,8 @@ public class QueryParameters {
     private int refreshDurationInSeconds = DEFAULT_TTL + 5;
     private long start;
     private long finish;
+    private long from;
+    private long to;
     private String error;
     private String qwUrl;
     private String qwIndex;
@@ -102,7 +108,7 @@ public class QueryParameters {
         List<String> newLines = new ArrayList<>();
         for (int i = 0; i < splits.length; i++) {
             String current = splits[i].trim();
-            if(!current.isEmpty()){
+            if(!current.isEmpty() && !current.startsWith("//") && !current.startsWith("-")){
                 newLines.add(current);
             }
         }
@@ -121,6 +127,13 @@ public class QueryParameters {
         return current;
     }
     public static QueryParameters getQueryParameters(String tableName) {
+        if (BaseEncoding.base32().canDecode(tableName.toUpperCase())) {
+            logger.debug("Encoded: {}\n", tableName);
+            byte[] decodedBytes = BaseEncoding.base32().decode(tableName.toUpperCase());
+            tableName = (new String(decodedBytes, StandardCharsets.UTF_8));
+            logger.debug("Decoded: {}\n", tableName);
+        }
+
         tableName = ConnectorBaseUtil.arrangeCase(tableName);
         String tableNameForHash = getTableNameForHash(tableName);
 
@@ -139,6 +152,7 @@ public class QueryParameters {
                 String param = params[0].trim();
                 String value = params[1].trim();
                 int v;
+                long l;
                 try {
                     switch (param.toLowerCase(Locale.ENGLISH)) {
                         case TEXT_TTL:
@@ -159,11 +173,22 @@ public class QueryParameters {
                                 ret.setRefreshDurationInSeconds(v);
                             }
                             break;
-                        //TODO: eager caching is to be added
-                        //case TEXT_COLUMNS:
-                            //String[] vs = value.split(",");
-                            //ret.setColumns(vs);
-                            //break;
+                        case TEXT_FROM:
+                            l = Long.parseLong(value);
+                            if (l > 0) {
+                                ret.setFrom(l);
+                            }
+                            break;
+                        case TEXT_TO:
+                            l = Long.parseLong(value);
+                            if (l > 0) {
+                                ret.setTo(l);
+                            }
+                            break;
+                        case TEXT_COLUMNS:
+                            String[] vs = value.split(",");
+                            ret.setColumns(vs);
+                            break;
                         case TEXT_DBTYPE:
                             ret.setDbType(DBType.valueOf(value.toUpperCase(Locale.ENGLISH)));
                             break;
@@ -194,13 +219,12 @@ public class QueryParameters {
         }
         return ret;
     }
-    //TODO: eager caching is to be added
-//    public void setColumns(String[] vs) {
-//        columns = vs;
-//    }
-//    public String[] getColumns( ) {
-//        return columns;
-//    }
+    public void setColumns(String[] vs) {
+        columns = vs;
+    }
+    public String[] getColumns( ) {
+        return columns;
+    }
     public boolean isToBeCached() {
         return toBeCached;
     }
@@ -208,7 +232,7 @@ public class QueryParameters {
     public void setToBeCached(boolean toBeCached) {
         this.toBeCached = toBeCached;
     }
-    public boolean isHasJs() {
+    public boolean getHasJs() {
         return hasJs;
     }
 
@@ -257,6 +281,33 @@ public class QueryParameters {
     public void setFinish(long finish) {
         this.finish = finish;
     }
+
+    public long getFrom() {
+        return from;
+    }
+//    public Date getFromAsDate() {
+//        return getTsAsDate(from);
+//    }
+
+    public void setFrom(long from) {
+        this.from = from;
+    }
+//    public static Date getTsAsDate(long ts){
+//        Timestamp stamp = new Timestamp(ts);
+//        Date date = new Date(stamp.getTime());
+//        return date;
+//
+//    }
+    public long getTo() {
+        return to;
+    }
+//    public Date getToAsDate() {
+//        return getTsAsDate(to);
+//    }
+    public void setTo(long to) {
+        this.to = to;
+    }
+
 
     public String getError() {
         return error;

@@ -29,7 +29,7 @@ public class RedisCacheWorkerItem extends Thread implements Supplier<String> {
     @Override
     public void run() {
 
-        QueryParameters influxdbQueryParameters = null;
+        QueryParameters queryParameters = null;
         //do not clutch if no redis
         JedisPool pool = null;
 
@@ -42,15 +42,15 @@ public class RedisCacheWorkerItem extends Thread implements Supplier<String> {
                     if (json == null) {
                         logger.error("Key does not exists (ttl expired?): {}", key);
                     }
-                    influxdbQueryParameters = getObjectMapper().readValue(json, QueryParameters.class);
+                    queryParameters = getObjectMapper().readValue(json, QueryParameters.class);
 
-                    ConnectorBaseUtil.select(influxdbQueryParameters,true,new String[]{},  exec1);
+                    ConnectorBaseUtil.select(queryParameters,true,new String[]{},  exec1);
                 } catch (Throwable e) {
-                    logger.error("Query Execution Error: {}/{}", this.key, influxdbQueryParameters != null ? influxdbQueryParameters.getName() : "", e);
+                    logger.error("Query Execution Error: {}/{}", this.key, queryParameters != null ? queryParameters.getName() : "", e);
                 }
             }
         } catch (Throwable e) {
-            logger.error("Query Execution Error: {}/{}", this.key, influxdbQueryParameters != null ? influxdbQueryParameters.getName() : "", e);
+            logger.error("Query Execution Error: {}/{}", this.key, queryParameters != null ? queryParameters.getName() : "", e);
         }
     }
 

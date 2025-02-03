@@ -13,9 +13,13 @@
  */
 package com.facebook.presto.quickwit;
 
+import com.facebook.presto.ulak.geolocation.IPToCountry;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.trino.spi.Plugin;
 import io.trino.spi.connector.ConnectorFactory;
+
+import java.util.Set;
 
 public class UlakQuickwitPlugin
         implements Plugin
@@ -24,5 +28,12 @@ public class UlakQuickwitPlugin
     public Iterable<ConnectorFactory> getConnectorFactories()
     {
         return ImmutableList.of(new UlakQuickwitConnectorFactory());
+    }
+
+    @Override
+    public Set<Class<?>> getFunctions() {
+        return ImmutableSet.<Class<?>>builder()
+                .add(IPToCountry.class)
+                .build();
     }
 }

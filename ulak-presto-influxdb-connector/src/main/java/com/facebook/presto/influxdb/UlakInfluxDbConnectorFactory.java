@@ -17,6 +17,7 @@ package com.facebook.presto.influxdb;
 import io.trino.spi.connector.Connector;
 import io.trino.spi.connector.ConnectorContext;
 import io.trino.spi.connector.ConnectorFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +38,7 @@ public class UlakInfluxDbConnectorFactory
     @Override
     public Connector create(String catalogName, Map<String, String> config, ConnectorContext context)
     {
-        String url = config.get("connection-url");
+        String url = StringUtils.strip(config.get("connection-url")," /");
         String sNumThreads = config.get("number_of_worker_threads");
         int numThreads =10;  //DEFAULT_N_THREADS;
         if(sNumThreads != null && !sNumThreads.trim().equals("")){

@@ -34,6 +34,8 @@ import java.time.Duration;
 import java.util.*;
 import java.util.function.BiFunction;
 
+import static com.facebook.presto.ulak.QueryParameters.getTableNameForHash;
+
 
 public class ConnectorBaseUtil {
     public static final int NONE_CACHE_TTL_IN_SECONDS = 5;
@@ -62,7 +64,7 @@ public class ConnectorBaseUtil {
     private static Map<String, String> keywords =new LinkedHashMap<>(const_keywords);
     public static void setKeywords(String ks){
         String errorString = "Configuration Error: keyword split: {}";
-        logger.error("Current keywords count : {}", keywords.size());
+        logger.debug("Current keywords count : {}", keywords.size());
         synchronized (inProgressLock) {
             if (ks != null && !ks.trim().equals("")) {
                 String[] splits = ks.split(";");
@@ -85,7 +87,7 @@ public class ConnectorBaseUtil {
                     logger.error(errorString, ks);
                 }
             } else {
-                logger.info("Empty keywords : {}", ks);
+                logger.warn("Empty keywords : {}", ks);
             }
         }
     }
@@ -98,7 +100,7 @@ public class ConnectorBaseUtil {
 
     private static JedisPoolConfig buildPoolConfig() {
         final JedisPoolConfig poolConfig = new JedisPoolConfig();
-        poolConfig.setMaxTotal(128);
+        poolConfig.setMaxTotal(1000);
         poolConfig.setMaxIdle(128);
         poolConfig.setMinIdle(16);
         poolConfig.setTestOnBorrow(true);
@@ -172,8 +174,29 @@ public class ConnectorBaseUtil {
                                                boolean forceRefresh,
                                                 String[] defaultParameters,
                                        BiFunction<QueryParameters,String[], List<UlakRow>> exec1) throws IOException {
-
         int hash = queryParameters.getHash();
+
+        if(queryParameters.isToBeCached() && queryParameters.getHasJs()) {
+            if (queryParameters.getFrom() > 0
+                    && queryParameters.getTo() > 0) {
+//                long difFrom2Now = System.currentTimeMillis() / 1000 - queryParameters.getFrom();
+                long difTo2Now = System.currentTimeMillis() / 1000 - queryParameters.getTo();
+                long diffInSecods = queryParameters.getTo() - queryParameters.getFrom();
+                if (diffInSecods == 300 && difTo2Now <= 60) {//this is a last five mins query
+                    queryParameters.setQuery(queryParameters.getQuery()
+                            .replaceAll(String.valueOf(queryParameters.getFrom()),
+                                    "now - (5*m)")
+                            .replaceAll(String.valueOf(queryParameters.getTo()),
+                                    "now "));
+
+                    String tableNameForHash = getTableNameForHash(queryParameters.getQuery());
+
+                    hash = tableNameForHash.hashCode();
+
+                    queryParameters.setHash(hash);
+                }
+            }
+        }
         queryParameters.setStart(System.currentTimeMillis());
 
         JedisPool pool = getJedisPool();
