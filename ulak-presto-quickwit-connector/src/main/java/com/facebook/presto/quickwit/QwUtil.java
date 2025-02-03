@@ -190,7 +190,15 @@ public class QwUtil {
 
         queryParameters.setQuery(replaceTrinoQWVars(queryParameters.getQuery()));
         if(queryParameters.getHasJs()) {
-            query= executeQueryScript(query);
+            try {
+                query = executeQueryScript(query);
+            }catch (Exception e){
+                logger.error("Error Executing executeQueryScript: {}\n\n\nurl:{}\n\n\nindex:{}\n\n\nerror:{}",
+                        queryParameters.getQuery(),
+                        queryParameters.getQwUrl(),
+                        queryParameters.getQwIndex(),
+                        e.getMessage());
+            }
         }
 
         logger.debug("Executing executeOneQuery: {}\n\n\nurl:{}\n\n\nindex:{}",
@@ -201,8 +209,12 @@ public class QwUtil {
         String qwIndex = queryParameters.getQwIndex();
 
         SearchApi searchApi = new SearchApi(getDefaultClient(queryParameters));
-
-        SearchRequestQueryString toQuery = getGson().fromJson(query, SearchRequestQueryString.class);
+        SearchRequestQueryString toQuery =null;
+        try {
+            toQuery = getGson().fromJson(query, SearchRequestQueryString.class);
+        }catch (Exception e){
+            logger.error("Error in {}/{}: {}", queryParameters.getQwUrl(), qwIndex, query);
+        }
         logger.debug("Running on {}/{}: {}", queryParameters.getQwUrl(), qwIndex, query);
         SearchResponseRest ret = searchApi.searchPostHandler(qwIndex, toQuery);
         List<String> errors = ret.getErrors();
