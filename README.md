@@ -442,5 +442,5 @@ order by _value desc
 | `hasjs` (trino only) | `true`/`false`       | Ability to use javascript code in queries  <br/> Predefined javascripts variables;<br/><table><tr><th>Name</th><th>Value</th><tr><td>`now`</td><td>current unix time  </td></tr><tr><td>`now`</td><td>current unix time  </td></tr><tr><td>`d`</td><td>seconds in a day  </td></tr><tr><td>`h`</td><td>seconds in an hour  </td></tr><tr><td>`m`</td><td>seconds in a minute</td></tr><tr><td>`s`</td><td>1 second  </td></tr> </table> |   |
 
 ```
-
+./push.sh 0.1.10-RCI20122024 'linux/arm64,linux/amd64' false
 ```

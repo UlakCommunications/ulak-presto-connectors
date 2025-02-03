@@ -68,29 +68,33 @@ public class IPToCountry {
     private static String getCountryName(String ip) throws IOException, GeoIp2Exception {
         InetAddress ipAddress = null;
         ipAddress = InetAddress.getByName(ip);
+        if(ipAddress!=null) {
+            // Replace "city" with the appropriate method for your database, e.g.,
+            // "country".
+            CountryResponse response = null;
+            response = countryReader.country(ipAddress);
 
-// Replace "city" with the appropriate method for your database, e.g.,
-// "country".
-        CountryResponse response = null;
-        response = countryReader.country(ipAddress);
-
-        Country country = response.getCountry();
-
-        return country.getName();
+            Country country = response.getCountry();
+            if(country!=null) {
+                return country.getName();
+            }
+        }
+        return null;
     }
 
     static Location getLocation(String ip) throws IOException, GeoIp2Exception {
         InetAddress ipAddress = null;
         ipAddress = InetAddress.getByName(ip);
+        if(ipAddress!=null) {
+            // Replace "city" with the appropriate method for your database, e.g.,
+            // "country".
+            CityResponse response = null;
+            response = cityReader.city(ipAddress);
 
-// Replace "city" with the appropriate method for your database, e.g.,
-// "country".
-        CityResponse response = null;
-        response = cityReader.city(ipAddress);
-
-        Location location = response.getLocation();
-
-        return location;
+            Location location = response.getLocation();
+            return location;
+        }
+        return null;
     }
 //    @TypeParameter("T")
 //    @SqlType(StandardTypes.VARCHAR)
@@ -118,7 +122,10 @@ public class IPToCountry {
     {
         if(StringUtils.isNotBlank(string.toStringUtf8())) {
             try {
-                return Slices.utf8Slice(String.valueOf((getLocation(string.toStringUtf8()).getLatitude())));
+                Double latitude = getLocation(string.toStringUtf8()).getLatitude();
+                if(latitude!=null) {
+                    return Slices.utf8Slice(String.valueOf(latitude));
+                }
             } catch (IOException e) {
                 logger.error("Communication error",e);
             } catch (GeoIp2Exception e) {
@@ -135,7 +142,12 @@ public class IPToCountry {
     {
         if(StringUtils.isNotBlank(string.toStringUtf8())) {
             try {
-                return Slices.utf8Slice((getCountryName(string.toStringUtf8())));
+                String countryName = getCountryName(string.toStringUtf8());
+                if(countryName!=null) {
+                    return Slices.utf8Slice(countryName);
+                }
+            } catch (NullPointerException e) {
+                logger.error("Nullpointer error",e);
             } catch (IOException e) {
                 logger.error("Communication error",e);
             } catch (GeoIp2Exception e) {
@@ -154,7 +166,10 @@ public class IPToCountry {
     {
         if(StringUtils.isNotBlank(string.toStringUtf8())) {
             try {
-                return Slices.utf8Slice(String.valueOf((getLocation(string.toStringUtf8()).getLongitude())));
+                Double longitude = getLocation(string.toStringUtf8()).getLongitude();
+                if(longitude!=null) {
+                    return Slices.utf8Slice(String.valueOf(longitude));
+                }
             } catch (IOException e) {
                 logger.error("Communication error",e);
             } catch (GeoIp2Exception e) {
