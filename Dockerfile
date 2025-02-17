@@ -1,4 +1,4 @@
-FROM trinodb/trino:432
+FROM 192.168.57.202:35000/trinodb/trino:432
 
 COPY ./geolocation/maxmind/GeoLite2-Country_20240917/GeoLite2-Country.mmdb /usr/lib/trino/plugin/
 COPY ./geolocation/maxmind/GeoLite2-City_20240917/GeoLite2-City.mmdb /usr/lib/trino/plugin/
