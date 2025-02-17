@@ -24,8 +24,10 @@ public class QueryParameters {
     //public static final String TEXT_EAGER_CACHE = "eagercache";
     public static final String TEXT_NAME = "name";
     public static final String TEXT_QWINDEX = "qwindex";
+    public static final String TEXT_NULL_FILL = "nullfill";
     public static final String TEXT_QWURL = "qwurl";
     public static final String TEXT_HASJS = "hasjs";
+    public static final String TEXT_TIMEFIELD = "timefield";
     public static final String TEXT_QWREPLACEFROMCOLUMN = "replacefromcolumns";
     public static final String TEXT_FROM = "from";
     public static final String TEXT_TO = "to";
@@ -43,6 +45,8 @@ public class QueryParameters {
     //TODO: eager caching is to be added
     //private boolean eagerCached = false;
     private boolean hasJs = false;
+    private String timeField = null;
+    private boolean nullFill = true;
     private int ttlInSeconds = DEFAULT_TTL;
     private int refreshDurationInSeconds = DEFAULT_TTL + 5;
     private long start;
@@ -199,6 +203,12 @@ public class QueryParameters {
                         case TEXT_HASJS:
                             ret.setHasJs(Boolean.parseBoolean(value));
                             break;
+                        case TEXT_TIMEFIELD:
+                            ret.setTimeField(value);
+                            break;
+                        case TEXT_NULL_FILL:
+                            ret.setNullFill(Boolean.parseBoolean(value));
+                            break;
                         case TEXT_NAME:
                             ret.setName(value);
                             break;
@@ -239,7 +249,20 @@ public class QueryParameters {
     public void setHasJs(boolean hasJs) {
         this.hasJs = hasJs;
     }
+    public String getTimeField() {
+        return timeField;
+    }
 
+    public void setTimeField(String timeField) {
+        this.timeField = timeField;
+    }
+    public boolean getNullFill() {
+        return nullFill;
+    }
+
+    public void setNullFill(boolean nullFill) {
+        this.nullFill = nullFill;
+    }
     public long getTtlInSeconds() {
         return ttlInSeconds;
     }

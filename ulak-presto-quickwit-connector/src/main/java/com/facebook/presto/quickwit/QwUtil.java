@@ -350,14 +350,18 @@ public class QwUtil {
             headerIndexes.put((String) headers[i], i);
         }
         List<UlakRow> toRet = new ArrayList<>();
-
+        long maxTime = 0;
+        long minTime = Long.MAX_VALUE;
+        String timeField = queryParameters.getTimeField();
         for (int i = 1; i < flatted.size(); i++) {
             Map<String, Object> r = new HashMap<>();
             Object[] c = flatted.get(i);
             boolean allNulls=true;
             for (int j = 0; j < headers.length; j++) {
                 Object val = c[j];
-                if (val == null && i + 1 < flatted.size()) {
+                if (queryParameters.getNullFill()
+                        && val == null
+                        && i + 1 < flatted.size()) {
                     val = flatted.get(i + 1)[j];
                 }
                 String value = String.valueOf(val);
@@ -372,7 +376,18 @@ public class QwUtil {
                 if(StringUtils.isNotBlank(toReplace)){
                     k=StringUtils.replace((String) k, toReplace,"");
                 }
+                boolean isTimeField =StringUtils.isNotBlank(timeField) && k.endsWith(timeField);
                 if(value!=null){
+                    if(isTimeField){
+                        timeField = k;
+                        double parsed = Double.parseDouble(value);
+                        if(parsed >maxTime){
+                            maxTime=(long)parsed;
+                        }
+                        if(parsed <minTime){
+                            minTime=(long)parsed;
+                        }
+                    }
                     allNulls=false;
                 }
                 r.put(k, value);
@@ -380,6 +395,23 @@ public class QwUtil {
 //            if(!allNulls) {
                 toRet.add(new UlakRow(r));
 //            };
+        }
+        if(maxTime>0 && minTime<Long.MAX_VALUE && StringUtils.isNotBlank(timeField)){
+            ArrayList<Integer> toRemove = new ArrayList<>();
+            for(int i=0; i<toRet.size(); i++){
+                UlakRow row = toRet.get(i);
+                String o = (String) row.getColumnMap().get(timeField);
+                if(o!=null ){
+                    long v = (long)Double.parseDouble(o);
+                    if(v == maxTime || v == minTime) {
+                        toRemove.add(i);
+                    }
+                }
+            }
+            while(toRemove.size()>0){
+                toRet.remove(toRemove.get(toRemove.size()-1));
+                toRemove.remove(toRemove.size()-1);
+            }
         }
         return toRet;
     }
