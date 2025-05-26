@@ -60,13 +60,12 @@ public class UlakSplit
     public List<HostAddress> getAddresses() {
         return new ArrayList<>();
     }
-
-    @Override
-    public Object getInfo()
-    {
-        return this;
-    }
-
+//
+//    @Override
+//    public Object getInfo()
+//    {
+//        return this;
+//    }
     @Override
     public SplitWeight getSplitWeight() {
         return ConnectorSplit.super.getSplitWeight();

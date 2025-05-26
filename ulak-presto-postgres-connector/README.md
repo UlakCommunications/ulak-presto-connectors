@@ -1,11 +1,11 @@
 # presto-postgres-connector
 
-It's a Postgres connector for presto, it's based on trino-0.432.
+It's a Postgres connector for presto, it's based on trino-0.475.
 
 ## build and run 
 1. Execute "mvn package".
 2. Create "influxdb" directory in ${presto-root}/plugin/
-3. copy original-presto-postgres-0.432-SNAPSHOT.jar and presto-postgres-0.280-SNAPSHOT.jar to /{presto-root-dir}/plugin/influxdb
+3. copy original-presto-postgres-0.475-SNAPSHOT.jar and presto-postgres-0.280-SNAPSHOT.jar to /{presto-root-dir}/plugin/influxdb
 4. use "/bin/launcher start" to start server
 
 ## notes

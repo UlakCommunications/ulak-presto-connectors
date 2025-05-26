@@ -1,6 +1,6 @@
 # presto-influxdb-connector
 
-It's an influxdb connector for presto, it's based on presto-0.432.
+It's an influxdb connector for presto, it's based on presto-0.475.
 
 ## build and run 
 1. Execute "mvn package".

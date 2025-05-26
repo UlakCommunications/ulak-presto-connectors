@@ -66,8 +66,7 @@ public class UlakQuickwitMetadata
     }
 
     @Override
-    public ConnectorTableHandle getTableHandle(ConnectorSession session, SchemaTableName tableName)
-    {
+    public ConnectorTableHandle getTableHandle(ConnectorSession session, SchemaTableName tableName, Optional<ConnectorTableVersion> startVersion, Optional<ConnectorTableVersion> endVersion) {
         return new UlakTableHandle(connectorId, tableName.getSchemaName(), tableName.getTableName());
     }
 

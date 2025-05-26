@@ -18,21 +18,21 @@ Redis is not required, but needed if caching is requested.
 # Installation
 1. Execute "mvn package".
 2. Create "quickwit" directory in ${presto-root}/plugin/
-3. copy original-presto-quickwit-0.432-SNAPSHOT.jar and presto-quickwit-0.280-SNAPSHOT.jar to /{presto-root-dir}/plugin/quickwit
+3. copy original-presto-quickwit-0.475-SNAPSHOT.jar and presto-quickwit-0.280-SNAPSHOT.jar to /{presto-root-dir}/plugin/quickwit
 4. use "/bin/launcher start" to start server
 5. 
 ## Docker Build and Push Commands
 ### Building and Publishing Trino
 ```bash
 ./mvnw clean package
-docker build -t 192.168.57.202:35000/trinodb/trino:432 .
-docker push 192.168.57.202:35000/trinodb/trino:432
+docker build -t 192.168.57.202:35000/trinodb/trino:475 .
+docker push 192.168.57.202:35000/trinodb/trino:475
 ```
 ### Building and Publishing Trino-Cache
 ```bash
 ./mvnw clean package
-docker build -t 192.168.57.202:35000/trinodb/trino:432-cache .
-docker push 192.168.57.202:35000/trinodb/trino:432-cache
+docker build -t 192.168.57.202:35000/trinodb/trino:475-cache .
+docker push 192.168.57.202:35000/trinodb/trino:475-cache
 ```
 
 # Sample Queries
@@ -375,7 +375,7 @@ order by _value desc
 ```
     maya_pg_grafana: >-
       connector.name=mayapostgres   
-      pg-connection-url=jdbc:postgresql://postgres:5432/grafana
+      pg-connection-url=jdbc:postgresql://postgres:5475/grafana
       pg-connection-user=*****
       pg-connection-password=*****
       redis-url=http://default:*****@redis:6379

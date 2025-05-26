@@ -1,3 +1,3 @@
-FROM trinodb/trino:432
+FROM trinodb/trino:475
 
-COPY target/ulak-presto-quickwit-connector-0.432-SNAPSHOT.jar /usr/lib/trino/plugin/QuickwitConnector/
+COPY target/ulak-presto-quickwit-connector-0.475-SNAPSHOT.jar /usr/lib/trino/plugin/QuickwitConnector/

@@ -3,13 +3,13 @@
 <!--  <parent>-->
 <!--    <groupId>com.facebook.presto</groupId>-->
 <!--    <artifactId>presto-maya-connector-base-base</artifactId>-->
-<!--    <version>0.432-SNAPSHOT</version>&lt;!&ndash;maya-release-version&ndash;&gt;-->
+<!--    <version>0.475-SNAPSHOT</version>&lt;!&ndash;maya-release-version&ndash;&gt;-->
 <!--    <relativePath>../pom.xml</relativePath>-->
 <!--  </parent>-->
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.facebook.presto</groupId>
-  <version>0.432-SNAPSHOT</version>
+  <version>0.475-SNAPSHOT</version>
   <artifactId>ulak-presto-connector-base</artifactId>
 <!--  <packaging>presto-plugin</packaging>-->
       <packaging>jar</packaging>
@@ -46,19 +46,19 @@
     <dependency>
       <groupId>io.trino</groupId>
       <artifactId>trino-spi</artifactId>
-      <version>432</version>
+      <version>475</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.trino</groupId>
       <artifactId>trino-cache</artifactId>
-      <version>432</version>
+      <version>475</version>
     </dependency>
 
     <dependency>
       <groupId>io.trino</groupId>
       <artifactId>trino-plugin-toolkit</artifactId>
-      <version>432</version>
+      <version>475</version>
     </dependency>
 
 
