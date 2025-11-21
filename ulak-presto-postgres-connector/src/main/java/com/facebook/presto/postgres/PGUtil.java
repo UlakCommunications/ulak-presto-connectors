@@ -17,6 +17,7 @@ package com.facebook.presto.postgres;
 import com.facebook.presto.ulak.DBType;
 import com.facebook.presto.ulak.QueryParameters;
 import com.facebook.presto.ulak.UlakRow;
+import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.commons.dbcp.BasicDataSource;
 import org.slf4j.Logger;
@@ -25,6 +26,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.sql.*;
 import java.util.*;
+
+import static com.facebook.presto.ulak.QueryParameters.replaceAll;
 
 public class PGUtil {
 
@@ -58,11 +61,11 @@ public class PGUtil {
     private PGUtil() {
     }
 
-    public static List<String> getSchemas(String pgUrl, String pgUser, String pgPwd) throws SQLException, JsonProcessingException {
+    public static List<String> getSchemas(QueryParameters queryParameters,String pgUrl, String pgUser, String pgPwd) throws SQLException, JsonProcessingException {
         logger.debug("getSchemas");
         logger.debug("PGUtil-getSchemas");
         List<String> res = new ArrayList<>();
-        List<UlakRow> rows = executeOneQuery("select schema_name from information_schema.schemata",  pgUrl,   pgUser,   pgPwd);
+        List<UlakRow> rows = executeOneQuery(queryParameters, "select schema_name from information_schema.schemata",  pgUrl,   pgUser,   pgPwd);
         for (UlakRow bucket1 : rows) {
             String schemaName = (String) bucket1.getColumnMap().get("schema_name");
             res.add(schemaName);
@@ -71,10 +74,10 @@ public class PGUtil {
         return res;
     }
 
-    public static List<String> getTableNames(String schema,String   pgUrl,   String  pgUser,   String  pgPwd) throws SQLException, JsonProcessingException {
+    public static List<String> getTableNames(QueryParameters queryParameters,String schema,String   pgUrl,   String  pgUser,   String  pgPwd) throws SQLException, JsonProcessingException {
         logger.debug("PGUtil- bucket->tableNames: {}", schema);
         List<String> res = new ArrayList<>();
-        List<UlakRow> rows = executeOneQuery("SELECT table_name\n" +
+        List<UlakRow> rows = executeOneQuery(queryParameters, "SELECT table_name\n" +
                 "  FROM information_schema.tables\n" +
                 " WHERE table_schema='"+ schema +"'\n" +
                 "   AND table_type='BASE TABLE'",  pgUrl,   pgUser,   pgPwd);
@@ -99,13 +102,13 @@ public class PGUtil {
         queryParameters.setError("");
         String query = queryParameters.getQuery();//"from(bucket: " + "\"" + bucket + "\"" + ")\n" + "|> range(start:" + time_interval + ")\n" + "|> filter(fn : (r) => r._measurement == " + "\"" + tableName + "\"" + ")";
 
-        List<UlakRow> ret = executeOneQuery(query,  pgUrl,   pgUser,   pgPwd);
+        List<UlakRow> ret = executeOneQuery(queryParameters, query,  pgUrl,   pgUser,   pgPwd);
 //                    addOneStat(hash, 1);
         return ret ;
 
     }
 
-    private static List<UlakRow> executeOneQuery(String query,String pgUrl, String pgUser, String pgPwd) throws SQLException, JsonProcessingException {
+    private static List<UlakRow> executeOneQuery(QueryParameters queryParameters, String query, String pgUrl, String pgUser, String pgPwd) throws SQLException, JsonProcessingException {
         BasicDataSource dbPool = getPool(pgUrl,   pgUser,   pgPwd);
         try (Connection connection = dbPool.getConnection()) {
             try (Statement statement = connection.createStatement()) {
@@ -119,6 +122,16 @@ public class PGUtil {
                             newRow.put(rsmd.getColumnName(i), tables.getString(i));
                         }
                         list.add(new UlakRow(newRow));
+                    }
+                    if(list.isEmpty()) {
+                        String[] columns = queryParameters.getColumns();
+                        Map<String, Object> newRow = new HashMap<>();
+                        if (columns != null) {
+                            for (int i = 1; i <= columns.length; i++) {
+                                newRow.put(columns[i], null);
+                            }
+                            list.add(new UlakRow(newRow));
+                        }
                     }
                     return list;
                 }
