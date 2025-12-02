@@ -56,7 +56,7 @@ public class InfluxdbMetadata
         }
     }
 
-    @Override
+//    @Override
     public ConnectorTableHandle getTableHandle(ConnectorSession session, SchemaTableName tableName)
     {
         return new UlakTableHandle(connectorId, tableName.getSchemaName(), tableName.getTableName());

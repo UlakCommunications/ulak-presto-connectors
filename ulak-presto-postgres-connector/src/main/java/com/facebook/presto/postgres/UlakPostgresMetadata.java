@@ -54,7 +54,7 @@ public class UlakPostgresMetadata
          return Collections.emptyList();//TODO:
     }
 
-    @Override
+//    @Override
     public ConnectorTableHandle getTableHandle(ConnectorSession session, SchemaTableName tableName)
     {
         return new UlakTableHandle(connectorId, tableName.getSchemaName(), tableName.getTableName());

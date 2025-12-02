@@ -65,7 +65,7 @@ public class UlakQuickwitMetadata
         return  Collections.singletonList(DEFAULT_SCHEMA); //TODO:
     }
 
-    @Override
+//    @Override
     public ConnectorTableHandle getTableHandle(ConnectorSession session, SchemaTableName tableName)
     {
         return new UlakTableHandle(connectorId, tableName.getSchemaName(), tableName.getTableName());
