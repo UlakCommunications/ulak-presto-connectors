@@ -17,14 +17,12 @@ RUN set -eux; \
     rm -rf /var/cache/dnf /var/cache/yum /var/cache/microdnf || true
 
 
-#RUN find /usr/lib/trino/plugin \
-#    -mindepth 1 -maxdepth 1 -type d \
-#    ! -name 'hive' \
-#    ! -name 'jmx' \
-#    ! -name 'memory' \
-#    ! -name 'postgresql' \
-#    ! -name 'exchange-filesystem' \
-#    -exec rm -rf {} +
+RUN find /usr/lib/trino/plugin \
+    -mindepth 1 -maxdepth 1 -type d \
+    ! -name 'postgresql' \
+    ! -name 'exchange-filesystem' \
+    ! -name 'geospatial' \
+    -exec rm -rf {} +
 
 
 COPY ./geolocation/maxmind/GeoLite2-Country_20240917/GeoLite2-Country.mmdb /usr/lib/trino/plugin/
