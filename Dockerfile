@@ -22,6 +22,7 @@ RUN find /usr/lib/trino/plugin \
     ! -name 'jmx' \
     ! -name 'memory' \
     ! -name 'postgresql' \
+    ! -name 'filesystem' \
     -exec rm -rf {} +
 
 
