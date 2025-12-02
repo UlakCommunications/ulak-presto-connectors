@@ -88,7 +88,7 @@
     <dependency>
       <groupId>org.quickwit</groupId>
       <artifactId>quickwit-java-client</artifactId>
-      <version>0.0.1.35-SNAPSHOT</version>
+      <version>0.0.1.36-SNAPSHOT</version>
     </dependency>
 
     <dependency>
