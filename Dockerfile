@@ -1,5 +1,4 @@
-#FROM 192.168.57.202:35000/trinodb/trino:432
-FROM trinodb/trino:478
+FROM 192.168.57.202:35000/trinodb/trino:478
 
 USER root
 

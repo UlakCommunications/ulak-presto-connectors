@@ -65,11 +65,16 @@ public class UlakQuickwitMetadata
         return  Collections.singletonList(DEFAULT_SCHEMA); //TODO:
     }
 
-//    @Override
-    public ConnectorTableHandle getTableHandle(ConnectorSession session, SchemaTableName tableName)
-    {
+    @Override
+    public ConnectorTableHandle getTableHandle(ConnectorSession session, SchemaTableName tableName, Optional<ConnectorTableVersion> startVersion, Optional<ConnectorTableVersion> endVersion) {
         return new UlakTableHandle(connectorId, tableName.getSchemaName(), tableName.getTableName());
     }
+
+//    //    @Override
+//    public ConnectorTableHandle getTableHandle2(ConnectorSession session, SchemaTableName tableName)
+//    {
+//        return new UlakTableHandle(connectorId, tableName.getSchemaName(), tableName.getTableName());
+//    }
 
     // list all measurements in a bucket
     @Override
