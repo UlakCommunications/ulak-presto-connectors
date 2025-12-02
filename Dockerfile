@@ -1,5 +1,12 @@
 FROM 192.168.57.202:35000/trinodb/trino:432
 
+USER root
+
+# Keep the image up-to-date for security scanners
+RUN dnf -y upgrade --refresh \
+    && dnf clean all \
+    && rm -rf /var/cache/dnf
+
 COPY ./geolocation/maxmind/GeoLite2-Country_20240917/GeoLite2-Country.mmdb /usr/lib/trino/plugin/
 COPY ./geolocation/maxmind/GeoLite2-City_20240917/GeoLite2-City.mmdb /usr/lib/trino/plugin/
 
