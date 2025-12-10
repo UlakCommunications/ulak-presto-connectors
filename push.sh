@@ -2,6 +2,7 @@
 VERSION=$1
 platform=$2
 prod=$3
+prod_ip=$4
 set -x
 
 #docker pull  trinodb/trino:432
@@ -16,7 +17,12 @@ nexus_repo="192.168.57.202:35000/maya/trino:${VERSION}"
 
 # Eğer prod seçilmişse, prod_nexus_repo ve nexus_repo push işlemi gerçekleşir
 if [ "$prod" == "true" ]; then
-    prod_nexus_repo="192.168.19.48:35000/maya/trino:${VERSION}"
+    if [ -z "$prod_ip" ]; then
+        echo "Hata: Prod ortamı için IP adresi verilmedi!"
+        exit 1
+    fi
+    echo $prod_ip
+    prod_nexus_repo="${prod_ip}:35000/maya/maya-api-gateway:${version}"
 
     # 1- Eğer prod true ise, sadece Nexus repo'yu baz alarak build işlemi yapılır
     echo "Prod seçildi, sadece Nexus repo'yu baz alarak build yapılıyor."
