@@ -1,5 +1,21 @@
 FROM 192.168.57.202:35000/trinodb/trino:432
 
+USER root
+
+# Keep the image up-to-date for security scanners (RHEL/UBI style)
+RUN set -eux; \
+    if command -v dnf >/dev/null 2>&1; then \
+        dnf -y upgrade --refresh && dnf clean all; \
+    elif command -v microdnf >/dev/null 2>&1; then \
+        microdnf update -y && microdnf clean all; \
+    elif command -v yum >/dev/null 2>&1; then \
+        yum -y update && yum clean all; \
+    else \
+        echo "No dnf/microdnf/yum found; skipping OS upgrade" >&2; \
+    fi; \
+    rm -rf /var/cache/dnf /var/cache/yum /var/cache/microdnf || true
+
+
 COPY ./geolocation/maxmind/GeoLite2-Country_20240917/GeoLite2-Country.mmdb /usr/lib/trino/plugin/
 COPY ./geolocation/maxmind/GeoLite2-City_20240917/GeoLite2-City.mmdb /usr/lib/trino/plugin/
 
