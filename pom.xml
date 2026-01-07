@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.facebook.presto</groupId>
-  <version>0.432-SNAPSHOT</version>
+  <version>0.478-SNAPSHOT</version>
   <artifactId>ulak-presto-connectors</artifactId>
 <!--  <packaging>presto-plugin</packaging>-->
       <packaging>pom</packaging>

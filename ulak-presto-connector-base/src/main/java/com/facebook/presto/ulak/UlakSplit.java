@@ -61,7 +61,7 @@ public class UlakSplit
         return new ArrayList<>();
     }
 
-    @Override
+//    @Override
     public Object getInfo()
     {
         return this;

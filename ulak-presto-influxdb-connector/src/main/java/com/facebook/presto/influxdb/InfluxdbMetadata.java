@@ -57,10 +57,16 @@ public class InfluxdbMetadata
     }
 
     @Override
-    public ConnectorTableHandle getTableHandle(ConnectorSession session, SchemaTableName tableName)
-    {
+    public ConnectorTableHandle getTableHandle(ConnectorSession session, SchemaTableName tableName, Optional<ConnectorTableVersion> startVersion, Optional<ConnectorTableVersion> endVersion) {
         return new UlakTableHandle(connectorId, tableName.getSchemaName(), tableName.getTableName());
+//        return ConnectorMetadata.super.getTableHandle(session, tableName, startVersion, endVersion);
     }
+
+//    @Override
+//    public ConnectorTableHandle getTableHandle2(ConnectorSession session, SchemaTableName tableName)
+//    {
+//        return new UlakTableHandle(connectorId, tableName.getSchemaName(), tableName.getTableName());
+//    }
 
     // list all measurements in a bucket
     @Override

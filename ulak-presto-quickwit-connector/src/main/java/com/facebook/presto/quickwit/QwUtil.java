@@ -330,10 +330,17 @@ public class QwUtil {
         if (g == null) {
             g = ret.getHits();
         }
-        JFlat flatMe = new JFlat(getGson().toJson(g));
-        List<Object[]> flatted = flatMe.json2Sheet().getJsonAsSheet();
+        String json = getGson().toJson(g);
+        JFlat flatMe = new JFlat(json);
+        List<Object[]> flatted = null;
+        if(json.equals("[]")){
+            flatted=new ArrayList<>();
+        }else{
+            flatted = flatMe.json2Sheet().getJsonAsSheet();
+        }
+
         Map<String, Integer> headerIndexes = new HashMap<>();
-        Object[] headers = flatted.get(0);
+        Object[] headers = flatted.size()==0 ? null : flatted.get(0);
         if(headers==null || headers.length==0){
             //get headers from columns
             headers = queryParameters.getColumns();
