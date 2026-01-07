@@ -110,4 +110,8 @@ public class InfluxdbConnector
         return recordSetProvider;
     }
 
+    @Override
+    public void shutdown() {
+
+    }
 }

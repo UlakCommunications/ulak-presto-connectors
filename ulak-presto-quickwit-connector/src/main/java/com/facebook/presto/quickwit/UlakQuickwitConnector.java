@@ -130,4 +130,9 @@ public class UlakQuickwitConnector
     public void setQwIndex(String qwIndex) {
         this.qwIndex = qwIndex;
     }
+
+    @Override
+    public void shutdown() {
+
+    }
 }

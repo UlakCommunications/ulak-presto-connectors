@@ -115,4 +115,8 @@ public class UlakPostgresConnector
         return recordSetProvider;
     }
 
+    @Override
+    public void shutdown() {
+
+    }
 }
