@@ -6,7 +6,8 @@ prod_ip=$4
 set -x
 
 #docker pull  trinodb/trino:432
-#./mvnw clean package
+./mvnw clean install
+./mvnw package
 
 #unzip openapi/*.zip -d openapi/plugin/
 

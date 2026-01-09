@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Locale;
 import java.util.Map;
 
+import static com.facebook.presto.ulak.QueryParameters.replaceEnv;
 import static com.facebook.presto.ulak.caching.RedisCacheWorker.DEFAULT_N_THREADS;
 
 
@@ -60,7 +61,7 @@ public class UlakQuickwitConnectorFactory
         return new UlakQuickwitConnector(
             url,
             catalogName,
-            config.get("redis-url"),
+                replaceEnv(config.get("redis-url"),"REDIS_PASSWORD"),
             config.get("keywords"),
             runInCoordinatorOnly,
             context.getNodeManager().getCurrentNode().getNodeIdentifier(),

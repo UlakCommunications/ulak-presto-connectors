@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 import java.util.Locale;
 import java.util.Map;
 
+import static com.facebook.presto.ulak.QueryParameters.replaceEnv;
+
 public class UlakInfluxDbConnectorFactory
         implements ConnectorFactory
 {
@@ -55,13 +57,14 @@ public class UlakInfluxDbConnectorFactory
             runInCoordinatorOnly = sRunInCoordinatorOnly.trim().toLowerCase(Locale.ENGLISH).equals("true");
         }
         String sWorkerIndexToRunIn = config.get("worker_id_to_run_in");
+
         return new InfluxdbConnector(
                         url,
                         catalogName,
                         config.get("connection-org"),
                         config.get("connection-token"),
                         config.get("connection-bucket"),
-                        config.get("redis-url"),
+                        replaceEnv(config.get("redis-url"),"REDIS_PASSWORD"),
                         config.get("keywords"),
                         runInCoordinatorOnly,
                         context.getNodeManager().getCurrentNode().getNodeIdentifier(),

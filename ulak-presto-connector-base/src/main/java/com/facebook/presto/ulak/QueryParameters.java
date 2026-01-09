@@ -371,4 +371,42 @@ public class QueryParameters {
     public String getReplaceFromColumns() {
         return replaceFromColumns;
     }
+    public static String replaceEnv(String source, String env){
+        if(StringUtils.isNotBlank(source)){
+            //${ENV:RO_POSTGRES_PASSWORD}
+            //source = source.replace("${ENV:","").replace("}","");
+            String resEnv = System.getenv(env);
+            logger.info("env:" + env + ", " + "resEnv: " + resEnv + ", source:" + source );
+            if(StringUtils.isNotBlank(resEnv)) {
+                source = source.replace("${ENV:" + env + "}", encodeUriComponent(resEnv));
+            }
+        }
+        return source;
+    }
+    public static String encodeUriComponent(String s) {
+
+        logger.info("encodeUriComponent:" + (s==null?"":s));
+
+        if(s == null){
+            return "";
+        }
+        StringBuilder out = new StringBuilder();
+        for (byte b : s.getBytes(StandardCharsets.UTF_8)) {
+            char c = (char) b;
+            if (
+                    (c >= 'a' && c <= 'z') ||
+                            (c >= 'A' && c <= 'Z') ||
+                            (c >= '0' && c <= '9') ||
+                            c == '-' || c == '_' || c == '.' || c == '~'
+            ) {
+                out.append(c);
+            } else {
+                out.append(String.format("%%%02X", b));
+            }
+        }
+
+        logger.info("encodeDUriComponent:" + (out.toString()));
+
+        return out.toString();
+    }
 }

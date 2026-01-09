@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Locale;
 import java.util.Map;
 
+import static com.facebook.presto.ulak.QueryParameters.replaceEnv;
 import static com.facebook.presto.ulak.caching.RedisCacheWorker.DEFAULT_N_THREADS;
 
 
@@ -42,6 +43,10 @@ public class UlakPostgresConnectorFactory
     public Connector create(String catalogName, Map<String, String> config, ConnectorContext context)
     {
         String url = StringUtils.strip(config.get("pg-connection-url")," /");
+
+        url = replaceEnv(url,"ORCH_POSTGRES_PASSWORD");
+        url = replaceEnv(url,"RO_POSTGRES_PASSWORD");
+
         String sNumThreads = config.get("number_of_worker_threads");
         int numThreads = DEFAULT_N_THREADS;
         if(sNumThreads != null && !sNumThreads.trim().equals("")){
@@ -58,10 +63,13 @@ public class UlakPostgresConnectorFactory
             runInCoordinatorOnly = sRunInCoordinatorOnly.trim().toLowerCase(Locale.ENGLISH).equals("true");
         }
         String sWorkerIndexToRunIn = config.get("worker_id_to_run_in");
+
+        String  pwd =  replaceEnv(config.get("pg-connection-password"),"ORCH_POSTGRES_PASSWORD");
+        pwd = replaceEnv(pwd,"RO_POSTGRES_PASSWORD");
         return new UlakPostgresConnector(
                         url,
                         catalogName,
-                        config.get("redis-url"),
+                        replaceEnv(config.get("redis-url"),"REDIS_PASSWORD"),
                         config.get("keywords"),
                         runInCoordinatorOnly,
                         context.getNodeManager().getCurrentNode().getNodeIdentifier(),
@@ -69,6 +77,6 @@ public class UlakPostgresConnectorFactory
                         context.getNodeManager().getCurrentNode().isCoordinator(),
                         numThreads,
                         config.get("pg-connection-user"),
-                        config.get("pg-connection-password") );
+                        pwd );
     }
 }
