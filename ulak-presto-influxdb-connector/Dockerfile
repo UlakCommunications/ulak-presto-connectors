@@ -1,3 +1,3 @@
-FROM trinodb/trino:478
+FROM trinodb/trino:479
 
-COPY target/ulak-presto-influxdb-connector-0.478-SNAPSHOT.jar /usr/lib/trino/plugin/UlakInfluxdbConnector/
+COPY target/ulak-presto-influxdb-connector-0.479-SNAPSHOT.jar /usr/lib/trino/plugin/UlakInfluxdbConnector/

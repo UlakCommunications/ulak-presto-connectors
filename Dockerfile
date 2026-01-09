@@ -1,4 +1,4 @@
-FROM 192.168.57.202:35000/trinodb/trino:478
+FROM 192.168.57.202:35000/trinodb/trino:479
 
 USER root
 
@@ -29,7 +29,15 @@ COPY ./geolocation/maxmind/GeoLite2-City_20240917/GeoLite2-City.mmdb /usr/lib/tr
 
 COPY ./geolocation/ip2location/IP2LOCATION-LITE-DB11.CSV/IP2LOCATION-LITE-DB11.CSV.MMDB /usr/lib/trino/plugin/
 ##COPY GeoLite2-City_20240917/GeoLite2-City.mmdb /usr/lib/trino/plugin/
-COPY ulak-presto-influxdb-connector/target/ulak-presto-influxdb-connector-0.478-SNAPSHOT.jar /usr/lib/trino/plugin/UlakInfluxdbConnector/
-COPY ulak-presto-postgres-connector/target/ulak-presto-postgres-connector-0.478-SNAPSHOT.jar /usr/lib/trino/plugin/UlakPostgresConnector/
-COPY ulak-presto-quickwit-connector/target/ulak-presto-quickwit-connector-0.478-SNAPSHOT.jar /usr/lib/trino/plugin/QuickwitConnector/
+COPY ulak-presto-influxdb-connector/target/ulak-presto-influxdb-connector-0.479-SNAPSHOT.jar /usr/lib/trino/plugin/UlakInfluxdbConnector/
+COPY ulak-presto-postgres-connector/target/ulak-presto-postgres-connector-0.479-SNAPSHOT.jar /usr/lib/trino/plugin/UlakPostgresConnector/
+COPY ulak-presto-quickwit-connector/target/ulak-presto-quickwit-connector-0.479-SNAPSHOT.jar /usr/lib/trino/plugin/QuickwitConnector/
+
+#COPY openapi/trino-openapi-1.86-SNAPSHOT.jar /usr/lib/trino/plugin/trino-openapi/
+#COPY openapi/trino-openapi-1.86-SNAPSHOT.zip /usr/lib/trino/plugin/trino-openapi/
+#COPY openapi/trino-openapi-1.86-SNAPSHOT-services.jar /usr/lib/trino/plugin/trino-openapi/
+COPY openapi/plugin/trino-openapi-1.86-SNAPSHOT/ /usr/lib/trino/plugin/trino-openapi/
+#COPY openapi/trino-openapi-1.86-SNAPSHOT-sources.jar /usr/lib/trino/plugin/trino-openapi/
+#COPY openapi/trino-openapi-1.86-SNAPSHOT-test-sources.jar /usr/lib/trino/plugin/trino-openapi/
+#COPY openapi/trino-openapi-1.86-SNAPSHOT-tests.jar /usr/lib/trino/plugin/trino-openapi/
 

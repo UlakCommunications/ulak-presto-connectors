@@ -6,7 +6,9 @@ prod_ip=$4
 set -x
 
 #docker pull  trinodb/trino:432
-./mvnw clean package
+#./mvnw clean package
+
+#unzip openapi/*.zip -d openapi/plugin/
 
 #docker buildx create  --use --config=../../buildx_config.toml
 #DOCKER_BUILDKIT=0 
