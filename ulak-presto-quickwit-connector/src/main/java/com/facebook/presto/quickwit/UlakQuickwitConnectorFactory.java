@@ -61,7 +61,7 @@ public class UlakQuickwitConnectorFactory
         return new UlakQuickwitConnector(
             url,
             catalogName,
-                replaceEnv(config.get("redis-url"),"REDIS_PASSWORD"),
+                replaceEnv(config.get("redis-url"),"REDIS_PASSWORD",true),
             config.get("keywords"),
             runInCoordinatorOnly,
             context.getNodeManager().getCurrentNode().getNodeIdentifier(),

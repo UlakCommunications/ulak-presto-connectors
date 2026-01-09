@@ -371,14 +371,16 @@ public class QueryParameters {
     public String getReplaceFromColumns() {
         return replaceFromColumns;
     }
-    public static String replaceEnv(String source, String env){
+    public static String replaceEnv(String source, String env, boolean encode){
         if(StringUtils.isNotBlank(source)){
             //${ENV:RO_POSTGRES_PASSWORD}
             //source = source.replace("${ENV:","").replace("}","");
             String resEnv = System.getenv(env);
             logger.info("env:" + env + ", " + "resEnv: " + resEnv + ", source:" + source );
+
             if(StringUtils.isNotBlank(resEnv)) {
-                source = source.replace("${ENV:" + env + "}", encodeUriComponent(resEnv));
+                source = source.replace("${ENV:" + env + "}", encode ? encodeUriComponent(resEnv):resEnv);
+                source = source.replace(resEnv,  encode ? encodeUriComponent(resEnv):resEnv);
             }
         }
         return source;

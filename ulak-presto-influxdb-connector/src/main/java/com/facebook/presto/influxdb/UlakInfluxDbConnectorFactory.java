@@ -64,7 +64,7 @@ public class UlakInfluxDbConnectorFactory
                         config.get("connection-org"),
                         config.get("connection-token"),
                         config.get("connection-bucket"),
-                        replaceEnv(config.get("redis-url"),"REDIS_PASSWORD"),
+                        replaceEnv(config.get("redis-url"),"REDIS_PASSWORD",true),
                         config.get("keywords"),
                         runInCoordinatorOnly,
                         context.getNodeManager().getCurrentNode().getNodeIdentifier(),

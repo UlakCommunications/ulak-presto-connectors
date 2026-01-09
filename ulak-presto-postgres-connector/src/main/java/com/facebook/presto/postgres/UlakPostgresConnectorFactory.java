@@ -44,8 +44,8 @@ public class UlakPostgresConnectorFactory
     {
         String url = StringUtils.strip(config.get("pg-connection-url")," /");
 
-        url = replaceEnv(url,"ORCH_POSTGRES_PASSWORD");
-        url = replaceEnv(url,"RO_POSTGRES_PASSWORD");
+        url = replaceEnv(url,"ORCH_POSTGRES_PASSWORD",false);
+        url = replaceEnv(url,"RO_POSTGRES_PASSWORD",false);
 
         String sNumThreads = config.get("number_of_worker_threads");
         int numThreads = DEFAULT_N_THREADS;
@@ -64,12 +64,12 @@ public class UlakPostgresConnectorFactory
         }
         String sWorkerIndexToRunIn = config.get("worker_id_to_run_in");
 
-        String  pwd =  replaceEnv(config.get("pg-connection-password"),"ORCH_POSTGRES_PASSWORD");
-        pwd = replaceEnv(pwd,"RO_POSTGRES_PASSWORD");
+        String  pwd =  replaceEnv(config.get("pg-connection-password"),"ORCH_POSTGRES_PASSWORD",false);
+        pwd = replaceEnv(pwd,"RO_POSTGRES_PASSWORD",false);
         return new UlakPostgresConnector(
                         url,
                         catalogName,
-                        replaceEnv(config.get("redis-url"),"REDIS_PASSWORD"),
+                        replaceEnv(config.get("redis-url"),"REDIS_PASSWORD",true),
                         config.get("keywords"),
                         runInCoordinatorOnly,
                         context.getNodeManager().getCurrentNode().getNodeIdentifier(),
