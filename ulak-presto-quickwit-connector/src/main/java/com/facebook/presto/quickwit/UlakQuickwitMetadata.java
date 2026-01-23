@@ -39,20 +39,34 @@ public class UlakQuickwitMetadata
     private static UlakQuickwitMetadata single;
     private static String connectorId;
     private String qwIndex;
+    private final Integer connectTimeout;
+    private final Integer readTimeout;
+    private final Integer writeTimeout;
     private String qwUrl;
     private static final String ERRORSTRING = "UlakQuickwitMetadata.java Error: {}";
 
-    private UlakQuickwitMetadata(String catalogName, String qwUrl, String qwIndex)
+    private UlakQuickwitMetadata(String catalogName, String qwUrl, String qwIndex,
+                                 Integer connectTimeout,
+                                 Integer readTimeout,
+                                 Integer writeTimeout)
     {
+        this.qwUrl = qwUrl;
+        this.qwIndex = qwIndex;
+        this.connectTimeout = connectTimeout;
+        this.readTimeout = readTimeout;
+        this.writeTimeout = writeTimeout;
         this.setQwUrl(qwUrl);
         this.setQwIndex(qwIndex);
         connectorId = new UlakConnectorId(catalogName).toString();
     }
 
-    public static UlakQuickwitMetadata getInstance(String catalogName, String qwUrl, String qwIndex)
+    public static UlakQuickwitMetadata getInstance(String catalogName, String qwUrl, String qwIndex,
+                                                   Integer connectTimeout,
+                                                   Integer readTimeout,
+                                                   Integer writeTimeout)
     {
         if (single == null) {
-            single = new UlakQuickwitMetadata(catalogName,qwUrl,qwIndex);
+            single = new UlakQuickwitMetadata(catalogName,qwUrl,qwIndex,connectTimeout,readTimeout,writeTimeout);
         }
         return single;
     }
@@ -101,7 +115,7 @@ public class UlakQuickwitMetadata
             list = getColumnsBase(ConnectorBaseUtil.select(qp,
                     false,new String[]{this.qwUrl, this.qwIndex}, (q, s)-> {
                             try {
-                                return  QwUtil.select(q , s[0], s[1]);
+                                return  QwUtil.select(q , s[0], s[1],connectTimeout,readTimeout,writeTimeout);
                             } catch (ApiException e) {
                                 logger.error(ERRORSTRING, e);
                                 throw new RuntimeException(e);
@@ -146,7 +160,7 @@ public class UlakQuickwitMetadata
                                     q.getQuery(),
                                     s[0],
                                     s[1]);
-                            return QwUtil.select(q, s[0],s[1]);
+                            return QwUtil.select(q, s[0],s[1],connectTimeout,readTimeout,writeTimeout);
                         } catch (ApiException e) {
                             logger.error(ERRORSTRING, e);
                             throw new RuntimeException(e);
@@ -196,7 +210,7 @@ public class UlakQuickwitMetadata
                                             new String[]{this.qwUrl, this.qwIndex},
                                             (q, s)-> {
                                                 try {
-                                                    return QwUtil.select(q, s[0], s[1]);
+                                                    return QwUtil.select(q, s[0], s[1],connectTimeout,readTimeout,writeTimeout);
                                                 } catch (ApiException e) {
                                                     logger.error(ERRORSTRING, e);
                                                     throw new RuntimeException(e);

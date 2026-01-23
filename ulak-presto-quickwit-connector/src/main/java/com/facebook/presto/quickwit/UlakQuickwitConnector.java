@@ -47,7 +47,10 @@ public class UlakQuickwitConnector
                              String workerIndexToRunIn,
                              boolean isCoordinator,
                              int numThreads,
-                             String qwIndex) {
+                             String qwIndex,
+                             Integer connectTimeout,
+                             Integer readTimeout,
+                             Integer writeTimeout) {
         // need to get database connection here
         logger.debug("Connector by url: {}", url);
 
@@ -59,11 +62,11 @@ public class UlakQuickwitConnector
         }
 
         this.setQwIndex(qwIndex);
-        this.metadata = UlakQuickwitMetadata.getInstance(catalogName,qwUrl,qwIndex);
+        this.metadata = UlakQuickwitMetadata.getInstance(catalogName,qwUrl,qwIndex,connectTimeout,readTimeout,writeTimeout);
         this.splitManager = UlakSplitManager.getInstance();
         this.recordSetProvider = UlakRecordSetProvider.getInstance(((q,s)-> {
             try {
-                return QwUtil.select(q,s[1],s[2]);
+                return QwUtil.select(q,s[1],s[2], connectTimeout, readTimeout, writeTimeout);
             } catch (ApiException e) {
                 logger.error("Connector by url: {}", url, e);
                 throw new RuntimeException(e);
@@ -78,7 +81,7 @@ public class UlakQuickwitConnector
         if ((isCoordinator && runInCoordinatorOnly) && redisCacheWorker == null) {
                 redisCacheWorker = new RedisCacheWorker((q,s)-> {
                     try {
-                        return  QwUtil.select(q, qwUrl, qwIndex) ;
+                        return  QwUtil.select(q, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout) ;
                     } catch (ApiException e) {
                         logger.error("InfluxdbConnector", e);
                         throw new RuntimeException(e);
