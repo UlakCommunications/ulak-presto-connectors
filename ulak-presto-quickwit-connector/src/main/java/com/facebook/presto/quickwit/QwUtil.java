@@ -20,7 +20,6 @@ import com.facebook.presto.ulak.UlakRow;
 import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
 import com.github.opendevl.JFlat;
 import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
@@ -37,7 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.*;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
@@ -57,9 +55,12 @@ public class QwUtil {
     public static final String VALUE = "value";
     public static final String BUCKETS = "buckets";
 
-    public static ApiClient getDefaultClient(QueryParameters queryParameters) {
-        String qwUrl = queryParameters!=null?queryParameters.getQwUrl():null;
-        if (StringUtils.isBlank(qwUrl) ) {
+    public static ApiClient getDefaultClient(QueryParameters queryParameters,
+                                             Integer connectTimeout,
+                                             Integer readTimeout,
+                                             Integer writeTimeout) {
+        String qwUrl = queryParameters != null ? queryParameters.getQwUrl() : null;
+        if (StringUtils.isBlank(qwUrl)) {
             logger.error("url is null : {}\n\n\nurl:{}\n\n\nindex:{}",
                     queryParameters.getQuery(),
                     queryParameters.getQwUrl(),
@@ -70,12 +71,37 @@ public class QwUtil {
         if (defaultClients == null) {
             defaultClients = new LinkedHashMap<>();
         }
-        if(!defaultClients.containsKey(qwUrl)){
+        if (!defaultClients.containsKey(qwUrl)) {
             client = Configuration.getDefaultApiClient();
             client.setBasePath(qwUrl);
+
+            Integer newTimeout = queryParameters.getConnectTimeout();
+            if (newTimeout == null) {
+                newTimeout =  connectTimeout;
+            }
+            if (newTimeout != null) {
+                client.setConnectTimeout(newTimeout*1000);
+            }
+
+            newTimeout = queryParameters.getReadTimeout();
+            if (newTimeout == null) {
+                newTimeout =  readTimeout;
+            }
+            if (newTimeout != null) {
+                client.setReadTimeout(newTimeout*1000);
+            }
+
+            newTimeout = queryParameters.getWriteTimeout();
+            if (newTimeout == null) {
+                newTimeout =  writeTimeout;
+            }
+            if (newTimeout != null) {
+                client.setWriteTimeout(newTimeout*1000);
+            }
+
             defaultClients.put(qwUrl, client);
-        }else{
-            client  = defaultClients.get(qwUrl);
+        } else {
+            client = defaultClients.get(qwUrl);
         }
         return client;
     }
@@ -86,7 +112,7 @@ public class QwUtil {
     public static List<String> getSchemas() throws ApiException {
         logger.debug("QwUtil-getSchemas");
         List<String> res = new ArrayList<>();
-        IndexesApi indexesApi = new IndexesApi(getDefaultClient(null));
+        IndexesApi indexesApi = new IndexesApi(getDefaultClient(null,null,null,null));
         List<VersionedIndexMetadata> indexesMetadatas = indexesApi.getIndexesMetadatas();
 
         for (VersionedIndexMetadata bucket1 : indexesMetadatas) {
@@ -100,7 +126,7 @@ public class QwUtil {
     public static List<String> getTableNames(String schema) throws ApiException {
         logger.debug("QwUtil-getSchemas");
         List<String> res = new ArrayList<>();
-        IndexesApi indexesApi = new IndexesApi(getDefaultClient(null));
+        IndexesApi indexesApi = new IndexesApi(getDefaultClient(null,null,null,null));
         List<VersionedIndexMetadata> indexesMetadatas = indexesApi.getIndexesMetadatas();
 
         for (VersionedIndexMetadata bucket1 : indexesMetadatas) {
@@ -126,7 +152,10 @@ public class QwUtil {
     }
     public static List<UlakRow> select(QueryParameters queryParameters,
                                            String qwUrl,
-                                           String qwIndex ) throws ApiException {
+                                           String qwIndex,
+                                           Integer connectTimeout,
+                                           Integer readTimeout,
+                                           Integer writeTimeout ) throws ApiException {
         queryParameters.setQuery(replaceTrinoQWVars(queryParameters.getQuery()));
         queryParameters.setDbType(DBType.QW);
         if(StringUtils.isBlank(queryParameters.getQwUrl())) {
@@ -144,10 +173,11 @@ public class QwUtil {
 
         queryParameters.setError("");
 
-        List<UlakRow> ret = executeOneQuery( queryParameters,queryParameters.getQuery());
-
-//                    addOneStat(hash, 1);
-        return ret ;
+        //                    addOneStat(hash, 1);
+        return executeOneQuery( queryParameters,queryParameters.getQuery(),
+                  connectTimeout,
+                  readTimeout,
+                  writeTimeout);
     }
     public static String executeQueryScript(String query) {
         long unixTime = System.currentTimeMillis() / 1000L;
@@ -186,7 +216,10 @@ public class QwUtil {
         }
     }
     public static List<UlakRow> executeOneQuery( QueryParameters queryParameters,
-                                                     String query) throws ApiException {
+                                                     String query,
+                                                     Integer connectTimeout,
+                                                     Integer readTimeout,
+                                                     Integer writeTimeout) throws ApiException {
 
         queryParameters.setQuery(replaceTrinoQWVars(queryParameters.getQuery()));
         if(queryParameters.getHasJs()) {
@@ -208,7 +241,10 @@ public class QwUtil {
 
         String qwIndex = queryParameters.getQwIndex();
 
-        SearchApi searchApi = new SearchApi(getDefaultClient(queryParameters));
+        SearchApi searchApi = new SearchApi(getDefaultClient(queryParameters,
+                                                    connectTimeout,
+                                                    readTimeout,
+                                                    writeTimeout));
         SearchRequestQueryString toQuery =null;
         try {
             toQuery = getGson().fromJson(query, SearchRequestQueryString.class);
@@ -591,7 +627,7 @@ public class QwUtil {
 //                                        q.getQuery(),
 //                                        s[0],
 //                                        s[1]);
-                            return  QwUtil.select(q , s[0], s[1]);
+                            return  QwUtil.select(q , s[0], s[1],null,null,null);
                         } catch (ApiException e) {
                             logger.error("ERRORSTRING", e);
                             throw new RuntimeException(e);
