@@ -25,12 +25,16 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 import com.quickwit.javaclient.ApiClient;
 import com.quickwit.javaclient.ApiException;
+import com.quickwit.javaclient.ApiResponse;
 import com.quickwit.javaclient.Configuration;
 import com.quickwit.javaclient.api.IndexesApi;
 import com.quickwit.javaclient.api.SearchApi;
 import com.quickwit.javaclient.models.SearchRequestQueryString;
 import com.quickwit.javaclient.models.SearchResponseRest;
 import com.quickwit.javaclient.models.VersionedIndexMetadata;
+import io.trino.spi.StandardErrorCode;
+import io.trino.spi.TrinoException;
+import okhttp3.Call;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -245,6 +249,7 @@ public class QwUtil {
                                                     connectTimeout,
                                                     readTimeout,
                                                     writeTimeout));
+
         SearchRequestQueryString toQuery =null;
         try {
             toQuery = getGson().fromJson(query, SearchRequestQueryString.class);
@@ -252,7 +257,15 @@ public class QwUtil {
             logger.error("Error in {}/{}: {}", queryParameters.getQwUrl(), qwIndex, query);
         }
         logger.debug("Running on {}/{}: {}", queryParameters.getQwUrl(), qwIndex, query);
-        SearchResponseRest ret = searchApi.searchPostHandler(qwIndex, toQuery);
+        Call call = searchApi.searchPostHandlerCall(qwIndex, toQuery,null);
+
+        try {
+            // Wait for response (this is where it blocks)
+            ApiResponse<SearchResponseRest> resp = searchApi.getApiClient()
+                    .execute(call);
+
+            SearchResponseRest ret = resp.getData();
+
         List<String> errors = ret.getErrors();
         if(errors!=null && !errors.isEmpty()) {
             String error_text = String.join("\n\n",errors);
@@ -270,6 +283,13 @@ public class QwUtil {
                 ret == null || ret.getAggregations() == null ? 0 : ((Map<String, Object>)ret.getAggregations()).size());
         List<UlakRow> parsed = parseResponse(queryParameters,ret);
         return parsed;
+        }
+        catch (ApiException e) {
+            if (call.isCanceled() || Thread.currentThread().isInterrupted()) {
+                throw new TrinoException(StandardErrorCode.QUERY_CANCELED, "Query canceled", e);
+            }
+            throw e;
+        }
     }
 
     public static Gson getGson() {

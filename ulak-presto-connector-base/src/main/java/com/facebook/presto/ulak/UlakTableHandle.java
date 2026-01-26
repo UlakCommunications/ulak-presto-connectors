@@ -35,7 +35,9 @@ public class UlakTableHandle
 
     @JsonCreator
     public UlakTableHandle(@JsonProperty("connectorId") String connectorId,
-            @JsonProperty("schemaName") String schemaName, @JsonProperty("tableName") String tableName)
+            @JsonProperty("schemaName") String schemaName,
+           @JsonProperty("tableName") String tableName,
+           @JsonProperty("query") String query)
     {
         this.schemaName = requireNonNull(schemaName, "schemaName is null");
         this.tableName = requireNonNull(tableName, "tableName is null");

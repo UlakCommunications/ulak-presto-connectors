@@ -37,7 +37,7 @@ public class UlakQuickwitMetadata
     public static final String DEFAULT_TABLE = "default_Table";
     private static Logger logger = LoggerFactory.getLogger(UlakQuickwitMetadata.class);
     private static UlakQuickwitMetadata single;
-    private static String connectorId;
+    static String connectorId;
     private String qwIndex;
     private final Integer connectTimeout;
     private final Integer readTimeout;
@@ -81,7 +81,7 @@ public class UlakQuickwitMetadata
 
     @Override
     public ConnectorTableHandle getTableHandle(ConnectorSession session, SchemaTableName tableName, Optional<ConnectorTableVersion> startVersion, Optional<ConnectorTableVersion> endVersion) {
-        return new UlakTableHandle(connectorId, tableName.getSchemaName(), tableName.getTableName());
+        return new UlakTableHandle(connectorId, tableName.getSchemaName(), tableName.getTableName(),null);
     }
 
 //    //    @Override

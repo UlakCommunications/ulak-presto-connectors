@@ -28,7 +28,7 @@ public class UlakSplit
         implements ConnectorSplit
 {
     private final String schemaName;
-    private final String tableName;
+    private String tableName;
 
     @JsonCreator
     public UlakSplit(@JsonProperty("schemaName") String schemaName,
@@ -48,6 +48,11 @@ public class UlakSplit
     public String getTableName()
     {
         return tableName;
+    }
+    @JsonProperty
+    public void setTableName(String tableName)
+    {
+        this.tableName = tableName;
     }
 
 

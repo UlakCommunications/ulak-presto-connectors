@@ -140,7 +140,7 @@ public class ConnectorBaseUtil {
     public static Object inProgressLock = new Object();
 
 
-    static ObjectMapper getObjectMapper() {
+    public static ObjectMapper getObjectMapper() {
         if(objectMapper==null) {
             objectMapper = new ObjectMapper();
             objectMapper.registerModule(new JavaTimeModule());

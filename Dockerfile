@@ -21,6 +21,7 @@ RUN find /usr/lib/trino/plugin \
     ! -name 'postgresql' \
     ! -name 'exchange-filesystem' \
     ! -name 'geospatial' \
+    ! -name 'elasticsearch' \
     -exec rm -rf {} +
 
 

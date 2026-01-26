@@ -36,4 +36,5 @@ public class UlakQuickwitPlugin
                 .add(IPToCountry.class)
                 .build();
     }
+
 }

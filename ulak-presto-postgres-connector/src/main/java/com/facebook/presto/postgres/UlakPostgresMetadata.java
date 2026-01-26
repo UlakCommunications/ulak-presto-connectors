@@ -56,7 +56,7 @@ public class UlakPostgresMetadata
 
     @Override
     public ConnectorTableHandle getTableHandle(ConnectorSession session, SchemaTableName tableName, Optional<ConnectorTableVersion> startVersion, Optional<ConnectorTableVersion> endVersion) {
-        return new UlakTableHandle(connectorId, tableName.getSchemaName(), tableName.getTableName());
+        return new UlakTableHandle(connectorId, tableName.getSchemaName(), tableName.getTableName(),null);
     }
 
     //    @Override
