@@ -266,8 +266,8 @@ public class QwUtil {
 
             SearchResponseRest ret = resp.getData();
 
-        List<String> errors = ret.getErrors();
-        if(errors!=null && !errors.isEmpty()) {
+        List<String> errors = ret == null ? new ArrayList<>():ret.getErrors();
+        if( !errors.isEmpty()) {
             String error_text = String.join("\n\n",errors);
             logger.error("Error from quickwit server: {}\n\n\nurl:{}\n\n\nindex:{}\n\n\nret size:{}",
                     query,
@@ -286,7 +286,7 @@ public class QwUtil {
         }
         catch (ApiException e) {
             if (call.isCanceled() || Thread.currentThread().isInterrupted()) {
-                throw new TrinoException(StandardErrorCode.QUERY_CANCELED, "Query canceled", e);
+                throw new TrinoException(StandardErrorCode.USER_CANCELED, "Query canceled", e);
             }
             throw e;
         }

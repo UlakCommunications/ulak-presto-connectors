@@ -43,7 +43,7 @@ public class UlakQuickwitConnector
     private final UlakSplitManager splitManager;
 
     private final UlakRecordSetProvider recordSetProvider;
-    private RawQuery.RawQueryFunction tableFunctions;
+    private final RawQuery.RawQueryFunction tableFunctions;
 
     @Override
     public Set<ConnectorTableFunction> getTableFunctions() {
