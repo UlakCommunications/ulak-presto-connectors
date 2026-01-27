@@ -25,6 +25,11 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
 
     private final Optional<String> aggsJson;
     private final boolean cache;
+    private final String name;
+    private final String columns;
+    private final String dbtype;
+    private final String replacefromcolumns;
+    private final String hasjs;
 
     @JsonCreator
     public RawQuickwitQueryTableHandle(
@@ -35,7 +40,12 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
             @JsonProperty("endTimestamp") Optional<Long> endTimestamp,
             @JsonProperty("maxHits") Optional<Integer> maxHits,
             @JsonProperty("aggsJson") Optional<String> aggsJson,
-            @JsonProperty("cache") boolean cache)
+            @JsonProperty("cache") boolean cache,
+            @JsonProperty("name") String name,
+            @JsonProperty("columns") String columns,
+            @JsonProperty("dbtype") String dbtype,
+            @JsonProperty("replacefromcolumns") String replacefromcolumns,
+            @JsonProperty("hasjs") String hasjs)
     {
         this.connectorId = Objects.requireNonNull(connectorId, "connectorId is null");
         this.index = Objects.requireNonNull(index, "index is null");
@@ -45,6 +55,11 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
         this.maxHits = Objects.requireNonNull(maxHits, "maxHits is null");
         this.aggsJson = Objects.requireNonNull(aggsJson, "aggsJson is null");
         this.cache = cache;
+        this.name = name;
+        this.columns = columns;
+        this.dbtype = dbtype;
+        this.replacefromcolumns = replacefromcolumns;
+        this.hasjs = hasjs;
     }
 
     // ---------------- getters ----------------
@@ -130,7 +145,12 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
                 && startTimestamp.equals(other.startTimestamp)
                 && endTimestamp.equals(other.endTimestamp)
                 && maxHits.equals(other.maxHits)
-                && aggsJson.equals(other.aggsJson);
+                && aggsJson.equals(other.aggsJson)
+                && name.equals(other.name)
+                && columns.equals(other.columns)
+                && dbtype.equals(other.dbtype)
+                && replacefromcolumns.equals(other.replacefromcolumns)
+                && hasjs.equals(other.hasjs);
     }
 
     @Override
@@ -144,6 +164,31 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
                 ", maxHits=" + maxHits +
                 ", aggsJsonPresent=" + aggsJson.isPresent() +
                 ", cache=" + cache +
+                ", name=" +name +
+                ", columns=" + columns+
+                ", dbtype=" + dbtype+
+                ", replacefromcolumns=" + replacefromcolumns+
+                ", hasjs=" +hasjs +
                 '}';
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getColumns() {
+        return columns;
+    }
+
+    public String getDbtype() {
+        return dbtype;
+    }
+
+    public String getReplacefromcolumns() {
+        return replacefromcolumns;
+    }
+
+    public String getHasjs() {
+        return hasjs;
     }
 }

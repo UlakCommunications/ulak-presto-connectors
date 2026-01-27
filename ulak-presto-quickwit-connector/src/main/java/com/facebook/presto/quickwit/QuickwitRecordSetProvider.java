@@ -60,14 +60,14 @@ public class QuickwitRecordSetProvider extends UlakRecordSetProvider {
         return new UlakRecordSet(ulakSplit, handles.build(),this.exec1,this.defaultParams);
     }
 
-    private String buildSearchRequestJson(RawQuickwitQueryTableHandle h)
+    public static String buildSearchRequestJson(RawQuickwitQueryTableHandle h)
     {
         ObjectNode root = getObjectMapper().createObjectNode();
         root.put("query", h.getQuery());
 
         h.getMaxHits().ifPresent(v -> root.put("max_hits", v));
-        h.getStartTimestamp().ifPresent(v -> root.put("start_timestamp", v));
-        h.getEndTimestamp().ifPresent(v -> root.put("end_timestamp", v));
+        h.getStartTimestamp().ifPresent(v -> root.put("start_timestamp", v.longValue()));
+        h.getEndTimestamp().ifPresent(v -> root.put("end_timestamp", v.longValue()));
 
         h.getAggsJson().ifPresent(aggs -> {
             try {
@@ -78,7 +78,19 @@ public class QuickwitRecordSetProvider extends UlakRecordSetProvider {
             }
         });
 
-        return root.toString();
+        String initialString =  root.toString();
+
+        initialString = "//qwindex=" + h.getIndex() + "\n" + initialString;
+        initialString = "//cache=" + h.isCache() + "\n" + initialString;
+        initialString = "//name=" + h.getName() + "\n" + initialString;
+        initialString = "//columns=" + h.getColumns() + "\n" + initialString;
+        initialString = "//dbtype=" + h.getDbtype() + "\n" + initialString;
+        initialString = "//replacefromcolumns=" + h.getReplacefromcolumns() + "\n" + initialString;
+        initialString = "//hasjs=" + h.getHasjs() + "\n" + initialString;
+        initialString = "//from=" + h.getStartTimestamp().orElse(0L) + "\n" + initialString;
+        initialString = "//to=" + h.getEndTimestamp().orElse(0L) + "\n" + initialString;
+
+        return initialString;
     }
 
 }

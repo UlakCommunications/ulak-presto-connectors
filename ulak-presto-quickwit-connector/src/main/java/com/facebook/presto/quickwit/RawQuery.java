@@ -37,6 +37,7 @@ import io.trino.spi.function.table.ScalarArgumentSpecification;
 import io.trino.spi.function.table.TableFunctionAnalysis;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static io.trino.spi.function.table.ReturnTypeSpecification.GenericTable.GENERIC_TABLE;
@@ -70,16 +71,19 @@ public class RawQuery
                     SCHEMA_NAME,
                     NAME,
                     List.of(
-                            ScalarArgumentSpecification.builder().name("qwindex").type(VARCHAR).build(),
                             ScalarArgumentSpecification.builder().name("query").type(VARCHAR).build(),
-
-                            // optional-ish: you can still define them and allow nulls by not providing them in SQL
+                            ScalarArgumentSpecification.builder().name("qwindex").type(VARCHAR).build(),
                             ScalarArgumentSpecification.builder().name("start_timestamp").type(VARCHAR).build(),
                             ScalarArgumentSpecification.builder().name("end_timestamp").type(VARCHAR).build(),
                             ScalarArgumentSpecification.builder().name("max_hits").type(VARCHAR).build(),
-
                             ScalarArgumentSpecification.builder().name("aggs").type(VARCHAR).build(),
-                            ScalarArgumentSpecification.builder().name("cache").type(VARCHAR).build()
+                            ScalarArgumentSpecification.builder().name("cache").type(VARCHAR).build(),
+
+                            ScalarArgumentSpecification.builder().name("name").type(VARCHAR).build(),
+                            ScalarArgumentSpecification.builder().name("columns").type(VARCHAR).build(),
+                            ScalarArgumentSpecification.builder().name("dbtype").type(VARCHAR).build(),
+                            ScalarArgumentSpecification.builder().name("replacefromcolumns").type(VARCHAR).build(),
+                            ScalarArgumentSpecification.builder().name("hasjs").type(VARCHAR).build()
                     ),
                     GENERIC_TABLE
             );
@@ -92,16 +96,21 @@ public class RawQuery
                 ConnectorTransactionHandle transaction,
                 Map<String, Argument> arguments,
                 ConnectorAccessControl accessControl) {
-            // NOTE: use argument names that match your SQL: qwindex, query, max_hits, start_timestamp, end_timestamp, aggs, cache
             String index = getRequiredVarchar(arguments, "qwindex");
             String query = getOptionalVarchar(arguments, "query").orElse("*");
 
-            OptionalLong startTs = getOptionalVarchar(arguments, "start_timestamp").map(RawQueryFunction::parseLongSafely).orElse(OptionalLong.empty());
-            OptionalLong endTs = getOptionalVarchar(arguments, "end_timestamp").map(RawQueryFunction::parseLongSafely).orElse(OptionalLong.empty());
+            OptionalLong startTs = getOptionalVarchar(arguments, "start_timestamp").map(RawQueryFunction::parseLongSafely).orElse(OptionalLong.of(0));
+            OptionalLong endTs = getOptionalVarchar(arguments, "end_timestamp").map(RawQueryFunction::parseLongSafely).orElse(OptionalLong.of(0));
 
             OptionalInt maxHits = getOptionalVarchar(arguments, "max_hits").map(RawQueryFunction::parseIntSafely).orElse(OptionalInt.empty());
             Optional<String> aggsJson = getOptionalVarchar(arguments, "aggs");
             boolean cache = getOptionalVarchar(arguments, "cache").map(Boolean::parseBoolean).orElse(false);
+
+            String name = getOptionalVarchar(arguments, "name").orElse("*");
+            String columns = getOptionalVarchar(arguments, "columns").orElse("");
+            String dbtype = getOptionalVarchar(arguments, "dbtype").orElse("");
+            String replacefromcolumns = getOptionalVarchar(arguments, "replacefromcolumns").orElse("");
+            String hasjs = getOptionalVarchar(arguments, "hasjs").orElse("false");
 
             // Your own ConnectorTableHandle that stores raw-query params
             RawQuickwitQueryTableHandle tableHandle = new RawQuickwitQueryTableHandle(
@@ -112,14 +121,16 @@ public class RawQuery
                     endTs.isPresent() ? Optional.of(endTs.getAsLong()) : Optional.empty(),
                     maxHits.isPresent() ? Optional.of(maxHits.getAsInt()) : Optional.empty(),
                     aggsJson,
-                    cache);
+                    cache,
+                    name,
+                    columns,
+                    dbtype,
+                    replacefromcolumns,
+                    hasjs);
 
             // Stable return type (recommended)
-            Descriptor returnedType = new Descriptor(List.of(
-                    new Descriptor.Field("hits_json", Optional.of(VARCHAR)),
-                    new Descriptor.Field("aggs_json", Optional.of(VARCHAR)),
-                    new Descriptor.Field("elapsed_ms", Optional.of(io.trino.spi.type.BigintType.BIGINT))
-            ));
+
+            Descriptor returnedType = new Descriptor(Arrays.stream(columns.split(",")).map(t->new Descriptor.Field(t, Optional.of(VARCHAR))).collect(Collectors.toList()));
 
             RawQueryFunctionHandle handle = new RawQueryFunctionHandle(tableHandle);
 

@@ -35,6 +35,7 @@ import com.quickwit.javaclient.models.VersionedIndexMetadata;
 import io.trino.spi.StandardErrorCode;
 import io.trino.spi.TrinoException;
 import okhttp3.Call;
+import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -226,10 +227,10 @@ public class QwUtil {
                                                      Integer writeTimeout) throws ApiException {
 
         queryParameters.setQuery(replaceTrinoQWVars(queryParameters.getQuery()));
-        if(queryParameters.getHasJs()) {
+        if (queryParameters.getHasJs()) {
             try {
                 query = executeQueryScript(query);
-            }catch (Exception e){
+            } catch (Exception e) {
                 logger.error("Error Executing executeQueryScript: {}\n\n\nurl:{}\n\n\nindex:{}\n\n\nerror:{}",
                         queryParameters.getQuery(),
                         queryParameters.getQwUrl(),
@@ -246,49 +247,58 @@ public class QwUtil {
         String qwIndex = queryParameters.getQwIndex();
 
         SearchApi searchApi = new SearchApi(getDefaultClient(queryParameters,
-                                                    connectTimeout,
-                                                    readTimeout,
-                                                    writeTimeout));
+                connectTimeout,
+                readTimeout,
+                writeTimeout));
 
-        SearchRequestQueryString toQuery =null;
+        SearchRequestQueryString toQuery = null;
         try {
             toQuery = getGson().fromJson(query, SearchRequestQueryString.class);
-        }catch (Exception e){
+        } catch (Exception e) {
             logger.error("Error in {}/{}: {}", queryParameters.getQwUrl(), qwIndex, query);
         }
         logger.debug("Running on {}/{}: {}", queryParameters.getQwUrl(), qwIndex, query);
-        Call call = searchApi.searchPostHandlerCall(qwIndex, toQuery,null);
+        Call call = searchApi.searchPostHandlerCall(qwIndex, toQuery, null);
 
         try {
             // Wait for response (this is where it blocks)
-            ApiResponse<SearchResponseRest> resp = searchApi.getApiClient()
-                    .execute(call);
+//            ApiResponse<SearchResponseRest> resp = searchApi.getApiClient()
+//                    .execute(call);
+            try(Response execResp = call.execute()) {
+                SearchResponseRest ret = SearchResponseRest.fromJson(execResp.body().string());
 
-            SearchResponseRest ret = resp.getData();
-
-        List<String> errors = ret == null ? new ArrayList<>():ret.getErrors();
-        if( !errors.isEmpty()) {
-            String error_text = String.join("\n\n",errors);
-            logger.error("Error from quickwit server: {}\n\n\nurl:{}\n\n\nindex:{}\n\n\nret size:{}",
-                    query,
-                    queryParameters.getQwUrl(),
-                    qwIndex,
-                    error_text);
-            throw new ApiException(error_text);
-        }
-        logger.debug("Query executed executeOneQuery: {}\n\n\nurl:{}\n\n\nindex:{}\n\n\nret size:{}",
-                query,
-                queryParameters.getQwUrl(),
-                queryParameters.getQwIndex(),
-                ret == null || ret.getAggregations() == null ? 0 : ((Map<String, Object>)ret.getAggregations()).size());
-        List<UlakRow> parsed = parseResponse(queryParameters,ret);
-        return parsed;
-        }
-        catch (ApiException e) {
+                List<String> errors = ret == null ? new ArrayList<>() : ret.getErrors();
+                if (!errors.isEmpty()) {
+                    String error_text = String.join("\n\n", errors);
+                    logger.error("Error from quickwit server: {}\n\n\nquery:{}\n\n\nurl:{}\n\n\nindex:{}\n\n\nret size:{}",
+                            query,
+                            queryParameters.getQwUrl(),
+                            qwIndex,
+                            error_text);
+                    throw new ApiException(error_text);
+                }
+                if (ret == null) {
+                    logger.error("Empty response quickwit server: {}\n\n\nquery:{}\n\n\nurl:{}\n\n\nindex:{}",
+                            query,
+                            queryParameters.getQwUrl(),
+                            qwIndex);
+                    throw new ApiException("Empty response quickwit server");
+                }
+                logger.debug("Query executed executeOneQuery: {}\n\n\nurl:{}\n\n\nindex:{}\n\n\nret size:{}",
+                        query,
+                        queryParameters.getQwUrl(),
+                        queryParameters.getQwIndex(),
+                        ret == null || ret.getAggregations() == null ? 0 : ((Map<String, Object>) ret.getAggregations()).size());
+                List<UlakRow> parsed = parseResponse(queryParameters, ret);
+                return parsed;
+            }
+        } catch (ApiException e) {
             if (call.isCanceled() || Thread.currentThread().isInterrupted()) {
                 throw new TrinoException(StandardErrorCode.USER_CANCELED, "Query canceled", e);
             }
             throw e;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
