@@ -55,7 +55,6 @@ public class UlakSplit
         this.tableName = tableName;
     }
 
-
     @Override
     public boolean isRemotelyAccessible() {
         return true;

@@ -57,6 +57,9 @@ public class QuickwitSplitManager
             UlakSplit ulakSplit = new UlakSplit("test", buildSearchRequestJson(raw));
             ulakSplit.setTableName(buildSearchRequestJson(raw));
             splits.add(ulakSplit);
+        }else{
+            UlakTableHandle tableHandle = (UlakTableHandle) table;
+            splits.add(new UlakSplit(tableHandle.getSchemaName(), tableHandle.getTableName()));
         }
         return new FixedSplitSource(splits);
     }
@@ -72,8 +75,12 @@ public class QuickwitSplitManager
             UlakSplit split = new UlakSplit("system", "raw_query");
             split.setTableName(buildSearchRequestJson((RawQuickwitQueryTableHandle) raw.getTableHandle())); // (rename this field later; it’s not really tableName)
             return new FixedSplitSource(List.of(split));
+        }else{
+            return ConnectorSplitManager.super.getSplits(transaction,
+                    session,
+                    function);
         }
-        throw new TrinoException(GENERIC_INTERNAL_ERROR, "Unknown table function handle: " + function);
+//        throw new TrinoException(GENERIC_INTERNAL_ERROR, "Unknown table function handle: " + function);
     }
 
 }

@@ -57,6 +57,4 @@ public class UlakRecordSetProvider
         return new UlakRecordSet(influxdbSplit, handles.build(),exec1,defaultParams);
     }
 
-
-
 }

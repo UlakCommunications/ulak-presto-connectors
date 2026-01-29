@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.function.BiFunction;
 
+import static com.facebook.presto.quickwit.AggsDslCompilerJ9_OrderInjection.normalizeAggs;
 import static com.facebook.presto.ulak.caching.ConnectorBaseUtil.getObjectMapper;
 
 public class QuickwitRecordSetProvider extends UlakRecordSetProvider {
@@ -71,7 +72,7 @@ public class QuickwitRecordSetProvider extends UlakRecordSetProvider {
 
         h.getAggsJson().ifPresent(aggs -> {
             try {
-                root.set("aggs", getObjectMapper().readTree(aggs));
+                root.set("aggs", getObjectMapper().readTree(normalizeAggs(aggs)));
             }
             catch (Exception e) {
                 throw new RuntimeException("Invalid aggs JSON", e);
@@ -81,12 +82,12 @@ public class QuickwitRecordSetProvider extends UlakRecordSetProvider {
         String initialString =  root.toString();
 
         initialString = "//qwindex=" + h.getIndex() + "\n" + initialString;
-        initialString = "//cache=" + h.isCache() + "\n" + initialString;
-        initialString = "//name=" + h.getName() + "\n" + initialString;
-        initialString = "//columns=" + h.getColumns() + "\n" + initialString;
-        initialString = "//dbtype=" + h.getDbtype() + "\n" + initialString;
-        initialString = "//replacefromcolumns=" + h.getReplacefromcolumns() + "\n" + initialString;
-        initialString = "//hasjs=" + h.getHasjs() + "\n" + initialString;
+        initialString = "//cache=" + (h.isCache().isPresent()?h.isCache().get():"false") + "\n" + initialString;
+        initialString = "//name=" + (h.getName().isPresent()?h.isCache().get():"<no_name>") + "\n" + initialString;
+        initialString = "//columns=" + (h.getColumns().isPresent()?h.getColumns().get():"") + "\n" + initialString;
+        initialString = "//dbtype=" + (h.getDbtype().isPresent()?h.getDbtype().get():"qw") + "\n" + initialString;
+        initialString = "//replacefromcolumns=" + (h.getReplacefromcolumns().isPresent()?h.getReplacefromcolumns().get():"") + "\n" + initialString;
+        initialString = "//hasjs=" + (h.getHasjs().isPresent()?h.getHasjs().get():"false") + "\n" + initialString;
         initialString = "//from=" + h.getStartTimestamp().orElse(0L) + "\n" + initialString;
         initialString = "//to=" + h.getEndTimestamp().orElse(0L) + "\n" + initialString;
 

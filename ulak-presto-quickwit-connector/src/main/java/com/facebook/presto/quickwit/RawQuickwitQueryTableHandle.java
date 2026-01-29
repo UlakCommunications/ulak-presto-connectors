@@ -24,12 +24,12 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
     private final Optional<Integer> maxHits;
 
     private final Optional<String> aggsJson;
-    private final boolean cache;
-    private final String name;
-    private final String columns;
-    private final String dbtype;
-    private final String replacefromcolumns;
-    private final String hasjs;
+    private final Optional<Boolean> cache;
+    private final Optional<String> name;
+    private final Optional<String> columns;
+    private final Optional<String> dbtype;
+    private final Optional<String> replacefromcolumns;
+    private final Optional<String> hasjs;
 
     @JsonCreator
     public RawQuickwitQueryTableHandle(
@@ -40,12 +40,12 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
             @JsonProperty("endTimestamp") Optional<Long> endTimestamp,
             @JsonProperty("maxHits") Optional<Integer> maxHits,
             @JsonProperty("aggsJson") Optional<String> aggsJson,
-            @JsonProperty("cache") boolean cache,
-            @JsonProperty("name") String name,
-            @JsonProperty("columns") String columns,
-            @JsonProperty("dbtype") String dbtype,
-            @JsonProperty("replacefromcolumns") String replacefromcolumns,
-            @JsonProperty("hasjs") String hasjs)
+            @JsonProperty("cache") Optional<Boolean> cache,
+            @JsonProperty("name") Optional<String> name,
+            @JsonProperty("columns") Optional<String> columns,
+            @JsonProperty("dbtype") Optional<String> dbtype,
+            @JsonProperty("replacefromcolumns") Optional<String> replacefromcolumns,
+            @JsonProperty("hasjs") Optional<String> hasjs)
     {
         this.connectorId = Objects.requireNonNull(connectorId, "connectorId is null");
         this.index = Objects.requireNonNull(index, "index is null");
@@ -107,7 +107,7 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
     }
 
     @JsonProperty
-    public boolean isCache()
+    public Optional<Boolean> isCache()
     {
         return cache;
     }
@@ -125,7 +125,12 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
                 endTimestamp,
                 maxHits,
                 aggsJson,
-                cache);
+                cache,
+                name,
+                columns,
+                dbtype,
+                replacefromcolumns,
+                hasjs);
     }
 
     @Override
@@ -172,23 +177,23 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
                 '}';
     }
 
-    public String getName() {
+    public Optional<String> getName() {
         return name;
     }
 
-    public String getColumns() {
+    public Optional<String> getColumns() {
         return columns;
     }
 
-    public String getDbtype() {
+    public Optional<String> getDbtype() {
         return dbtype;
     }
 
-    public String getReplacefromcolumns() {
+    public Optional<String> getReplacefromcolumns() {
         return replacefromcolumns;
     }
 
-    public String getHasjs() {
+    public Optional<String> getHasjs() {
         return hasjs;
     }
 }

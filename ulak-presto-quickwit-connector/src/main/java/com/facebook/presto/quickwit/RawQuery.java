@@ -13,20 +13,12 @@
  */
 package com.facebook.presto.quickwit;
 
-import com.facebook.presto.ulak.UlakColumnHandle;
-import com.facebook.presto.ulak.UlakTableHandle;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import io.airlift.slice.Slice;
-import io.trino.spi.connector.ColumnHandle;
-import io.trino.spi.connector.ColumnSchema;
-import io.trino.spi.connector.ConnectorAccessControl;
-import io.trino.spi.connector.ConnectorSession;
-import io.trino.spi.connector.ConnectorTableHandle;
-import io.trino.spi.connector.ConnectorTableSchema;
-import io.trino.spi.connector.ConnectorTransactionHandle;
+import io.trino.spi.connector.*;
 import io.trino.spi.function.table.AbstractConnectorTableFunction;
 import io.trino.spi.function.table.Argument;
 import io.trino.spi.function.table.ConnectorTableFunction;
@@ -36,14 +28,15 @@ import io.trino.spi.function.table.ScalarArgument;
 import io.trino.spi.function.table.ScalarArgumentSpecification;
 import io.trino.spi.function.table.TableFunctionAnalysis;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.facebook.presto.quickwit.QuickwitRecordSetProvider.buildSearchRequestJson;
+import static com.facebook.presto.quickwit.UlakQuickwitMetadata.getColumnsInternal;
 import static io.trino.spi.function.table.ReturnTypeSpecification.GenericTable.GENERIC_TABLE;
 import static io.trino.spi.type.VarcharType.VARCHAR;
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toList;
 
 public class RawQuery
         implements Provider<ConnectorTableFunction> {
@@ -121,16 +114,28 @@ public class RawQuery
                     endTs.isPresent() ? Optional.of(endTs.getAsLong()) : Optional.empty(),
                     maxHits.isPresent() ? Optional.of(maxHits.getAsInt()) : Optional.empty(),
                     aggsJson,
-                    cache,
-                    name,
-                    columns,
-                    dbtype,
-                    replacefromcolumns,
-                    hasjs);
+                    Optional.of(cache),
+                    Optional.of(name),
+                    Optional.of(columns),
+                    Optional.of(dbtype),
+                    Optional.of(replacefromcolumns),
+                    Optional.of(hasjs));
 
             // Stable return type (recommended)
+            String tmpCls = null;
 
-            Descriptor returnedType = new Descriptor(Arrays.stream(columns.split(",")).map(t->new Descriptor.Field(t, Optional.of(VARCHAR))).collect(Collectors.toList()));
+            try {
+                tmpCls = String.join(",", getColumnsInternal(buildSearchRequestJson(tableHandle),
+                        metadata.getQwUrl(),
+                        metadata.getQwIndex(),
+                        metadata.getConnectTimeout(),
+                        metadata.getConnectTimeout(),
+                        metadata.getConnectTimeout()).stream().map(t->t.getName()).collect(Collectors.toList()));
+            } catch (IOException e) {
+                tmpCls = columns;
+            }
+            Descriptor returnedType = new Descriptor(Arrays.stream(tmpCls.split(",")).map(t->new Descriptor.Field(t, Optional.of(VARCHAR))).collect(Collectors.toList()));
+
 
             RawQueryFunctionHandle handle = new RawQueryFunctionHandle(tableHandle);
 
