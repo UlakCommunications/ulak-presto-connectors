@@ -15,15 +15,20 @@ package com.facebook.presto.quickwit;
 
 import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
 import com.facebook.presto.ulak.UlakRecordSetProvider;
-import com.facebook.presto.ulak.UlakSplitManager;
 import com.facebook.presto.ulak.UlakTransactionHandle;
 import com.facebook.presto.ulak.DBType;
 import com.facebook.presto.ulak.caching.RedisCacheWorker;
+import com.google.common.collect.ImmutableSet;
 import com.quickwit.javaclient.ApiException;
 import io.trino.spi.connector.*;
+import io.trino.spi.function.FunctionProvider;
+import io.trino.spi.function.table.ConnectorTableFunction;
 import io.trino.spi.transaction.IsolationLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Optional;
+import java.util.Set;
 
 public class UlakQuickwitConnector
         implements Connector
@@ -34,23 +39,29 @@ public class UlakQuickwitConnector
     private static Logger logger = LoggerFactory.getLogger(UlakQuickwitConnector.class);
     private final UlakQuickwitMetadata metadata;
 
-    private final UlakSplitManager splitManager;
+    private final QuickwitSplitManager splitManager;
 
     private final UlakRecordSetProvider recordSetProvider;
+    private final RawQuery.RawQueryFunction tableFunctions;
+
+    @Override
+    public Set<ConnectorTableFunction> getTableFunctions() {
+        return ImmutableSet.of(tableFunctions);
+    }
 
     public UlakQuickwitConnector(String url,
-                             String catalogName,
-                             String redisUrl,
-                             String keywords,
-                             boolean runInCoordinatorOnly,
-                             String workerId,
-                             String workerIndexToRunIn,
-                             boolean isCoordinator,
-                             int numThreads,
-                             String qwIndex,
-                             Integer connectTimeout,
-                             Integer readTimeout,
-                             Integer writeTimeout) {
+                                 String catalogName,
+                                 String redisUrl,
+                                 String keywords,
+                                 boolean runInCoordinatorOnly,
+                                 String workerId,
+                                 String workerIndexToRunIn,
+                                 boolean isCoordinator,
+                                 int numThreads,
+                                 String qwIndex,
+                                 Integer connectTimeout,
+                                 Integer readTimeout,
+                                 Integer writeTimeout) {
         // need to get database connection here
         logger.debug("Connector by url: {}", url);
 
@@ -63,8 +74,9 @@ public class UlakQuickwitConnector
 
         this.setQwIndex(qwIndex);
         this.metadata = UlakQuickwitMetadata.getInstance(catalogName,qwUrl,qwIndex,connectTimeout,readTimeout,writeTimeout);
-        this.splitManager = UlakSplitManager.getInstance();
-        this.recordSetProvider = UlakRecordSetProvider.getInstance(((q,s)-> {
+        tableFunctions = new RawQuery.RawQueryFunction(metadata);
+        this.splitManager = QuickwitSplitManager.getInstance();
+        this.recordSetProvider = QuickwitRecordSetProvider.getInstance(((q,s)-> {
             try {
                 return QwUtil.select(q,s[1],s[2], connectTimeout, readTimeout, writeTimeout);
             } catch (ApiException e) {
@@ -138,4 +150,5 @@ public class UlakQuickwitConnector
     public void shutdown() {
 
     }
+    
 }
