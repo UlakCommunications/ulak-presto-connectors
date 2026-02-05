@@ -18,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import io.airlift.slice.Slice;
+import io.airlift.slice.Slices;
 import io.trino.spi.connector.*;
 import io.trino.spi.function.table.AbstractConnectorTableFunction;
 import io.trino.spi.function.table.Argument;
@@ -64,19 +65,19 @@ public class RawQuery
                     SCHEMA_NAME,
                     NAME,
                     List.of(
-                            ScalarArgumentSpecification.builder().name("query").type(VARCHAR).defaultValue("'*'").build(),
+                            ScalarArgumentSpecification.builder().name("query").type(VARCHAR).defaultValue(Slices.utf8Slice("*")).build(),
                             ScalarArgumentSpecification.builder().name("qwindex").type(VARCHAR).build(),
-                            ScalarArgumentSpecification.builder().name("start_timestamp").type(VARCHAR).defaultValue("''").build(),
-                            ScalarArgumentSpecification.builder().name("end_timestamp").type(VARCHAR).defaultValue("''").build(),
-                            ScalarArgumentSpecification.builder().name("max_hits").type(VARCHAR).defaultValue("'1000'").build(),
-                            ScalarArgumentSpecification.builder().name("aggs").type(VARCHAR).defaultValue("''").build(),
-                            ScalarArgumentSpecification.builder().name("cache").type(VARCHAR).defaultValue("'false'").build(),
+                            ScalarArgumentSpecification.builder().name("start_timestamp").type(VARCHAR).defaultValue(Slices.utf8Slice("")).build(),
+                            ScalarArgumentSpecification.builder().name("end_timestamp").type(VARCHAR).defaultValue(Slices.utf8Slice("")).build(),
+                            ScalarArgumentSpecification.builder().name("max_hits").type(VARCHAR).defaultValue(Slices.utf8Slice("1000")).build(),
+                            ScalarArgumentSpecification.builder().name("aggs").type(VARCHAR).defaultValue(Slices.utf8Slice("")).build(),
+                            ScalarArgumentSpecification.builder().name("cache").type(VARCHAR).defaultValue(Slices.utf8Slice("false")).build(),
 
-                            ScalarArgumentSpecification.builder().name("name").type(VARCHAR).defaultValue("''").build(),
-                            ScalarArgumentSpecification.builder().name("columns").type(VARCHAR).defaultValue("''").build(),
-                            ScalarArgumentSpecification.builder().name("dbtype").type(VARCHAR).defaultValue("'qw'").build(),
-                            ScalarArgumentSpecification.builder().name("replacefromcolumns").type(VARCHAR).defaultValue("''").build(),
-                            ScalarArgumentSpecification.builder().name("hasjs").type(VARCHAR).defaultValue("'false'").build()
+                            ScalarArgumentSpecification.builder().name("name").type(VARCHAR).defaultValue(Slices.utf8Slice("")).build(),
+                            ScalarArgumentSpecification.builder().name("columns").type(VARCHAR).defaultValue(Slices.utf8Slice("")).build(),
+                            ScalarArgumentSpecification.builder().name("dbtype").type(VARCHAR).defaultValue(Slices.utf8Slice("qw")).build(),
+                            ScalarArgumentSpecification.builder().name("replacefromcolumns").type(VARCHAR).defaultValue(Slices.utf8Slice("")).build(),
+                            ScalarArgumentSpecification.builder().name("hasjs").type(VARCHAR).defaultValue(Slices.utf8Slice("false")).build()
                     ),
                     GENERIC_TABLE
             );
