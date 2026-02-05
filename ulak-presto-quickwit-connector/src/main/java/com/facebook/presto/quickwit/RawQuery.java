@@ -29,8 +29,12 @@ import io.trino.spi.function.table.ScalarArgument;
 import io.trino.spi.function.table.ScalarArgumentSpecification;
 import io.trino.spi.function.table.TableFunctionAnalysis;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -42,6 +46,8 @@ import static java.util.Objects.requireNonNull;
 
 public class RawQuery
         implements Provider<ConnectorTableFunction> {
+
+    private static Logger logger = LoggerFactory.getLogger(QwUtil.class);
     public static final String SCHEMA_NAME = "system";
     public static final String NAME = "raw_query";
 
@@ -91,11 +97,18 @@ public class RawQuery
                 ConnectorTransactionHandle transaction,
                 Map<String, Argument> arguments,
                 ConnectorAccessControl accessControl) {
+
+            Instant now = Instant.now();                 // UTC now
+            Instant start = now.minus(15, ChronoUnit.MINUTES);
+
+            long startTsDefault = start.getEpochSecond();       // veya toEpochMilli()
+            long endTsDefault   = now.getEpochSecond();
+
             String index = getRequiredVarchar(arguments, "qwindex");
             String query = getOptionalVarchar(arguments, "query").orElse("*");
 
-            OptionalLong startTs = getOptionalVarchar(arguments, "start_timestamp").map(RawQueryFunction::parseLongSafely).orElse(OptionalLong.of(0));
-            OptionalLong endTs = getOptionalVarchar(arguments, "end_timestamp").map(RawQueryFunction::parseLongSafely).orElse(OptionalLong.of(0));
+            OptionalLong startTs = getOptionalVarchar(arguments, "start_timestamp").map(RawQueryFunction::parseLongSafely).orElse(OptionalLong.of(startTsDefault));
+            OptionalLong endTs = getOptionalVarchar(arguments, "end_timestamp").map(RawQueryFunction::parseLongSafely).orElse(OptionalLong.of(endTsDefault));
 
             OptionalInt maxHits = getOptionalVarchar(arguments, "max_hits").map(RawQueryFunction::parseIntSafely).orElse(OptionalInt.empty());
             Optional<String> aggsJson = getOptionalVarchar(arguments, "aggs");

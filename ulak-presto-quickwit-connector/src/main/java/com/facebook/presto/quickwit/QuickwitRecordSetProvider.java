@@ -26,6 +26,10 @@ import java.util.function.BiFunction;
 import static com.facebook.presto.quickwit.AggsDslCompilerJ9_OrderInjection.normalizeAggs;
 import static com.facebook.presto.ulak.caching.ConnectorBaseUtil.getObjectMapper;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+
+
 public class QuickwitRecordSetProvider extends UlakRecordSetProvider {
     private static Logger logger = LoggerFactory.getLogger(QuickwitRecordSetProvider.class);
     private static QuickwitRecordSetProvider single;
@@ -63,12 +67,30 @@ public class QuickwitRecordSetProvider extends UlakRecordSetProvider {
 
     public static String buildSearchRequestJson(RawQuickwitQueryTableHandle h)
     {
+
+        Instant now = Instant.now();                 // UTC now
+        Instant start = now.minus(15, ChronoUnit.MINUTES);
+
+        long startTs = start.getEpochSecond();       // veya toEpochMilli()
+        long endTs   = now.getEpochSecond();
+        if( h.getStartTimestamp().isPresent()){
+            startTs = h.getStartTimestamp().get();
+        }
+        if( h.getEndTimestamp().isPresent()){
+            endTs = h.getEndTimestamp().get();
+        }
         ObjectNode root = getObjectMapper().createObjectNode();
         root.put("query", h.getQuery());
+        int maxHits = 1000;
+        if(h.getMaxHits().isPresent())
+        {
+            maxHits = h.getMaxHits().get();
+        }
+        root.put("max_hits", maxHits);
 
-        h.getMaxHits().ifPresent(v -> root.put("max_hits", v));
-        h.getStartTimestamp().ifPresent(v -> root.put("start_timestamp", v.longValue()));
-        h.getEndTimestamp().ifPresent(v -> root.put("end_timestamp", v.longValue()));
+        root.put("start_timestamp",startTs);
+        root.put("end_timestamp", endTs);
+
 
         h.getAggsJson().ifPresent(aggs -> {
             try {
@@ -88,8 +110,8 @@ public class QuickwitRecordSetProvider extends UlakRecordSetProvider {
         initialString = "//dbtype=" + (h.getDbtype().isPresent()?h.getDbtype().get():"qw") + "\n" + initialString;
         initialString = "//replacefromcolumns=" + (h.getReplacefromcolumns().isPresent()?h.getReplacefromcolumns().get():"") + "\n" + initialString;
         initialString = "//hasjs=" + (h.getHasjs().isPresent()?h.getHasjs().get():"false") + "\n" + initialString;
-        initialString = "//from=" + h.getStartTimestamp().orElse(0L) + "\n" + initialString;
-        initialString = "//to=" + h.getEndTimestamp().orElse(0L) + "\n" + initialString;
+        initialString = "//from=" + h.getStartTimestamp().orElse(startTs) + "\n" + initialString;
+        initialString = "//to=" + h.getEndTimestamp().orElse(endTs) + "\n" + initialString;
 
         return initialString;
     }
