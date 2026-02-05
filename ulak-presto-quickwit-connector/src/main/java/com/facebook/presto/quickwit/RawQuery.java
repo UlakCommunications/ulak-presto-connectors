@@ -64,19 +64,19 @@ public class RawQuery
                     SCHEMA_NAME,
                     NAME,
                     List.of(
-                            ScalarArgumentSpecification.builder().name("query").type(VARCHAR).build(),
+                            ScalarArgumentSpecification.builder().name("query").type(VARCHAR).defaultValue("*").build(),
                             ScalarArgumentSpecification.builder().name("qwindex").type(VARCHAR).build(),
-                            ScalarArgumentSpecification.builder().name("start_timestamp").type(VARCHAR).build(),
-                            ScalarArgumentSpecification.builder().name("end_timestamp").type(VARCHAR).build(),
-                            ScalarArgumentSpecification.builder().name("max_hits").type(VARCHAR).build(),
-                            ScalarArgumentSpecification.builder().name("aggs").type(VARCHAR).build(),
-                            ScalarArgumentSpecification.builder().name("cache").type(VARCHAR).build(),
+                            ScalarArgumentSpecification.builder().name("start_timestamp").type(VARCHAR).defaultValue("").build(),
+                            ScalarArgumentSpecification.builder().name("end_timestamp").type(VARCHAR).defaultValue("").build(),
+                            ScalarArgumentSpecification.builder().name("max_hits").type(VARCHAR).defaultValue("1000").build(),
+                            ScalarArgumentSpecification.builder().name("aggs").type(VARCHAR).defaultValue("").build(),
+                            ScalarArgumentSpecification.builder().name("cache").type(VARCHAR).defaultValue("false").build(),
 
-                            ScalarArgumentSpecification.builder().name("name").type(VARCHAR).build(),
-                            ScalarArgumentSpecification.builder().name("columns").type(VARCHAR).build(),
-                            ScalarArgumentSpecification.builder().name("dbtype").type(VARCHAR).build(),
-                            ScalarArgumentSpecification.builder().name("replacefromcolumns").type(VARCHAR).build(),
-                            ScalarArgumentSpecification.builder().name("hasjs").type(VARCHAR).build()
+                            ScalarArgumentSpecification.builder().name("name").type(VARCHAR).defaultValue("").build(),
+                            ScalarArgumentSpecification.builder().name("columns").type(VARCHAR).defaultValue("").build(),
+                            ScalarArgumentSpecification.builder().name("dbtype").type(VARCHAR).defaultValue("qw").build(),
+                            ScalarArgumentSpecification.builder().name("replacefromcolumns").type(VARCHAR).defaultValue("").build(),
+                            ScalarArgumentSpecification.builder().name("hasjs").type(VARCHAR).defaultValue("false").build()
                     ),
                     GENERIC_TABLE
             );
