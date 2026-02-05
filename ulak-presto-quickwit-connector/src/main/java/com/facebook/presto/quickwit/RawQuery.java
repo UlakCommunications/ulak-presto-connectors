@@ -64,7 +64,7 @@ public class RawQuery
                     SCHEMA_NAME,
                     NAME,
                     List.of(
-                            ScalarArgumentSpecification.builder().name("query").type(VARCHAR).defaultValue("*").build(),
+                            ScalarArgumentSpecification.builder().name("query").type(VARCHAR).defaultValue("").build(),
                             ScalarArgumentSpecification.builder().name("qwindex").type(VARCHAR).build(),
                             ScalarArgumentSpecification.builder().name("start_timestamp").type(VARCHAR).defaultValue("").build(),
                             ScalarArgumentSpecification.builder().name("end_timestamp").type(VARCHAR).defaultValue("").build(),
