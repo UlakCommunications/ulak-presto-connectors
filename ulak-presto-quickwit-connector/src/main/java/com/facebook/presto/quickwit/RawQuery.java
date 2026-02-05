@@ -28,6 +28,7 @@ import io.trino.spi.function.table.Descriptor;
 import io.trino.spi.function.table.ScalarArgument;
 import io.trino.spi.function.table.ScalarArgumentSpecification;
 import io.trino.spi.function.table.TableFunctionAnalysis;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.util.*;
@@ -135,7 +136,8 @@ public class RawQuery
             } catch (IOException e) {
                 tmpCls = columns;
             }
-            Descriptor returnedType = new Descriptor(Arrays.stream(tmpCls.split(",")).map(t->new Descriptor.Field(t, Optional.of(VARCHAR))).collect(Collectors.toList()));
+            int noDataIndex=0;
+            Descriptor returnedType = new Descriptor(Arrays.stream(tmpCls.split(",")).map(t->new Descriptor.Field(StringUtils.isEmpty(t) || StringUtils.isBlank(t) ? "no-data-" + noDataIndex : t, Optional.of(VARCHAR))).collect(Collectors.toList()));
 
 
             RawQueryFunctionHandle handle = new RawQueryFunctionHandle(tableHandle);
