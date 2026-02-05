@@ -410,7 +410,7 @@ public class QwUtil {
         if(headers==null || headers.length==0){
             //get headers from columns
             headers = queryParameters.getColumns();
-            if(headers!=null){
+            if(headers!=null && headers.length>0 ){
 //                headers = new Object[0];
                 //a simple empty row for columns
                 flatted.add(new Object[headers.length]);
