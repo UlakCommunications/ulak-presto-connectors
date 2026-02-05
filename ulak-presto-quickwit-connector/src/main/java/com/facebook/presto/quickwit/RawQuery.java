@@ -73,10 +73,10 @@ public class RawQuery
                             ScalarArgumentSpecification.builder().name("aggs").type(VARCHAR).defaultValue(Slices.utf8Slice("")).build(),
                             ScalarArgumentSpecification.builder().name("cache").type(VARCHAR).defaultValue(Slices.utf8Slice("false")).build(),
 
-                            ScalarArgumentSpecification.builder().name("name").type(VARCHAR).defaultValue(Slices.utf8Slice("")).build(),
-                            ScalarArgumentSpecification.builder().name("columns").type(VARCHAR).defaultValue(Slices.utf8Slice("")).build(),
+                            ScalarArgumentSpecification.builder().name("name").type(VARCHAR).defaultValue(Slices.utf8Slice("no-name")).build(),
+                            ScalarArgumentSpecification.builder().name("columns").type(VARCHAR).defaultValue(Slices.utf8Slice("no-data")).build(),
                             ScalarArgumentSpecification.builder().name("dbtype").type(VARCHAR).defaultValue(Slices.utf8Slice("qw")).build(),
-                            ScalarArgumentSpecification.builder().name("replacefromcolumns").type(VARCHAR).defaultValue(Slices.utf8Slice("")).build(),
+                            ScalarArgumentSpecification.builder().name("replacefromcolumns").type(VARCHAR).defaultValue(Slices.utf8Slice("no-data")).build(),
                             ScalarArgumentSpecification.builder().name("hasjs").type(VARCHAR).defaultValue(Slices.utf8Slice("false")).build()
                     ),
                     GENERIC_TABLE
