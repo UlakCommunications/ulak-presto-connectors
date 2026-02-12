@@ -6,10 +6,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.*;
 
-public final class AggsDslCompilerJ9_OrderInjection {
+public final class AggsDslCompiler {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private AggsDslCompilerJ9_OrderInjection() {}
+    private AggsDslCompiler() {}
 
     public static String normalizeAggs(String aggsArg) {
         if (aggsArg == null) return null;
@@ -20,7 +20,7 @@ public final class AggsDslCompilerJ9_OrderInjection {
         if (s.startsWith("{") || s.startsWith("[{")) return s;
 
         // DSL
-        if (s.startsWith("[") && (s.indexOf("histogram(") >= 0 || s.indexOf("terms(") >= 0)) {
+        if (s.startsWith("[")) {
             return compileDslToJson(s);
         }
 
@@ -60,8 +60,10 @@ public final class AggsDslCompilerJ9_OrderInjection {
             }
         }
 
-        if (hist == null) throw new IllegalArgumentException("Missing histogram(...)");
-        if (termsList.isEmpty()) throw new IllegalArgumentException("At least one terms(...) is required");
+    // NEW: histogram/terms required değil; ama hiç agg yoksa hata
+    if (hist == null && termsList.isEmpty() && metrics.isEmpty()) {
+        throw new IllegalArgumentException("DSL must contain at least one aggregation (histogram/terms/metric).");
+    }
 
         // 1) Determine which metrics must live at which terms level due to ordering
         // orderNeeds[levelIndex] = metricId
@@ -81,14 +83,20 @@ public final class AggsDslCompilerJ9_OrderInjection {
         for (Map.Entry<Integer, String> e : orderNeeds.entrySet()) {
             String mid = e.getValue();
             if (!metrics.containsKey(mid)) {
-                throw new IllegalArgumentException("terms(order=id:" + mid + ") but metric id '" + mid + "' is not defined in DSL");
+            throw new IllegalArgumentException(
+                "terms(order=id:" + mid + ") but metric id '" + mid + "' is not defined in DSL"
+            );
             }
         }
 
-        // 3) Build JSON
+    ObjectNode root = MAPPER.createObjectNode();
+
+    // NEW: topAggsContainer = nereye aggs yazacağız?
+    ObjectNode topAggsContainer;
+
+    if (hist != null) {
         String histId = (hist.id != null && !hist.id.isEmpty()) ? hist.id : "3";
 
-        ObjectNode root = MAPPER.createObjectNode();
         ObjectNode histNode = MAPPER.createObjectNode();
 
         ObjectNode dh = MAPPER.createObjectNode();
@@ -100,10 +108,17 @@ public final class AggsDslCompilerJ9_OrderInjection {
         ObjectNode histAggs = MAPPER.createObjectNode();
         histNode.set("aggs", histAggs);
 
-        // We'll keep references to each terms' "aggs" container so we can inject metrics later.
+        root.set(histId, histNode);
+        topAggsContainer = histAggs;
+    } else {
+        // histogram yoksa root direkt aggs map gibi kullanılır
+        topAggsContainer = root;
+    }
+
+    // terms zincirini kur (varsa)
         List<ObjectNode> termAggsContainers = new ArrayList<ObjectNode>();
 
-        ObjectNode currentContainer = histAggs;
+    ObjectNode currentContainer = topAggsContainer;
 
         for (int i = 0; i < termsList.size(); i++) {
             Terms t = termsList.get(i);
@@ -140,8 +155,13 @@ public final class AggsDslCompilerJ9_OrderInjection {
             currentContainer = nextAggs;
         }
 
-        // 4) Inject order metrics at their required terms level
-        // If terms[i] orders by metricId X, then metric X must be in termAggsContainers[i].
+    // metrikleri nereye koyacağız?
+    ObjectNode metricsTarget =
+        termsList.isEmpty()
+            ? topAggsContainer
+            : termAggsContainers.get(termAggsContainers.size() - 1);
+
+    // order metriklerini ilgili terms seviyesine inject et
         for (Map.Entry<Integer, String> e : orderNeeds.entrySet()) {
             int level = e.getKey();
             String metricId = e.getValue();
@@ -156,19 +176,14 @@ public final class AggsDslCompilerJ9_OrderInjection {
             }
         }
 
-        // 5) Put remaining metrics at deepest level (last terms aggs)
-        // But do NOT duplicate order metrics unless you want them there too (harmless either way).
-        ObjectNode deepestAggs = termAggsContainers.get(termAggsContainers.size() - 1);
+    // kalan metrikleri (ve eksikleri) metricsTarget'a koy
 
         for (Metric m : metrics.values()) {
-            // if already injected at some level, we still may want it at deepest too. Up to you.
-            // We'll add it to deepest if missing.
-            if (!deepestAggs.has(m.id)) {
-                deepestAggs.set(m.id, makeMetricNode(m));
+        if (!metricsTarget.has(m.id)) {
+            metricsTarget.set(m.id, makeMetricNode(m));
             }
         }
 
-        root.set(histId, histNode);
 
         try {
             return MAPPER.writeValueAsString(root);

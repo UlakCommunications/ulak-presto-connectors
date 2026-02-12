@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.function.BiFunction;
 
-import static com.facebook.presto.quickwit.AggsDslCompilerJ9_OrderInjection.normalizeAggs;
+import static com.facebook.presto.quickwit.AggsDslCompiler.normalizeAggs;
 import static com.facebook.presto.ulak.caching.ConnectorBaseUtil.getObjectMapper;
 
 import java.time.Instant;
