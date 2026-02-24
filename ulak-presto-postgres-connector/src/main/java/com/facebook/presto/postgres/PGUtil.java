@@ -126,7 +126,7 @@ public class PGUtil {
                     if(list.isEmpty()) {
                         String[] columns = queryParameters.getColumns();
                         Map<String, Object> newRow = new HashMap<>();
-                        if (columns != null) {
+                        if (columns != null && columns.length>0) {
                             for (int i = 0; i < columns.length; i++) {
                                 newRow.put(columns[i], null);
                             }

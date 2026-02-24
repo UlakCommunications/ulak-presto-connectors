@@ -444,3 +444,6 @@ order by _value desc
 ```
 ./push.sh 0.1.10-RCI20122024 'linux/arm64,linux/amd64' false
 ```
+```
+docker buildx imagetools create --tag 192.168.57.202:35000/trinodb/trino:479 trinodb/trino:479
+```

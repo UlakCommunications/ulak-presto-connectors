@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Locale;
 import java.util.Map;
 
+import static com.facebook.presto.ulak.QueryParameters.replaceEnv;
 import static com.facebook.presto.ulak.caching.RedisCacheWorker.DEFAULT_N_THREADS;
 
 
@@ -57,16 +58,22 @@ public class UlakQuickwitConnectorFactory
             runInCoordinatorOnly = sRunInCoordinatorOnly.trim().toLowerCase(Locale.ENGLISH).equals("true");
         }
         String sWorkerIndexToRunIn = config.get("worker_id_to_run_in");
+        String connectTimeout = config.get("connect-timeout");
+        String readTimeout = config.get("read-timeout");
+        String writeTimeout = config.get("write-timeout");
         return new UlakQuickwitConnector(
             url,
             catalogName,
-            config.get("redis-url"),
+            replaceEnv(config.get("redis-url"),"REDIS_PASSWORD",true),
             config.get("keywords"),
             runInCoordinatorOnly,
-            context.getNodeManager().getCurrentNode().getNodeIdentifier(),
+            context.getCurrentNode().getNodeIdentifier(),
             sWorkerIndexToRunIn,
-            context.getNodeManager().getCurrentNode().isCoordinator(),
+            context.getCurrentNode().isCoordinator(),
             numThreads,
-            config.get("qw-index"));
+            config.get("qw-index"),
+            connectTimeout == null ? null : Integer.parseInt(connectTimeout),
+            readTimeout == null ? null : Integer.parseInt(readTimeout),
+            writeTimeout == null ? null : Integer.parseInt(writeTimeout));
     }
 }

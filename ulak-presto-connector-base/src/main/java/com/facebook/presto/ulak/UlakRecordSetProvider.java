@@ -26,8 +26,8 @@ public class UlakRecordSetProvider
 {
     private static Logger logger = LoggerFactory.getLogger(UlakRecordSetProvider.class);
     private static UlakRecordSetProvider single;
-    private final BiFunction<QueryParameters,String[], List<UlakRow>> exec1;
-    private String[] defaultParams;
+    protected final BiFunction<QueryParameters,String[], List<UlakRow>> exec1;
+    protected String[] defaultParams;
 
     public UlakRecordSetProvider(BiFunction<QueryParameters,String[], List<UlakRow>> exec1, String[] defaultParams){
         this.exec1 = exec1;

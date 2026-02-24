@@ -9,7 +9,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.facebook.presto</groupId>
-  <version>0.478-SNAPSHOT</version>
+  <version>0.479-SNAPSHOT</version>
   <artifactId>ulak-presto-influxdb-connector</artifactId>
 <!--  <packaging>presto-plugin</packaging>-->
       <packaging>jar</packaging>
@@ -59,19 +59,19 @@
     <dependency>
       <groupId>io.trino</groupId>
       <artifactId>trino-spi</artifactId>
-      <version>478</version>
+      <version>479</version>
 <!--      <scope>provided</scope>-->
     </dependency>
     <dependency>
       <groupId>io.trino</groupId>
       <artifactId>trino-cache</artifactId>
-      <version>478</version>
+      <version>479</version>
     </dependency>
 
     <dependency>
       <groupId>io.trino</groupId>
       <artifactId>trino-plugin-toolkit</artifactId>
-      <version>478</version>
+      <version>479</version>
     </dependency>
 
 
@@ -128,7 +128,7 @@
 
     <dependency>
       <groupId>com.facebook.presto</groupId>
-      <version>0.478-SNAPSHOT</version>
+      <version>0.479-SNAPSHOT</version>
       <artifactId>ulak-presto-connector-base</artifactId>
     </dependency>
 

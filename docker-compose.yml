@@ -1,0 +1,33 @@
+# docker-compose.yml
+services:
+  trino:
+    image: trinodb/trino:479
+    container_name: trino
+    ports:
+      - "8080:8080"
+      - "5005:5005"   # JDWP
+    environment:
+      # Trino official image supports this pattern; if it doesn't in your tag,
+      # use Option B below.
+      JAVA_TOOL_OPTIONS: >-
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+    volumes:
+      # Trino server config
+      - ./trino/etc/config.properties:/etc/trino/config.properties:ro
+      - ./trino/etc/node.properties:/etc/trino/node.properties:ro
+      - ./trino/etc/jvm.config:/etc/trino/jvm.config:ro
+      - ./trino/etc/log.properties:/etc/trino/log.properties:ro
+
+      # Catalogs (your connector config lives here)
+      - ./trino/etc/catalog:/etc/trino/catalog:ro
+
+      # Your custom connector plugin directory (built output)
+      # IMPORTANT: this must be the DIRECTORY that contains the connector JAR + dependency-jars/
+      # Example local path: ./plugins/myconnector/
+      - ./ulak-presto-quickwit-connector/target:/usr/lib/trino/plugin/quicwitconnector:ro
+
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/v1/info"]
+      interval: 5s
+      timeout: 3s
+      retries: 30

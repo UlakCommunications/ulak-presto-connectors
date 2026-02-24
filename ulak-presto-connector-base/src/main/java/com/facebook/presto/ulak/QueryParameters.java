@@ -29,6 +29,11 @@ public class QueryParameters {
     public static final String TEXT_HASJS = "hasjs";
     public static final String TEXT_TIMEFIELD = "timefield";
     public static final String TEXT_QWREPLACEFROMCOLUMN = "replacefromcolumns";
+
+    public static final String TEXT_QWCONNECTTIMEOUT = "connecttimeout";
+    public static final String TEXT_QWREADTIMEOUT = "readtimeout";
+    public static final String TEXT_QWWRITETIMEOUT = "writetimeout";
+
     public static final String TEXT_FROM = "from";
     public static final String TEXT_TO = "to";
     private static Logger logger = LoggerFactory.getLogger(QueryParameters.class);
@@ -57,6 +62,9 @@ public class QueryParameters {
     private String qwUrl;
     private String qwIndex;
     private String replaceFromColumns;
+    private Integer connectTimeout;
+    private Integer readTimeout;
+    private Integer writeTimeout;
 
     public DBType getDbType() {
         return dbType;
@@ -221,6 +229,15 @@ public class QueryParameters {
                         case TEXT_QWREPLACEFROMCOLUMN:
                             ret.setReplaceFromColumns(value);
                             break;
+                        case TEXT_QWREADTIMEOUT:
+                            ret.setReadTimeout(Integer.valueOf(value));
+                            break;
+                        case TEXT_QWWRITETIMEOUT:
+                            ret.setWriteTimeout(Integer.valueOf(value));
+                            break;
+                        case TEXT_QWCONNECTTIMEOUT:
+                            ret.setConnectTimeout(Integer.valueOf(value));
+                            break;
                     }
                 } catch (Exception e) {
                     logger.error("getQueryParameters: {} / {}", param, value);
@@ -370,5 +387,69 @@ public class QueryParameters {
 
     public String getReplaceFromColumns() {
         return replaceFromColumns;
+    }
+    public static String replaceEnv(String source, String env, boolean encode){
+        if(StringUtils.isNotBlank(source)){
+            //${ENV:RO_POSTGRES_PASSWORD}
+            //source = source.replace("${ENV:","").replace("}","");
+            String resEnv = System.getenv(env);
+            logger.info("env:" + env + ", " + "resEnv: " + resEnv + ", source:" + source );
+
+            if(StringUtils.isNotBlank(resEnv)) {
+                source = source.replace("${ENV:" + env + "}", encode ? encodeUriComponent(resEnv):resEnv);
+                source = source.replace(resEnv,  encode ? encodeUriComponent(resEnv):resEnv);
+            }
+        }
+        return source;
+    }
+    public static String encodeUriComponent(String s) {
+
+        logger.info("encodeUriComponent:" + (s==null?"":s));
+
+        if(s == null){
+            return "";
+        }
+        StringBuilder out = new StringBuilder();
+        for (byte b : s.getBytes(StandardCharsets.UTF_8)) {
+            char c = (char) b;
+            if (
+                    (c >= 'a' && c <= 'z') ||
+                            (c >= 'A' && c <= 'Z') ||
+                            (c >= '0' && c <= '9') ||
+                            c == '-' || c == '_' || c == '.' || c == '~'
+            ) {
+                out.append(c);
+            } else {
+                out.append(String.format("%%%02X", b));
+            }
+        }
+
+        logger.info("encodeDUriComponent:" + (out.toString()));
+
+        return out.toString();
+    }
+
+    public Integer getConnectTimeout() {
+        return connectTimeout;
+    }
+
+    public void setConnectTimeout(Integer connectTimeout) {
+        this.connectTimeout = connectTimeout;
+    }
+
+    public Integer getReadTimeout() {
+        return readTimeout;
+    }
+
+    public void setReadTimeout(Integer readTimeout) {
+        this.readTimeout = readTimeout;
+    }
+
+    public Integer getWriteTimeout() {
+        return writeTimeout;
+    }
+
+    public void setWriteTimeout(Integer writeTimeout) {
+        this.writeTimeout = writeTimeout;
     }
 }
