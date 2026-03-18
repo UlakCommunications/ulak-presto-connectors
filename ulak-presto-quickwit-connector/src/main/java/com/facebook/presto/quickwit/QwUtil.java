@@ -366,16 +366,13 @@ public class QwUtil {
 
                 Object key = bucket.get(KEY);
                 Object keyAsString = bucket.get(KEY_AS_STRING);
-                // Quickwit date_histogram returns key=numeric epoch ms, key_as_string=ISO text.
-                // However some builds return them reversed (key=ISO string, key_as_string=number).
-                // Detect and swap so {aggId}/key is always numeric and {aggId}/key_as_string is always text.
-                if (key instanceof String && keyAsString instanceof Number) {
-                    rowForBucket.put(aggId + "/" + KEY, String.valueOf(keyAsString));
-                    rowForBucket.put(aggId + "/" + KEY_AS_STRING, String.valueOf(key));
-                } else {
-                    if (key != null) rowForBucket.put(aggId + "/" + KEY, String.valueOf(key));
-                    if (keyAsString != null) rowForBucket.put(aggId + "/" + KEY_AS_STRING, String.valueOf(keyAsString));
+                if (key instanceof Number) {
+                    // Store as plain integer string, not scientific notation (e.g. "1773792000000" not "1.773792E12")
+                    rowForBucket.put(aggId + "/" + KEY, String.valueOf(((Number) key).longValue()));
+                } else if (key != null) {
+                    rowForBucket.put(aggId + "/" + KEY, String.valueOf(key));
                 }
+                if (keyAsString != null) rowForBucket.put(aggId + "/" + KEY_AS_STRING, String.valueOf(keyAsString));
 
                 // collect sub-aggregation maps (skip primitive metadata: key, key_as_string, doc_count, etc.)
                 Map<String, Object> subAggs = new LinkedHashMap<>();
