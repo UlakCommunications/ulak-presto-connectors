@@ -311,11 +311,116 @@ public class QwUtil {
     public static List<UlakRow> parseResponse(QueryParameters queryParameters,
                                                   SearchResponseRest ret) {
         Object g = ret.getAggregations();
-        if (g == null) {
-            return parseResponseHits(queryParameters,ret);
+        if (g != null && !"0".equals(queryParameters.getSqlVersion())) {
+            List<UlakRow> results = new ArrayList<>();
+            traverseAggregations((Map<String, Object>) g, new HashMap<>(), results);
+            return trimTimeEdges(results, queryParameters);
         }
-        parseResponseAggregations(ret);
+        if (g != null) {
+            parseResponseAggregations(ret);
+        }
         return parseResponseHits(queryParameters, ret);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void traverseAggregations(
+            Map<String, Object> aggMap,
+            Map<String, Object> currentRow,
+            List<UlakRow> results) {
+
+        boolean hasBucketAgg = false;
+
+        // First pass: collect leaf metric values (aggs with "value") into currentRow
+        for (Map.Entry<String, Object> entry : aggMap.entrySet()) {
+            Object aggValueObj = entry.getValue();
+            if (!(aggValueObj instanceof Map)) continue;
+            Map<String, Object> aggValue = (Map<String, Object>) aggValueObj;
+            if (aggValue.containsKey(BUCKETS)) {
+                hasBucketAgg = true;
+            } else {
+                Object value = aggValue.get(VALUE);
+                if (value != null) {
+                    currentRow.put(entry.getKey() + "/" + VALUE, String.valueOf(value));
+                }
+            }
+        }
+
+        if (!hasBucketAgg) {
+            results.add(new UlakRow(new HashMap<>(currentRow)));
+            return;
+        }
+
+        // Second pass: recurse into bucket aggs (aggs with "buckets")
+        for (Map.Entry<String, Object> entry : aggMap.entrySet()) {
+            Object aggValueObj = entry.getValue();
+            if (!(aggValueObj instanceof Map)) continue;
+            Map<String, Object> aggValue = (Map<String, Object>) aggValueObj;
+            Object bucketsObj = aggValue.get(BUCKETS);
+            if (!(bucketsObj instanceof List)) continue;
+
+            String aggId = entry.getKey();
+            for (Object bucketObj : (List<?>) bucketsObj) {
+                if (!(bucketObj instanceof Map)) continue;
+                Map<String, Object> bucket = (Map<String, Object>) bucketObj;
+                Map<String, Object> rowForBucket = new HashMap<>(currentRow);
+
+                Object key = bucket.get(KEY);
+                if (key != null) rowForBucket.put(aggId + "/" + KEY, String.valueOf(key));
+                Object keyAsString = bucket.get(KEY_AS_STRING);
+                if (keyAsString != null) rowForBucket.put(aggId + "/" + KEY_AS_STRING, String.valueOf(keyAsString));
+
+                // collect sub-aggregation maps (skip primitive metadata: key, key_as_string, doc_count, etc.)
+                Map<String, Object> subAggs = new LinkedHashMap<>();
+                for (Map.Entry<String, Object> e2 : bucket.entrySet()) {
+                    if (e2.getValue() instanceof Map) {
+                        subAggs.put(e2.getKey(), e2.getValue());
+                    }
+                }
+
+                if (subAggs.isEmpty()) {
+                    results.add(new UlakRow(rowForBucket));
+                } else {
+                    traverseAggregations(subAggs, rowForBucket, results);
+                }
+            }
+        }
+    }
+
+    private static List<UlakRow> trimTimeEdges(List<UlakRow> rows, QueryParameters queryParameters) {
+        String timeField = queryParameters.getTimeField();
+        if (StringUtils.isBlank(timeField) || rows.isEmpty()) return rows;
+
+        // find the actual column name that ends with the configured timeField suffix
+        String actualTimeField = null;
+        for (String col : rows.get(0).getColumnMap().keySet()) {
+            if (col.endsWith(timeField)) {
+                actualTimeField = col;
+                break;
+            }
+        }
+        if (actualTimeField == null) return rows;
+
+        long maxTime = 0, minTime = Long.MAX_VALUE;
+        for (UlakRow row : rows) {
+            String o = (String) row.getColumnMap().get(actualTimeField);
+            if (o != null) {
+                long v = (long) Double.parseDouble(o);
+                if (v > maxTime) maxTime = v;
+                if (v < minTime) minTime = v;
+            }
+        }
+
+        if (maxTime == 0 || minTime == Long.MAX_VALUE) return rows;
+
+        final long fMax = maxTime, fMin = minTime;
+        final String fTimeField = actualTimeField;
+        rows.removeIf(row -> {
+            String o = (String) row.getColumnMap().get(fTimeField);
+            if (o == null) return false;
+            long v = (long) Double.parseDouble(o);
+            return v == fMax || v == fMin;
+        });
+        return rows;
     }
 
     public static void parseResponseAggregations(SearchResponseRest ret) {
