@@ -30,6 +30,7 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
     private final Optional<String> dbtype;
     private final Optional<String> replacefromcolumns;
     private final Optional<String> hasjs;
+    private final Optional<String> sqlversion;
 
     @JsonCreator
     public RawQuickwitQueryTableHandle(
@@ -45,7 +46,8 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
             @JsonProperty("columns") Optional<String> columns,
             @JsonProperty("dbtype") Optional<String> dbtype,
             @JsonProperty("replacefromcolumns") Optional<String> replacefromcolumns,
-            @JsonProperty("hasjs") Optional<String> hasjs)
+            @JsonProperty("hasjs") Optional<String> hasjs,
+            @JsonProperty("sqlversion") Optional<String> sqlversion)
     {
         this.connectorId = Objects.requireNonNull(connectorId, "connectorId is null");
         this.index = Objects.requireNonNull(index, "index is null");
@@ -60,6 +62,7 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
         this.dbtype = dbtype;
         this.replacefromcolumns = replacefromcolumns;
         this.hasjs = hasjs;
+        this.sqlversion = sqlversion;
     }
 
     // ---------------- getters ----------------
@@ -130,7 +133,8 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
                 columns,
                 dbtype,
                 replacefromcolumns,
-                hasjs);
+                hasjs,
+                sqlversion);
     }
 
     @Override
@@ -155,7 +159,8 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
                 && columns.equals(other.columns)
                 && dbtype.equals(other.dbtype)
                 && replacefromcolumns.equals(other.replacefromcolumns)
-                && hasjs.equals(other.hasjs);
+                && hasjs.equals(other.hasjs)
+                && sqlversion.equals(other.sqlversion);
     }
 
     @Override
@@ -173,7 +178,8 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
                 ", columns=" + columns+
                 ", dbtype=" + dbtype+
                 ", replacefromcolumns=" + replacefromcolumns+
-                ", hasjs=" +hasjs +
+                ", hasjs=" + hasjs +
+                ", sqlversion=" + sqlversion +
                 '}';
     }
 
@@ -195,5 +201,10 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
 
     public Optional<String> getHasjs() {
         return hasjs;
+    }
+
+    @JsonProperty
+    public Optional<String> getSqlversion() {
+        return sqlversion;
     }
 }

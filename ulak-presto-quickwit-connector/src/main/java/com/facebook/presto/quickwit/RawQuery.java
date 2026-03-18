@@ -84,7 +84,8 @@ public class RawQuery
                             ScalarArgumentSpecification.builder().name("columns").type(VARCHAR).defaultValue(Slices.utf8Slice("no-data")).build(),
                             ScalarArgumentSpecification.builder().name("dbtype").type(VARCHAR).defaultValue(Slices.utf8Slice("qw")).build(),
                             ScalarArgumentSpecification.builder().name("replacefromcolumns").type(VARCHAR).defaultValue(Slices.utf8Slice("no-data")).build(),
-                            ScalarArgumentSpecification.builder().name("hasjs").type(VARCHAR).defaultValue(Slices.utf8Slice("false")).build()
+                            ScalarArgumentSpecification.builder().name("hasjs").type(VARCHAR).defaultValue(Slices.utf8Slice("false")).build(),
+                            ScalarArgumentSpecification.builder().name("sqlversion").type(VARCHAR).defaultValue(Slices.utf8Slice("0")).build()
                     ),
                     GENERIC_TABLE
             );
@@ -119,6 +120,7 @@ public class RawQuery
             String dbtype = getOptionalVarchar(arguments, "dbtype").orElse("");
             String replacefromcolumns = getOptionalVarchar(arguments, "replacefromcolumns").orElse("");
             String hasjs = getOptionalVarchar(arguments, "hasjs").orElse("false");
+            String sqlversion = getOptionalVarchar(arguments, "sqlversion").orElse("0");
 
             // Your own ConnectorTableHandle that stores raw-query params
             RawQuickwitQueryTableHandle tableHandle = new RawQuickwitQueryTableHandle(
@@ -134,7 +136,8 @@ public class RawQuery
                     Optional.of(columns),
                     Optional.of(dbtype),
                     Optional.of(replacefromcolumns),
-                    Optional.of(hasjs));
+                    Optional.of(hasjs),
+                    Optional.of(sqlversion));
 
             // Stable return type (recommended)
             String tmpCls = null;
