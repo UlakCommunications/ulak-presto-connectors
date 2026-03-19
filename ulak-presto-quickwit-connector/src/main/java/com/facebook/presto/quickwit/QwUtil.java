@@ -313,7 +313,7 @@ public class QwUtil {
         Object g = ret.getAggregations();
         if (g != null && !"0".equals(queryParameters.getSqlVersion())) {
             List<UlakRow> results = new ArrayList<>();
-            traverseAggregations((Map<String, Object>) g, new HashMap<>(), results);
+            traverseAggregations((Map<String, Object>) g, new LinkedHashMap<>(), results);
             return trimTimeEdges(results, queryParameters);
         }
         if (g != null) {
@@ -346,7 +346,7 @@ public class QwUtil {
         }
 
         if (!hasBucketAgg) {
-            results.add(new UlakRow(new HashMap<>(currentRow)));
+            results.add(new UlakRow(new LinkedHashMap<>(currentRow)));
             return;
         }
 
@@ -362,7 +362,7 @@ public class QwUtil {
             for (Object bucketObj : (List<?>) bucketsObj) {
                 if (!(bucketObj instanceof Map)) continue;
                 Map<String, Object> bucket = (Map<String, Object>) bucketObj;
-                Map<String, Object> rowForBucket = new HashMap<>(currentRow);
+                Map<String, Object> rowForBucket = new LinkedHashMap<>(currentRow);
 
                 Object key = bucket.get(KEY);
                 Object keyAsString = bucket.get(KEY_AS_STRING);
