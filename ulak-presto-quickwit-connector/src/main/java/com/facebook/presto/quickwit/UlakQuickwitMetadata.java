@@ -125,7 +125,8 @@ public class UlakQuickwitMetadata
             list = getColumnsBase(ConnectorBaseUtil.select(qp,
                     false, new String[]{this.qwUrl, this.qwIndex}, (q, s) -> {
                         try {
-                            return QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout);
+                            java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout);
+                            return ret;
                         } catch (ApiException e) {
                             logger.error(ERRORSTRING, e);
                             throw new RuntimeException(e);
@@ -192,7 +193,8 @@ public class UlakQuickwitMetadata
                                 q.getQuery(),
                                 s[0],
                                 s[1]);
-                        return QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout);
+                        java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout);
+                        return ret;
                     } catch (ApiException e) {
                         logger.error(ERRORSTRING, e);
                         throw new RuntimeException(e);
@@ -226,7 +228,8 @@ public class UlakQuickwitMetadata
                                             new String[]{this.qwUrl, this.qwIndex},
                                             (q, s) -> {
                                                 try {
-                                                    return QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout);
+                                                    java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout);
+                                                    return ret;
                                                 } catch (ApiException e) {
                                                     logger.error(ERRORSTRING, e);
                                                     throw new RuntimeException(e);
@@ -290,7 +293,9 @@ public class UlakQuickwitMetadata
         }
         RawQuery.RawQueryFunction.RawQueryFunctionHandle rawQueryFunctionHandle = (RawQuery.RawQueryFunction.RawQueryFunctionHandle) handle;
         ConnectorTableHandle tableHandle = rawQueryFunctionHandle.getTableHandle();
-        List<ColumnHandle> columnHandles = ImmutableList.copyOf(getColumnHandles(session, tableHandle).values());
+        List<ColumnHandle> columnHandles = getColumnHandles(session, tableHandle).values().stream()
+                .sorted(Comparator.comparingInt(h -> ((UlakColumnHandle) h).getOrdinalPosition()))
+                .collect(ImmutableList.toImmutableList());
         return Optional.of(new TableFunctionApplicationResult<>(tableHandle, columnHandles));
     }
 

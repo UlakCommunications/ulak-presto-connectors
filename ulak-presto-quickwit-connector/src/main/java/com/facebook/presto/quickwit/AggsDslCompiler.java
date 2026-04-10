@@ -35,7 +35,7 @@ public final class AggsDslCompiler {
         List<Terms> termsList = new ArrayList<Terms>();
         // all metrics declared by DSL (by id)
         LinkedHashMap<String, Metric> metrics = new LinkedHashMap<String, Metric>();
-
+        IdAllocator ids = new IdAllocator();
         for (int i = 0; i < items.size(); i++) {
             String item = items.get(i).trim();
             if (item.isEmpty()) continue;
@@ -47,34 +47,78 @@ public final class AggsDslCompiler {
             if ("histogram".equals(name)) {
                 if (hist != null) throw new IllegalArgumentException("Only one histogram(...) is allowed");
                 hist = parseHistogram(args);
+                ids.reserve(hist.id);
             } else if ("terms".equals(name)) {
-                termsList.add(parseTerms(args));
+                Terms t = parseTerms(args);
+                ids.reserve(t.id);
+                termsList.add(t);
             } else if (isMetricFn(name)) {
                 Metric m = parseMetric(name, args);
-                if (metrics.containsKey(m.id)) {
+
+                // reserve + duplicate check for explicit ids
+                if (m.id != null && !m.id.trim().isEmpty()) {
+                ids.reserve(m.id);
+                    if (metrics.containsKey(m.id)) {
                     throw new IllegalArgumentException("Duplicate metric id: " + m.id);
                 }
+
+                // şimdilik ekle (id null olabilir, sonra rebuild edeceğiz)
                 metrics.put(m.id, m);
+                } else {
+                    // temporary key; will rebuild after auto-id allocation
+                    metrics.put("~tmp~" + i, m);
+                }
+
             } else {
                 throw new IllegalArgumentException("Unsupported function '" + name + "'");
             }
         }
 
-    // NEW: histogram/terms required değil; ama hiç agg yoksa hata
-    if (hist == null && termsList.isEmpty() && metrics.isEmpty()) {
-        throw new IllegalArgumentException("DSL must contain at least one aggregation (histogram/terms/metric).");
-    }
+        // NEW: histogram/terms required değil; ama hiç agg yoksa hata
+        if (hist == null && termsList.isEmpty() && metrics.isEmpty()) {
+            throw new IllegalArgumentException("DSL must contain at least one aggregation (histogram/terms/metric).");
+        }
 
-        // 1) Determine which metrics must live at which terms level due to ordering
-        // orderNeeds[levelIndex] = metricId
+        // ---------------- Auto-ID (MUST be before JSON build) ----------------
+        // histogram id auto
+        if (hist != null && isBlank(hist.id)) {
+            hist = new Histogram(ids.allocate(), hist.field, hist.interval, hist.minDocCount);
+        }
+
+        // terms id auto
+        for (int i = 0; i < termsList.size(); i++) {
+            Terms t = termsList.get(i);
+            if (isBlank(t.id)) {
+                termsList.set(i, new Terms(
+                        ids.allocate(), t.field, t.size, t.orderMetricId, t.orderDir, t.minDocCount
+                ));
+            }
+        }
+
+        // metrics id auto + rebuild map with real ids
+        LinkedHashMap<String, Metric> newMetrics = new LinkedHashMap<String, Metric>();
+        for (Metric m : metrics.values()) {
+            String mid = m.id;
+            if (isBlank(mid)) {
+                mid = ids.allocate();
+                m = new Metric(mid, m.field, m.kind);
+            }
+            if (newMetrics.containsKey(mid)) {
+                throw new IllegalArgumentException("Duplicate metric id: " + mid);
+            }
+            newMetrics.put(mid, m);
+        }
+        metrics = newMetrics;
+
+        // ---------------- Ordering constraints ----------------
         Map<Integer, String> orderNeeds = new HashMap<Integer, String>();
         Map<Integer, String> orderDir = new HashMap<Integer, String>();
 
         for (int i = 0; i < termsList.size(); i++) {
             Terms t = termsList.get(i);
-            if (t.orderMetricId != null && !t.orderMetricId.isEmpty()) {
+            if (!isBlank(t.orderMetricId)) {
                 orderNeeds.put(i, t.orderMetricId);
-                orderDir.put(i, (t.orderDir == null || t.orderDir.isEmpty()) ? "desc" : t.orderDir);
+                orderDir.put(i, isBlank(t.orderDir) ? "desc" : t.orderDir);
             }
         }
 
@@ -83,46 +127,46 @@ public final class AggsDslCompiler {
         for (Map.Entry<Integer, String> e : orderNeeds.entrySet()) {
             String mid = e.getValue();
             if (!metrics.containsKey(mid)) {
-            throw new IllegalArgumentException(
-                "terms(order=id:" + mid + ") but metric id '" + mid + "' is not defined in DSL"
-            );
+                throw new IllegalArgumentException(
+                        "terms(order=id:" + mid + ") but metric id '" + mid + "' is not defined in DSL"
+                );
             }
         }
 
-    ObjectNode root = MAPPER.createObjectNode();
+        ObjectNode root = MAPPER.createObjectNode();
 
-    // NEW: topAggsContainer = nereye aggs yazacağız?
-    ObjectNode topAggsContainer;
+        // NEW: topAggsContainer = nereye aggs yazacağız?
+        ObjectNode topAggsContainer;
 
-    if (hist != null) {
-        String histId = (hist.id != null && !hist.id.isEmpty()) ? hist.id : "3";
+        if (hist != null) {
+            String histId = hist.id;
 
-        ObjectNode histNode = MAPPER.createObjectNode();
+            ObjectNode histNode = MAPPER.createObjectNode();
 
-        ObjectNode dh = MAPPER.createObjectNode();
-        dh.put("field", hist.field);
-        dh.put("fixed_interval", hist.interval);
-        dh.put("min_doc_count", hist.minDocCount);
-        histNode.set("date_histogram", dh);
+            ObjectNode dh = MAPPER.createObjectNode();
+            dh.put("field", hist.field);
+            dh.put("fixed_interval", hist.interval);
+            dh.put("min_doc_count", hist.minDocCount);
+            histNode.set("date_histogram", dh);
 
-        ObjectNode histAggs = MAPPER.createObjectNode();
-        histNode.set("aggs", histAggs);
+            ObjectNode histAggs = MAPPER.createObjectNode();
+            histNode.set("aggs", histAggs);
 
-        root.set(histId, histNode);
-        topAggsContainer = histAggs;
-    } else {
-        // histogram yoksa root direkt aggs map gibi kullanılır
-        topAggsContainer = root;
-    }
+            root.set(histId, histNode);
+            topAggsContainer = histAggs;
+        } else {
+            // histogram yoksa root direkt aggs map gibi kullanılır
+            topAggsContainer = root;
+        }
 
-    // terms zincirini kur (varsa)
+        // build nested terms
         List<ObjectNode> termAggsContainers = new ArrayList<ObjectNode>();
 
-    ObjectNode currentContainer = topAggsContainer;
+        ObjectNode currentContainer = topAggsContainer;
 
         for (int i = 0; i < termsList.size(); i++) {
             Terms t = termsList.get(i);
-            String termsId = (t.id != null && !t.id.isEmpty()) ? t.id : defaultTermsId(i);
+            String termsId = t.id;
 
             ObjectNode termsNode = MAPPER.createObjectNode();
             ObjectNode termsObj = MAPPER.createObjectNode();
@@ -155,13 +199,13 @@ public final class AggsDslCompiler {
             currentContainer = nextAggs;
         }
 
-    // metrikleri nereye koyacağız?
-    ObjectNode metricsTarget =
-        termsList.isEmpty()
-            ? topAggsContainer
-            : termAggsContainers.get(termAggsContainers.size() - 1);
+        // metrikleri nereye koyacağız?
+        ObjectNode metricsTarget =
+                termsList.isEmpty()
+                        ? topAggsContainer
+                        : termAggsContainers.get(termAggsContainers.size() - 1);
 
-    // order metriklerini ilgili terms seviyesine inject et
+        // order metriklerini ilgili terms seviyesine inject et
         for (Map.Entry<Integer, String> e : orderNeeds.entrySet()) {
             int level = e.getKey();
             String metricId = e.getValue();
@@ -176,11 +220,11 @@ public final class AggsDslCompiler {
             }
         }
 
-    // kalan metrikleri (ve eksikleri) metricsTarget'a koy
+        // kalan metrikleri (ve eksikleri) metricsTarget'a koy
 
         for (Metric m : metrics.values()) {
-        if (!metricsTarget.has(m.id)) {
-            metricsTarget.set(m.id, makeMetricNode(m));
+            if (!metricsTarget.has(m.id)) {
+                metricsTarget.set(m.id, makeMetricNode(m));
             }
         }
 
@@ -203,13 +247,6 @@ public final class AggsDslCompiler {
         String qwAgg = "count".equals(m.kind) ? "value_count" : m.kind;
         wrapper.set(qwAgg, spec);
         return wrapper;
-    }
-
-    // ---- defaults for term IDs if not provided ----
-    private static String defaultTermsId(int idx) {
-        // first default "4", second default "5", then "6"... (change if you want)
-        if (idx == 0) return "4";
-        return String.valueOf(4 + idx);
     }
 
     // ---------------- models ----------------
@@ -276,7 +313,7 @@ public final class AggsDslCompiler {
     }
 
     private static Metric parseMetric(String kind, Map<String, String> args) {
-        String id = require(args, "id");
+        String id = args.get("id"); // OPTIONAL
         String field = require(args, "field");
         return new Metric(id, field, kind);
     }
@@ -366,29 +403,64 @@ public final class AggsDslCompiler {
         return parts;
     }
 
+    private static boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
+    }
 
+    // ---------------- id allocator ----------------
+    private static final class IdAllocator {
+        private final Set<String> used = new HashSet<String>();
+        private int next = 1;
 
-// ---- tiny demo ----
+        void reserve(String id) {
+            if (id == null) return;
+            String s = id.trim();
+            if (s.isEmpty()) return;
+            if (!used.add(s)) throw new IllegalArgumentException("Duplicate id: " + s);
+            try {
+                int n = Integer.parseInt(s);
+                if (n >= next) next = n + 1;
+            } catch (NumberFormatException ignored) {}
+        }
+
+        String allocate() {
+            while (used.contains(String.valueOf(next))) next++;
+            String id = String.valueOf(next);
+            used.add(id);
+            next++;
+            return id;
+        }
+    }
+
+    // ---- tiny demo ----
     public static void main(String[] args) {
         String dsl =
                 "[\n" +
-                        "  histogram(field=span_start_timestamp_nanos, interval=1h, id=3),\n" +
-                        "  terms(field=span_attributes.n, size=10, order=id:1:desc, min=1, id=4),\n" +
-                        "  terms(field=span_attributes.v, size=10, order=id:1:desc, min=1, id=5),\n" +
-                        "  sum(id=1,  field=span_attributes.u),\n" +
-                        "  avg(id=2,  field=span_attributes.t),\n" +
-                        "  min(id=13, field=span_attributes.ab),\n" +
-                        "  max(id=14, field=span_attributes.ac),\n" +
-                        "  count(id=12, field=span_attributes.u)\n" +
+                        "  histogram(field=span_start_timestamp_nanos, interval=${retention_period_in_hours:csv}h, min=1, id=6),\n" +
+                        "\n" +
+                        "  terms(field=span_attributes.i, size=1, order=id:1:desc, min=1, id=10),\n" +
+                        "\n" +
+                        "  min(field=span_attributes.t, id=1),\n" +
+                        "\n" +
+                        "  terms(field=span_attributes.i, size=9999, order=id:3:desc, min=1, id=11),\n" +
+                        "\n" +
+                        "  sum(field=span_attributes.t, id=3),\n" +
+                        "  sum(field=span_attributes.u, id=4),\n" +
+                        "  sum(field=span_attributes.ab, id=12),\n" +
+                        "  sum(field=span_attributes.ac, id=7),\n" +
+                        "  count(field=span_attributes.u, id=13)\n" +
                         "]";
 
         System.out.println(normalizeAggs(dsl));
-        String dsl2 =
-                "{\"3\":{\"date_histogram\":{\"field\":\"span_start_timestamp_nanos\",\"fixed_interval\":\"1h\",\"min_doc_count\":1},\"aggs\":{\"4\":{\"terms\":{\"field\":\"span_attributes.n\",\"size\":10,\"min_doc_count\":1,\"order\":{\"1\":\"desc\"}},\"aggs\":{\"5\":{\"terms\":{\"field\":\"span_attributes.v\",\"size\":10,\"min_doc_count\":1,\"order\":{\"1\":\"desc\"}},\"aggs\":{\"1\":{\"sum\":{\"field\":\"span_attributes.u\"}},\"2\":{\"avg\":{\"field\":\"span_attributes.t\"}},\"13\":{\"min\":{\"field\":\"span_attributes.ab\"}},\"14\":{\"max\":{\"field\":\"span_attributes.ac\"}},\"12\":{\"value_count\":{\"field\":\"span_attributes.u\"}}}},\"1\":{\"sum\":{\"field\":\"span_attributes.u\"}}}}}}}\n";
 
-        System.out.println(normalizeAggs(dsl2));
-
-        System.out.println(dsl.equals(dsl2) );
-
+        String dslNoIds =
+                "[\n" +
+                        "  histogram(field=span_start_timestamp_nanos, interval=1h),\n" +
+                        "  terms(field=span_attributes.n, size=10, min=1),\n" +
+                        "  terms(field=span_attributes.v, size=10, min=1),\n" +
+                        "  sum(field=span_attributes.u),\n" +
+                        "  avg(field=span_attributes.t)\n" +
+                        "]";
+        System.out.println(normalizeAggs(dslNoIds));
     }
 }

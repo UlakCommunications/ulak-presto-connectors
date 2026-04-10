@@ -110,6 +110,7 @@ public class QuickwitRecordSetProvider extends UlakRecordSetProvider {
         initialString = "//dbtype=" + (h.getDbtype().isPresent()?h.getDbtype().get():"qw") + "\n" + initialString;
         initialString = "//replacefromcolumns=" + (h.getReplacefromcolumns().isPresent()?h.getReplacefromcolumns().get():"") + "\n" + initialString;
         initialString = "//hasjs=" + (h.getHasjs().isPresent()?h.getHasjs().get():"false") + "\n" + initialString;
+        initialString = "//sqlversion=" + (h.getSqlversion().isPresent()?h.getSqlversion().get():"0") + "\n" + initialString;
         initialString = "//from=" + h.getStartTimestamp().orElse(startTs) + "\n" + initialString;
         initialString = "//to=" + h.getEndTimestamp().orElse(endTs) + "\n" + initialString;
 

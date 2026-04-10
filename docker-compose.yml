@@ -31,3 +31,21 @@ services:
       interval: 5s
       timeout: 3s
       retries: 30
+
+  grafana:
+    image: grafana/grafana:12.3.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_INSTALL_PLUGINS: trino-datasource
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      trino:
+        condition: service_healthy
+
+volumes:
+  grafana-data:

@@ -36,12 +36,14 @@ public class QueryParameters {
 
     public static final String TEXT_FROM = "from";
     public static final String TEXT_TO = "to";
+    public static final String TEXT_SQL_VERSION = "sqlversion";
     private static Logger logger = LoggerFactory.getLogger(QueryParameters.class);
     public static final String NEW_LINE_CHAR = System.lineSeparator();
     public static final int DEFAULT_CACHE_TTL = 60 * 60 * 24;
     public static final int DEFAULT_TTL = 10;
     //TODO: eager caching is to be added
     private String[] columns;
+    private String sqlVersion = "0";
 
     private String query;
     private int hash;
@@ -238,6 +240,9 @@ public class QueryParameters {
                         case TEXT_QWCONNECTTIMEOUT:
                             ret.setConnectTimeout(Integer.valueOf(value));
                             break;
+                        case TEXT_SQL_VERSION:
+                            ret.setSqlVersion(value);
+                            break;
                     }
                 } catch (Exception e) {
                     logger.error("getQueryParameters: {} / {}", param, value);
@@ -251,6 +256,12 @@ public class QueryParameters {
     }
     public String[] getColumns( ) {
         return columns;
+    }
+    public String getSqlVersion() {
+        return sqlVersion;
+    }
+    public void setSqlVersion(String sqlVersion) {
+        this.sqlVersion = sqlVersion;
     }
     public boolean isToBeCached() {
         return toBeCached;

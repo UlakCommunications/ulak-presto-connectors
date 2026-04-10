@@ -84,7 +84,8 @@ public class RawQuery
                             ScalarArgumentSpecification.builder().name("columns").type(VARCHAR).defaultValue(Slices.utf8Slice("no-data")).build(),
                             ScalarArgumentSpecification.builder().name("dbtype").type(VARCHAR).defaultValue(Slices.utf8Slice("qw")).build(),
                             ScalarArgumentSpecification.builder().name("replacefromcolumns").type(VARCHAR).defaultValue(Slices.utf8Slice("no-data")).build(),
-                            ScalarArgumentSpecification.builder().name("hasjs").type(VARCHAR).defaultValue(Slices.utf8Slice("false")).build()
+                            ScalarArgumentSpecification.builder().name("hasjs").type(VARCHAR).defaultValue(Slices.utf8Slice("false")).build(),
+                            ScalarArgumentSpecification.builder().name("sqlversion").type(VARCHAR).defaultValue(Slices.utf8Slice("0")).build()
                     ),
                     GENERIC_TABLE
             );
@@ -107,8 +108,11 @@ public class RawQuery
             String index = getRequiredVarchar(arguments, "qwindex");
             String query = getOptionalVarchar(arguments, "query").orElse("*");
 
-            OptionalLong startTs = getOptionalVarchar(arguments, "start_timestamp").map(RawQueryFunction::parseLongSafely).orElse(OptionalLong.of(startTsDefault));
-            OptionalLong endTs = getOptionalVarchar(arguments, "end_timestamp").map(RawQueryFunction::parseLongSafely).orElse(OptionalLong.of(endTsDefault));
+            String hasjs = getOptionalVarchar(arguments, "hasjs").orElse("false");
+            String sqlversion = getOptionalVarchar(arguments, "sqlversion").orElse("0");
+
+            OptionalLong startTs = resolveTimestamp(getOptionalVarchar(arguments, "start_timestamp"), startTsDefault, hasjs);
+            OptionalLong endTs = resolveTimestamp(getOptionalVarchar(arguments, "end_timestamp"), endTsDefault, hasjs);
 
             OptionalInt maxHits = getOptionalVarchar(arguments, "max_hits").map(RawQueryFunction::parseIntSafely).orElse(OptionalInt.empty());
             Optional<String> aggsJson = getOptionalVarchar(arguments, "aggs");
@@ -118,7 +122,6 @@ public class RawQuery
             String columns = getOptionalVarchar(arguments, "columns").orElse("");
             String dbtype = getOptionalVarchar(arguments, "dbtype").orElse("");
             String replacefromcolumns = getOptionalVarchar(arguments, "replacefromcolumns").orElse("");
-            String hasjs = getOptionalVarchar(arguments, "hasjs").orElse("false");
 
             // Your own ConnectorTableHandle that stores raw-query params
             RawQuickwitQueryTableHandle tableHandle = new RawQuickwitQueryTableHandle(
@@ -134,7 +137,8 @@ public class RawQuery
                     Optional.of(columns),
                     Optional.of(dbtype),
                     Optional.of(replacefromcolumns),
-                    Optional.of(hasjs));
+                    Optional.of(hasjs),
+                    Optional.of(sqlversion));
 
             // Stable return type (recommended)
             String tmpCls = null;
@@ -180,6 +184,25 @@ public class RawQuery
                 return Optional.empty();
             }
             return Optional.of(s);
+        }
+
+        private static OptionalLong resolveTimestamp(Optional<String> raw, long defaultValue, String hasjs) {
+            if (!raw.isPresent()) {
+                return OptionalLong.of(defaultValue);
+            }
+            OptionalLong parsed = parseLongSafely(raw.get());
+            if (parsed.isPresent()) {
+                return parsed;
+            }
+            if ("true".equalsIgnoreCase(hasjs)) {
+                try {
+                    String evaluated = QwUtil.executeQueryScript(raw.get());
+                    return parseLongSafely(evaluated);
+                } catch (Exception e) {
+                    // fall through to default
+                }
+            }
+            return OptionalLong.of(defaultValue);
         }
 
         private static OptionalLong parseLongSafely(String s) {
