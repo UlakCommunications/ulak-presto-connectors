@@ -566,6 +566,7 @@ public class QwUtil {
                 if(StringUtils.isNotBlank(toReplace)){
                     k=StringUtils.replace((String) k, toReplace,"");
                 }
+                if (k.startsWith("/")) k = k.substring(1);
                 boolean isTimeField =StringUtils.isNotBlank(timeField) && k.endsWith(timeField);
                 if(value!=null){
                     if(isTimeField){
