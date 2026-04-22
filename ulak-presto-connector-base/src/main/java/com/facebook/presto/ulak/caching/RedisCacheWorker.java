@@ -152,6 +152,9 @@ public class RedisCacheWorker extends Thread{
                                         } catch (JsonProcessingException e) {
                                             logger.error("JsonProcessingException", e);
                                             continue;
+                                        } catch (IllegalArgumentException e) {
+                                            logger.error("IllegalArgumentException", e);
+                                            continue;
                                         }
                                         if(queryParameters.getDbType()!=this.dbType){
                                             logger.debug("not the same db type {}/{}",queryParameters.getDbType(), this.dbType);

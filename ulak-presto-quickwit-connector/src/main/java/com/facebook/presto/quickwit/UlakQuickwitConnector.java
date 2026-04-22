@@ -78,12 +78,12 @@ public class UlakQuickwitConnector
         this.splitManager = QuickwitSplitManager.getInstance();
         this.recordSetProvider = QuickwitRecordSetProvider.getInstance(((q,s)-> {
             try {
-                java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q,s[1],s[2], connectTimeout, readTimeout, writeTimeout);
+                java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q,s[0],s[1], connectTimeout, readTimeout, writeTimeout);
                 return ret;
             } catch (ApiException e) {
                 logger.error("Connector by url: {}", url, e);
                 throw new RuntimeException(e);
-                }
+            }
         }), new String[]{qwUrl,qwIndex});
 
         ConnectorBaseUtil.redisUrl = redisUrl;

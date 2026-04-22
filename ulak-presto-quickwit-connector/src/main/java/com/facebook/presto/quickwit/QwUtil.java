@@ -313,7 +313,8 @@ public class QwUtil {
         Object g = ret.getAggregations();
         if (g != null && !"0".equals(queryParameters.getSqlVersion())) {
             List<UlakRow> results = new ArrayList<>();
-            traverseAggregations((Map<String, Object>) g, new LinkedHashMap<>(), results);
+            boolean stripSuffixes = "0.2".equals(queryParameters.getSqlVersion());
+            traverseAggregations((Map<String, Object>) g, new LinkedHashMap<>(), results, stripSuffixes);
             return trimTimeEdges(results, queryParameters);
         }
         if (g != null) {
@@ -326,7 +327,8 @@ public class QwUtil {
     private static void traverseAggregations(
             Map<String, Object> aggMap,
             Map<String, Object> currentRow,
-            List<UlakRow> results) {
+            List<UlakRow> results,
+            boolean stripSuffixes) {
 
         boolean hasBucketAgg = false;
 
@@ -340,7 +342,9 @@ public class QwUtil {
             } else {
                 Object value = aggValue.get(VALUE);
                 if (value != null) {
-                    currentRow.put(entry.getKey() + "/" + VALUE, String.valueOf(value));
+                    // v0.2: bare aggId; v0.1: aggId/value
+                    String colName = stripSuffixes ? entry.getKey() : entry.getKey() + "/" + VALUE;
+                    currentRow.put(colName, String.valueOf(value));
                 }
             }
         }
@@ -366,13 +370,16 @@ public class QwUtil {
 
                 Object key = bucket.get(KEY);
                 Object keyAsString = bucket.get(KEY_AS_STRING);
+                // v0.2: bare aggId for key, aggId_str for key_as_string; v0.1: aggId/key, aggId/key_as_string
+                String keyCol = stripSuffixes ? aggId : aggId + "/" + KEY;
+                String keyStrCol = stripSuffixes ? aggId + "_str" : aggId + "/" + KEY_AS_STRING;
                 if (key instanceof Number) {
                     // Store as plain integer string, not scientific notation (e.g. "1773792000000" not "1.773792E12")
-                    rowForBucket.put(aggId + "/" + KEY, String.valueOf(((Number) key).longValue()));
+                    rowForBucket.put(keyCol, String.valueOf(((Number) key).longValue()));
                 } else if (key != null) {
-                    rowForBucket.put(aggId + "/" + KEY, String.valueOf(key));
+                    rowForBucket.put(keyCol, String.valueOf(key));
                 }
-                if (keyAsString != null) rowForBucket.put(aggId + "/" + KEY_AS_STRING, String.valueOf(keyAsString));
+                if (keyAsString != null) rowForBucket.put(keyStrCol, String.valueOf(keyAsString));
 
                 // collect sub-aggregation maps (skip primitive metadata: key, key_as_string, doc_count, etc.)
                 Map<String, Object> subAggs = new LinkedHashMap<>();
@@ -385,7 +392,7 @@ public class QwUtil {
                 if (subAggs.isEmpty()) {
                     results.add(new UlakRow(rowForBucket));
                 } else {
-                    traverseAggregations(subAggs, rowForBucket, results);
+                    traverseAggregations(subAggs, rowForBucket, results, stripSuffixes);
                 }
             }
         }

@@ -41,8 +41,13 @@ services:
       GF_INSTALL_PLUGINS: trino-datasource
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: trino-datasource,quickwit-quickwit-datasource,yesoreyeram-infinity-datasource,orchestracities-map-panel
+      GF_FEATURE_TOGGLES_PUBLICDASHBOARDS: 'true'
+      GF_PATHS_PLUGINS: /var/lib/grafana_plugins
+      GF_SECURITY_DISABLE_PLUGINS_SIGNATURE_VALIDATION: 'true'
     volumes:
       - grafana-data:/var/lib/grafana
+      - ./grafana/plugins:/var/lib/grafana_plugins
     depends_on:
       trino:
         condition: service_healthy
