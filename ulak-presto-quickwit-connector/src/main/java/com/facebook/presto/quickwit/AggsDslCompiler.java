@@ -80,27 +80,27 @@ public final class AggsDslCompiler {
         }
 
         // ---------------- Auto-ID (MUST be before JSON build) ----------------
-        // histogram id auto
+        // histogram id auto → "date"
         if (hist != null && isBlank(hist.id)) {
-            hist = new Histogram(ids.allocate(), hist.field, hist.interval, hist.minDocCount);
+            hist = new Histogram(ids.claim("date"), hist.field, hist.interval, hist.minDocCount);
         }
 
-        // terms id auto
+        // terms id auto → field name (last segment after last dot)
         for (int i = 0; i < termsList.size(); i++) {
             Terms t = termsList.get(i);
             if (isBlank(t.id)) {
                 termsList.set(i, new Terms(
-                        ids.allocate(), t.field, t.size, t.orderMetricId, t.orderDir, t.minDocCount
+                        ids.claim(fieldToId(t.field)), t.field, t.size, t.orderMetricId, t.orderDir, t.minDocCount
                 ));
             }
         }
 
-        // metrics id auto + rebuild map with real ids
+        // metrics id auto → field name + rebuild map with real ids
         LinkedHashMap<String, Metric> newMetrics = new LinkedHashMap<String, Metric>();
         for (Metric m : metrics.values()) {
             String mid = m.id;
             if (isBlank(mid)) {
-                mid = ids.allocate();
+                mid = ids.claim(fieldToId(m.field));
                 m = new Metric(mid, m.field, m.kind);
             }
             if (newMetrics.containsKey(mid)) {
@@ -407,6 +407,14 @@ public final class AggsDslCompiler {
         return s == null || s.trim().isEmpty();
     }
 
+    // Returns last segment after last dot: "span_attributes.score_ml" → "score_ml"; "max_score" → "max_score"
+    private static String fieldToId(String field) {
+        if (field == null || field.trim().isEmpty()) return "field";
+        String f = field.trim();
+        int dot = f.lastIndexOf('.');
+        return dot >= 0 ? f.substring(dot + 1) : f;
+    }
+
     // ---------------- id allocator ----------------
     private static final class IdAllocator {
         private final Set<String> used = new HashSet<String>();
@@ -421,6 +429,15 @@ public final class AggsDslCompiler {
                 int n = Integer.parseInt(s);
                 if (n >= next) next = n + 1;
             } catch (NumberFormatException ignored) {}
+        }
+
+        // Try preferred name; fall back to numeric if already taken
+        String claim(String preferred) {
+            if (preferred != null && !preferred.trim().isEmpty()) {
+                String s = preferred.trim();
+                if (used.add(s)) return s;
+            }
+            return allocate();
         }
 
         String allocate() {
