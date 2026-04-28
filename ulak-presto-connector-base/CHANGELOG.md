@@ -41,10 +41,26 @@ history-rewrite event details.
   `country()`, `name()`, `location()`, `latitude()`, `longitude()`.
   Compile is now warning-free (`@Deprecated(forRemoval=true)` notices
   gone), unblocks future bump to geoip2 6.x.
+- **K04-followup — smoke test against real MMDB.** Standalone Java
+  test (`/tmp/GeoTest.java`, not committed) loaded each MMDB and
+  queried `8.8.8.8` / `1.1.1.1` / `212.156.4.5`. Results:
+  - `GeoLite2-Country.mmdb` (database_type `GeoLite2-Country`):
+    ✓ correctly returns "United States" / "Türkiye" (1.1.1.1 unmapped).
+  - `GeoLite2-City.mmdb` (database_type `GeoLite2-City`):
+    ✓ correct country + lat/lon for the same IPs.
+  - `IP2LOCATION-LITE-DB11.CSV.MMDB` (database_type `IP2LITE-City`,
+    produced by `geolocation/ip2location/convert.py`):
+    ✓ **accepted** by `geoip2:5.0.0` despite the non-`GeoIP2-*`
+    `database_type` header — both `country()` and `city()` calls
+    succeed. Country names follow IP2Location's spelling
+    ("United States of America", "Turkiye"). 1.1.1.1 (Cloudflare)
+    actually resolves to Australia here, where MaxMind's free LITE
+    returned null.
+  Conclusion: the K04 risk note about `IP2LITE-*` rejection was
+  unfounded; **`convert.py` does not need a header fix**.
 
 ### Pending follow-up (still in TODO)
 
-- **K04-followup** — runtime test against real MMDB.
 - **K05** — license attribution audit on Grafana panels in
   `backend/anomaly`.
 - **K06** — dependabot vulnerability triage on

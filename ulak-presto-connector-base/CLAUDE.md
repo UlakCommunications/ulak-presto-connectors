@@ -25,10 +25,13 @@ connector. Country / city / location lookups are wired through
 `GeoIp2Exception` (incl. `AddressNotFoundException`,
 `InvalidDatabaseException`) are caught at debug level → empty result.
 
-**Outstanding:** runtime test against a real MMDB (both MaxMind GeoLite2
-and IP2Location-converted variants) — see [`TODO.md`](TODO.md)
-K04-followup; the risk note about `IP2LITE-*` `database_type` headers
-in `convert.py` output is captured there.
+Smoke-tested against three real MMDB files (MaxMind GeoLite2-Country,
+GeoLite2-City, and the `convert.py`-produced IP2Location MMDB with
+`database_type=IP2LITE-City`) — `geoip2:5.0.0` accepts all three; both
+`country()` and `city()` calls succeed against the IP2Location-converted
+file despite the non-`GeoIP2-*` header. See `CHANGELOG.md` "K04-followup".
+End-to-end test (Trino + the connector jar + SQL UDF) still
+recommended via the local `docker-compose.yml`.
 
 See [`TODO.md`](TODO.md) category K for open items.
 

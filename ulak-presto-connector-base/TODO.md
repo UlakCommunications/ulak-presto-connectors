@@ -8,15 +8,6 @@ Open items only. Completed work is moved to
 Remaining open items after the history rewrite + IPToCountry refactor.
 Context in [`CLAUDE.md`](CLAUDE.md).
 
-- [ ] **K04-followup [P1, 0.3d] runtime test of `IPToCountry.java`
-      against real MMDB** — code path is wired but only build-tested.
-      Verify against (a) a MaxMind GeoLite2 MMDB and (b) a
-      `convert.py`-produced IP2Location MMDB. If the IP2Location MMDB
-      fails because `geoip2:5.0.0` rejects `database_type` `IP2LITE-*`,
-      either fix `convert.py` to write `GeoIP2-Country` /
-      `GeoIP2-City` headers, or drop to low-level
-      `com.maxmind.db.Reader.get()`.
-
 - [ ] **K05 [P2, 0.3d] License attribution audit** — Grafana panels and
       reports in `backend/anomaly` that surface GeoIP data must include
       the EULA-mandated attribution strings:
