@@ -35,11 +35,17 @@ history-rewrite event details.
   crash. **Runtime test against real MMDB still outstanding** — tracked
   inline on the K04 row in TODO.md as a follow-up note.
 
+- **K07 — `IPToCountry.java`: off `geoip2:5.x` deprecated APIs.**
+  Switched from `getCountry()` / `getName()` / `getLocation()` /
+  `getLatitude()` / `getLongitude()` to the record-style accessors
+  `country()`, `name()`, `location()`, `latitude()`, `longitude()`.
+  Compile is now warning-free (`@Deprecated(forRemoval=true)` notices
+  gone), unblocks future bump to geoip2 6.x.
+
 ### Pending follow-up (still in TODO)
 
+- **K04-followup** — runtime test against real MMDB.
 - **K05** — license attribution audit on Grafana panels in
   `backend/anomaly`.
 - **K06** — dependabot vulnerability triage on
   `UlakCommunications/ulak-presto-connectors` GitHub mirror.
-- **K07** — migrate off `geoip2:5.x` deprecated APIs before bumping to
-  6.x.

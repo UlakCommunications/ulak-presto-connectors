@@ -35,9 +35,3 @@ Context in [`CLAUDE.md`](CLAUDE.md).
       `pom.xml` versions across `ulak-presto-connector-base` and the
       four connectors as needed.
 
-- [ ] **K07 [P3, 0.3d] `IPToCountry.java` — migrate off `geoip2:5.x`
-      deprecated APIs** — `CountryResponse.getCountry()`,
-      `Country.getName()`, `CityResponse.getLocation()`,
-      `Location.getLatitude()`, `.getLongitude()` are all
-      `@Deprecated(forRemoval=true)` in 5.x. Pick up the new
-      record-style accessors before bumping to geoip2 6.x.

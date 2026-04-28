@@ -26,9 +26,9 @@ connector. Country / city / location lookups are wired through
 `InvalidDatabaseException`) are caught at debug level → empty result.
 
 **Outstanding:** runtime test against a real MMDB (both MaxMind GeoLite2
-and IP2Location-converted variants) — see [`TODO.md`](TODO.md) K04
-risk note about `IP2LITE-*` `database_type` headers; **K07** geoip2 5.x
-deprecation cleanup (record-style accessors before bumping to 6.x).
+and IP2Location-converted variants) — see [`TODO.md`](TODO.md)
+K04-followup; the risk note about `IP2LITE-*` `database_type` headers
+in `convert.py` output is captured there.
 
 See [`TODO.md`](TODO.md) category K for open items.
 

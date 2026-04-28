@@ -68,8 +68,8 @@ public class IPToCountry
         try {
             InetAddress ipAddress = InetAddress.getByName(ip);
             CountryResponse response = countryReader.country(ipAddress);
-            Country country = response.getCountry();
-            return (country != null) ? country.getName() : null;
+            Country country = response.country();
+            return (country != null) ? country.name() : null;
         }
         catch (IOException | GeoIp2Exception e) {
             logger.debug("country lookup failed for {}: {}", ip, e.getMessage());
@@ -85,7 +85,7 @@ public class IPToCountry
         try {
             InetAddress ipAddress = InetAddress.getByName(ip);
             CityResponse response = cityReader.city(ipAddress);
-            return response.getLocation();
+            return response.location();
         }
         catch (IOException | GeoIp2Exception e) {
             logger.debug("location lookup failed for {}: {}", ip, e.getMessage());
@@ -114,7 +114,7 @@ public class IPToCountry
             return Slices.utf8Slice("");
         }
         Location loc = getLocation(value.toStringUtf8());
-        Double lat = (loc != null) ? loc.getLatitude() : null;
+        Double lat = (loc != null) ? loc.latitude() : null;
         return Slices.utf8Slice(lat != null ? String.valueOf(lat) : "");
     }
 
@@ -127,7 +127,7 @@ public class IPToCountry
             return Slices.utf8Slice("");
         }
         Location loc = getLocation(value.toStringUtf8());
-        Double lon = (loc != null) ? loc.getLongitude() : null;
+        Double lon = (loc != null) ? loc.longitude() : null;
         return Slices.utf8Slice(lon != null ? String.valueOf(lon) : "");
     }
 }
