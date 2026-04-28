@@ -60,18 +60,16 @@ see [Runtime mount](#runtime-mount) below.
 
 ## Runtime mount
 
-`IPToCountry.java` currently reads from hardcoded paths under the Trino
-plugin directory:
+`IPToCountry.java` reads MMDB from configurable paths:
 
-```
-/usr/lib/trino/plugin/GeoLite2-Country.mmdb
-/usr/lib/trino/plugin/GeoLite2-City.mmdb
-```
+| Env var | Default |
+|---|---|
+| `ULAK_GEOIP_COUNTRY_DB` | `/usr/lib/trino/plugin/GeoLite2-Country.mmdb` |
+| `ULAK_GEOIP_CITY_DB`    | `/usr/lib/trino/plugin/GeoLite2-City.mmdb` |
 
-**TODO:** make the path configurable via env var or Trino catalog
-property so customers can mount their licensed `.mmdb` wherever they
-prefer; today the only way to swap data is to mount over those exact
-filenames.
+If the file is missing or fails to open, the connector logs a `WARN`
+and the GeoIP UDFs return `""` — the rest of the catalog keeps working
+without GeoIP enrichment. No restart loop on a missing data file.
 
 The MMDB files are 6–25 MB each — too large for a `ConfigMap` or a
 `Secret` (both etcd-backed, 1 MB practical limit). Use one of:
@@ -126,17 +124,11 @@ spec:
       containers:
         - name: trino
           image: <registry>/trinodb/trino:479
+          env:
+            - { name: ULAK_GEOIP_COUNTRY_DB, value: /data/GeoLite2-Country.mmdb }
+            - { name: ULAK_GEOIP_CITY_DB,    value: /data/GeoLite2-City.mmdb }
           volumeMounts:
-            # Mount over the hardcoded plugin path until IPToCountry.java
-            # accepts a configurable location.
-            - name: geoip-data
-              mountPath: /usr/lib/trino/plugin/GeoLite2-Country.mmdb
-              subPath: GeoLite2-Country.mmdb
-              readOnly: true
-            - name: geoip-data
-              mountPath: /usr/lib/trino/plugin/GeoLite2-City.mmdb
-              subPath: GeoLite2-City.mmdb
-              readOnly: true
+            - { name: geoip-data, mountPath: /data, readOnly: true }
 ```
 
 Add a daily refresh by promoting the init-container to a sidecar with a
@@ -195,15 +187,11 @@ spec:
             readOnly: true
       containers:
         - name: trino
+          env:
+            - { name: ULAK_GEOIP_COUNTRY_DB, value: /data/GeoLite2-Country.mmdb }
+            - { name: ULAK_GEOIP_CITY_DB,    value: /data/GeoLite2-City.mmdb }
           volumeMounts:
-            - name: geoip-data
-              mountPath: /usr/lib/trino/plugin/GeoLite2-Country.mmdb
-              subPath: GeoLite2-Country.mmdb
-              readOnly: true
-            - name: geoip-data
-              mountPath: /usr/lib/trino/plugin/GeoLite2-City.mmdb
-              subPath: GeoLite2-City.mmdb
-              readOnly: true
+            - { name: geoip-data, mountPath: /data, readOnly: true }
 ```
 
 ### Pattern C — IP2Location LITE (no official auto-updater)
@@ -228,11 +216,10 @@ data — see [License attribution](#license-attribution).
 
 ## Graceful degrade
 
-The static block in `IPToCountry.java` currently throws `RuntimeException`
-at class-load if the MMDB files are missing — the entire connector fails
-to load. **TODO:** make the `DatabaseReader` initialisation lazy and
-catch `IOException`, so the connector loads with the GeoIP UDFs returning
-empty strings instead of crashing the plugin.
+If neither file is present, GeoIP enrichment is silently disabled —
+`IPToCountry.openReader()` logs a `WARN`, the readers stay `null`, and
+the three UDFs (`ip_to_country`, `ip_to_latitude`, `ip_to_longitude`)
+return empty strings. The catalog keeps working.
 
 ## License attribution
 

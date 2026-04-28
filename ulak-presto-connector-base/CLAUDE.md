@@ -15,17 +15,20 @@ exposes three Trino SQL UDFs backed by MaxMind `com.maxmind.geoip2:geoip2:5.0.0`
 - `ip_to_latitude(varchar) → varchar`
 - `ip_to_longitude(varchar) → varchar`
 
-Reads MMDB from hardcoded `/usr/lib/trino/plugin/GeoLite2-Country.mmdb` and
-`/usr/lib/trino/plugin/GeoLite2-City.mmdb`. **Status today (2026-04-28):**
+Reads MMDB from a configurable path (env vars
+`ULAK_GEOIP_COUNTRY_DB` / `ULAK_GEOIP_CITY_DB`; defaults
+`/usr/lib/trino/plugin/GeoLite2-Country.mmdb` and `.../GeoLite2-City.mmdb`).
+If the file is missing or fails to open, `openReader` logs a `WARN` and
+keeps the reader `null`; UDFs return `""` instead of crashing the
+connector. Country / city / location lookups are wired through
+`DatabaseReader.country()` and `.city()`; `IOException` and
+`GeoIp2Exception` (incl. `AddressNotFoundException`,
+`InvalidDatabaseException`) are caught at debug level → empty result.
 
-- Static block opens the readers and throws `RuntimeException` on missing
-  file → entire connector fails to load. **TODO K03.**
-- All lookup method bodies (`getCountryName`, `getLocation`, `ipToLatitude`,
-  `ipToLongitude`, the substantive part of `ipToCountry`) are entirely
-  commented out — UDFs return `null` / `""` even when MMDB is present.
-  **TODO K04.**
-- Path is hardcoded — customer must mount MMDB over the plugin path.
-  **TODO K02.**
+**Outstanding:** runtime test against a real MMDB (both MaxMind GeoLite2
+and IP2Location-converted variants) — see [`TODO.md`](TODO.md) K04
+risk note about `IP2LITE-*` `database_type` headers; **K07** geoip2 5.x
+deprecation cleanup (record-style accessors before bumping to 6.x).
 
 See [`TODO.md`](TODO.md) category K for open items.
 

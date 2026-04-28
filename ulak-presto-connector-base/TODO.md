@@ -1,52 +1,43 @@
 # TODO — ulak-presto-connector-base
 
+Open items only. Completed work is moved to
+[`CHANGELOG.md`](CHANGELOG.md).
+
 ## GeoIP cleanup (2026-04-28) — connector-base scope
 
-After the master history rewrite (binary geolocation purge) and the
-`geolocation/` workspace overhaul. Context in
-[`CLAUDE.md`](CLAUDE.md).
+Remaining open items after the history rewrite + IPToCountry refactor.
+Context in [`CLAUDE.md`](CLAUDE.md).
 
-- [x] **K01 [P1, 0.3d] Dockerfile — remove binary `COPY` lines** ✓ done
-      2026-04-28. Three `COPY ./geolocation/...mmdb` lines replaced with a
-      pointer comment to `geolocation/README.md`. Image is now data-less;
-      customer mounts MMDB at runtime.
-
-- [ ] **K02 [P1, 0.5d] `IPToCountry.java` — make MMDB path configurable** —
-      hardcoded `/usr/lib/trino/plugin/GeoLite2-{Country,City}.mmdb` forces
-      customers to mount over the plugin path. Accept env vars
-      (`ULAK_GEOIP_COUNTRY_DB`, `ULAK_GEOIP_CITY_DB`) or Trino catalog
-      properties so the K8s manifest can mount to `/data/...mmdb` cleanly.
-
-- [ ] **K03 [P1, 0.3d] `IPToCountry.java` — graceful fallback when MMDB
-      missing** — static block currently throws `RuntimeException` if the
-      file does not exist → entire connector fails to load. Make
-      `DatabaseReader` initialisation lazy (or catch `IOException` and
-      keep the readers `null`); UDFs return `""` / `null` instead of
-      crashing the plugin.
-
-- [ ] **K04 [P1, 0.5d] `IPToCountry.java` — uncomment real lookup logic** —
-      bodies of `getCountryName`, `getLocation`, `ipToLatitude`,
-      `ipToLongitude`, and the substantive part of `ipToCountry` are
-      entirely in comments (returning `null`/`""`). Re-enable; verify
-      against IP2Location-converted MMDB. Risk: `convert.py` writes
-      `database_type` `IP2LITE-Country` / `IP2LITE-City` — if
-      `geoip2:5.0.0` rejects non-`GeoIP2-*` types in `country()`/`city()`,
-      either fix `convert.py` to write `GeoIP2-Country` / `GeoIP2-City`
-      headers, or drop to low-level `com.maxmind.db.Reader.get()`.
+- [ ] **K04-followup [P1, 0.3d] runtime test of `IPToCountry.java`
+      against real MMDB** — code path is wired but only build-tested.
+      Verify against (a) a MaxMind GeoLite2 MMDB and (b) a
+      `convert.py`-produced IP2Location MMDB. If the IP2Location MMDB
+      fails because `geoip2:5.0.0` rejects `database_type` `IP2LITE-*`,
+      either fix `convert.py` to write `GeoIP2-Country` /
+      `GeoIP2-City` headers, or drop to low-level
+      `com.maxmind.db.Reader.get()`.
 
 - [ ] **K05 [P2, 0.3d] License attribution audit** — Grafana panels and
-      reports surfacing GeoIP data must include the EULA-mandated strings:
+      reports in `backend/anomaly` that surface GeoIP data must include
+      the EULA-mandated attribution strings:
       *"This product uses IP2Location LITE data
       ([https://lite.ip2location.com](https://lite.ip2location.com))."*
       and *"This product includes GeoLite2 data created by MaxMind
       ([https://www.maxmind.com](https://www.maxmind.com))."* Audit
-      downstream observability dashboards in `backend/anomaly` for
-      compliance.
+      downstream observability dashboards for compliance; add to
+      dashboard description or footer panel where missing.
 
 - [ ] **K06 [P1, 1d] Dependabot vulnerability triage** — GitHub flagged
       7 vulnerabilities (2 moderate, 5 low) on the
       `UlakCommunications/ulak-presto-connectors` default branch:
       <https://github.com/UlakCommunications/ulak-presto-connectors/security/dependabot>.
       Read each, triage transitive vs direct, bump the affected
-      `pom.xml` versions across `ulak-presto-connector-base` and the four
-      connectors as needed.
+      `pom.xml` versions across `ulak-presto-connector-base` and the
+      four connectors as needed.
+
+- [ ] **K07 [P3, 0.3d] `IPToCountry.java` — migrate off `geoip2:5.x`
+      deprecated APIs** — `CountryResponse.getCountry()`,
+      `Country.getName()`, `CityResponse.getLocation()`,
+      `Location.getLatitude()`, `.getLongitude()` are all
+      `@Deprecated(forRemoval=true)` in 5.x. Pick up the new
+      record-style accessors before bumping to geoip2 6.x.
