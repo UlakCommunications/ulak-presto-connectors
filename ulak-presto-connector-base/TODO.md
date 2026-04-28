@@ -6,14 +6,10 @@ After the master history rewrite (binary geolocation purge) and the
 `geolocation/` workspace overhaul. Context in
 [`CLAUDE.md`](CLAUDE.md).
 
-- [ ] **K01 [P1, 0.3d] Dockerfile — remove binary `COPY` lines** —
-      [`Dockerfile`](../Dockerfile) lines 28-31 still copy
-      `./geolocation/maxmind/...mmdb` and
-      `./geolocation/ip2location/IP2LOCATION-LITE-DB11.CSV/IP2LOCATION-LITE-DB11.CSV.MMDB`
-      into the image. Source files are now `.gitignore`'d so
-      `docker build` fails on those COPY steps. Drop the three lines
-      (leave the `*.jar` COPYs). Image becomes data-less; customer mounts
-      MMDB at runtime per `geolocation/README.md`.
+- [x] **K01 [P1, 0.3d] Dockerfile — remove binary `COPY` lines** ✓ done
+      2026-04-28. Three `COPY ./geolocation/...mmdb` lines replaced with a
+      pointer comment to `geolocation/README.md`. Image is now data-less;
+      customer mounts MMDB at runtime.
 
 - [ ] **K02 [P1, 0.5d] `IPToCountry.java` — make MMDB path configurable** —
       hardcoded `/usr/lib/trino/plugin/GeoLite2-{Country,City}.mmdb` forces
