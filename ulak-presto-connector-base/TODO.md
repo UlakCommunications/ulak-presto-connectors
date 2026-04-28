@@ -28,17 +28,6 @@ Plan: write tests first (otherwise refactor is risky), then refactor
 incrementally. Each L-item lands as its own commit; entries move from
 this file to `CHANGELOG.md` once done.
 
-- [ ] **L01 [P1, 0.5d] Test fixtures from sibling projects** — pull real
-      SQL / Aggs DSL examples from `backend/anomaly` and the SQLI project
-      (paths to be confirmed during exploration). Drop them under
-      `src/test/resources/` per module so unit tests exercise production
-      shapes, not invented strings.
-
-- [ ] **L02 [P1, 0.5d] Maven test scaffold** — root `pom.xml` becomes a
-      true parent with `<dependencyManagement>` (Trino, JUnit 5 BOM,
-      AssertJ, Mockito), `surefire-plugin` 3.x, and consistent test
-      dependencies in each of the 4 module poms. `src/test/java` +
-      `src/test/resources` directories created where missing.
 
 - [ ] **L03 [P1, 1d] Unit tests for pure-logic classes** — JUnit 5 against
       `AggsDslCompiler` (round-trip DSL → Quickwit aggs JSON for several

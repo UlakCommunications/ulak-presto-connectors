@@ -80,6 +80,40 @@ history-rewrite event details.
   Dependabot will close the 4 alerts automatically when the new
   versions land in the default branch.
 
+## 2026-04-28 — Architectural review (category L)
+
+In-progress. Branch `multi_catalog_refactor`. Each L-item lands as a
+separate commit on the branch; the whole branch lands in `develop` as
+one merge once the docker-compose smoke test passes.
+
+### Done
+
+- **L01 — Test fixtures harvested from `backend/anomaly` Grafana
+  dashboards.** 101 distinct `quickwit.system.raw_query(...)` calls
+  pulled from `grafana_dashboard*.json` + `grafana_alerts_watchdog.json`,
+  reduced to 82 distinct Aggs DSL strings + their full parameter set
+  (`qwindex`, `sqlversion`, `columns`, `replacefromcolumns`, `hasjs`,
+  `aggs`, ...). Three fixture files committed under
+  `ulak-presto-quickwit-connector/src/test/resources/fixtures/anomaly/`:
+  - `aggs-dsl.json` — the 82 distinct DSL strings.
+  - `raw-query-params.json` — 101 named-parameter records.
+  - `raw-queries.sql.json` — the 101 full SQL queries (for parsing tests).
+  Index covers all anomaly subsystems (`anomaly-events`,
+  `-events-cpe`, `-events-gateway`, `-events-metrics`,
+  `-events-collective`, `-flows`, `-model-stats`) and both
+  `sqlversion=0.1` and `0.2`.
+
+- **L02 — Maven test scaffold.** Root `pom.xml` now carries a
+  `<dependencyManagement>` block for the test stack (JUnit Jupiter
+  5.11.4 BOM, AssertJ 3.27.0, Mockito 4.11.0) plus a surefire 3.5.2
+  `<pluginManagement>` entry that overrides `JAVA_TOOL_OPTIONS` so the
+  docker-compose JDWP setting does not collide with the forked test
+  JVM. The four module poms declare the same four test dependencies
+  with explicit versions (parent migration is deferred to L07). Each
+  module pom now has its own surefire plugin block. `SmokeTest` in
+  base + quickwit modules confirms wiring (`mvn test` over both is
+  green: 3 tests pass).
+
 ### Pending follow-up (still in TODO)
 
 - **K05** — license attribution audit on Grafana panels in

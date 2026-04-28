@@ -135,6 +135,32 @@
           <version>${okhttp-version}</version>
       </dependency>
 
+    <!-- Test dependencies -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>5.11.4</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>3.27.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>4.11.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>4.11.0</version>
+      <scope>test</scope>
+    </dependency>
+
   </dependencies>
 
   <build>
@@ -180,12 +206,18 @@
           <fork>false</fork>
           <source>9</source>
           <target>9</target>
-          <!--          <target>1.8</target>-->
-<!--          <source>1.8</source>-->
         </configuration>
-
       </plugin>
-
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.5.2</version>
+        <configuration>
+          <environmentVariables>
+            <JAVA_TOOL_OPTIONS></JAVA_TOOL_OPTIONS>
+          </environmentVariables>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
   <repositories>

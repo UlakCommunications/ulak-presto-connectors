@@ -118,6 +118,33 @@
       <artifactId>geoip2</artifactId>
       <version>5.0.0</version>
     </dependency>
+
+    <!-- Test dependencies (versions managed by root pom dependencyManagement
+         once parent migration lands; explicit here for now). -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>5.11.4</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>3.27.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>4.11.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>4.11.0</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -161,12 +188,20 @@
         <version>3.13.0</version>
         <configuration combine.children="append">
           <fork>false</fork>
-            <!--          <target>1.8</target>-->
-<!--          <source>1.8</source>-->
         </configuration>
-
       </plugin>
-
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.5.2</version>
+        <configuration>
+          <!-- Override JAVA_TOOL_OPTIONS so the docker-compose JDWP setting
+               does not collide with mvn test fork. -->
+          <environmentVariables>
+            <JAVA_TOOL_OPTIONS></JAVA_TOOL_OPTIONS>
+          </environmentVariables>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
   <repositories>
