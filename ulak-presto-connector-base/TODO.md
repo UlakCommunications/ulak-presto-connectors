@@ -18,11 +18,4 @@ Context in [`CLAUDE.md`](CLAUDE.md).
       downstream observability dashboards for compliance; add to
       dashboard description or footer panel where missing.
 
-- [ ] **K06 [P1, 1d] Dependabot vulnerability triage** — GitHub flagged
-      7 vulnerabilities (2 moderate, 5 low) on the
-      `UlakCommunications/ulak-presto-connectors` default branch:
-      <https://github.com/UlakCommunications/ulak-presto-connectors/security/dependabot>.
-      Read each, triage transitive vs direct, bump the affected
-      `pom.xml` versions across `ulak-presto-connector-base` and the
-      four connectors as needed.
 

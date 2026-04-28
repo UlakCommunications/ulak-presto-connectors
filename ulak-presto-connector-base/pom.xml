@@ -91,19 +91,19 @@
     <dependency>
       <groupId>org.mozilla</groupId>
       <artifactId>rhino</artifactId>
-      <version>1.8.0</version>
+      <version>1.8.1</version>
     </dependency>
 
     <dependency>
       <groupId>org.mozilla</groupId>
       <artifactId>rhino-engine</artifactId>
-      <version>1.8.0</version>
+      <version>1.8.1</version>
     </dependency>
 
     <dependency>
       <groupId>org.mozilla</groupId>
       <artifactId>rhino-runtime</artifactId>
-      <version>1.7.15</version>
+      <version>1.7.15.1</version>
     </dependency>
 
 

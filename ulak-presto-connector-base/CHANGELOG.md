@@ -65,6 +65,21 @@ history-rewrite event details.
   Conclusion: the K04 risk note about `IP2LITE-*` rejection was
   unfounded; **`convert.py` does not need a header fix**.
 
+- **K06 — Dependabot triage on UlakCommunications GitHub mirror.**
+  Pulled the alert list via `gh api`: 11 total alerts, 7 already
+  fixed historically. The 4 still-open alerts are all **the same
+  CVE-2025-66453 (`GHSA-3w8q-xq97-5j7x`, severity LOW)** —
+  Rhino DoS via `toFixed()` on attacker-controlled floats — flagged
+  once per `pom.xml` (base + 3 connectors). Bumped:
+  - `org.mozilla:rhino` 1.8.0 → 1.8.1
+  - `org.mozilla:rhino-engine` 1.8.0 → 1.8.1
+  - `org.mozilla:rhino-runtime` 1.7.15 → 1.7.15.1 *(no 1.8.x line
+    exists for this artifact on Maven Central; 1.7.15.1 is the
+    upstream patch)*
+  Build still passes (`mvn compile` over base + 3 connectors).
+  Dependabot will close the 4 alerts automatically when the new
+  versions land in the default branch.
+
 ### Pending follow-up (still in TODO)
 
 - **K05** — license attribution audit on Grafana panels in
