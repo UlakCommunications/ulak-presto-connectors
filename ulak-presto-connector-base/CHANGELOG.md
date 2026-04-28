@@ -41,9 +41,15 @@ history-rewrite event details.
   `country()`, `name()`, `location()`, `latitude()`, `longitude()`.
   Compile is now warning-free (`@Deprecated(forRemoval=true)` notices
   gone), unblocks future bump to geoip2 6.x.
-- **K04-followup — smoke test against real MMDB.** Standalone Java
-  test (`/tmp/GeoTest.java`, not committed) loaded each MMDB and
-  queried `8.8.8.8` / `1.1.1.1` / `212.156.4.5`. Results:
+- **K04-followup — smoke test + Trino E2E against real MMDB.**
+  Standalone Java test (`/tmp/GeoTest.java`, not committed) loaded each
+  MMDB and queried `8.8.8.8` / `1.1.1.1` / `212.156.4.5`. Then a full
+  Trino E2E via `docker-compose.yml` (uncommenting the GeoIP mount +
+  env-var lines) confirmed the UDFs over SQL:
+  `SELECT ip_to_country('8.8.8.8')` → `"United States"`, lat 37.751,
+  lon -97.822. `ip_to_country('212.156.4.5')` → `"Türkiye"`, lat
+  41.0145, lon 28.9533. `ip_to_country('not-an-ip')` → `""`
+  (graceful). Standalone results:
   - `GeoLite2-Country.mmdb` (database_type `GeoLite2-Country`):
     ✓ correctly returns "United States" / "Türkiye" (1.1.1.1 unmapped).
   - `GeoLite2-City.mmdb` (database_type `GeoLite2-City`):

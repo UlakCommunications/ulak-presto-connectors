@@ -11,6 +11,11 @@ services:
       # use Option B below.
       JAVA_TOOL_OPTIONS: >-
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+      # GeoIP MMDB paths — uncomment together with the volume bind below
+      # to test ip_to_country/latitude/longitude UDFs against a real MMDB.
+      # Defaults to /usr/lib/trino/plugin/GeoLite2-*.mmdb if unset.
+      # ULAK_GEOIP_COUNTRY_DB: /data/GeoLite2-Country.mmdb
+      # ULAK_GEOIP_CITY_DB:    /data/GeoLite2-City.mmdb
     volumes:
       # Trino server config
       - ./trino/etc/config.properties:/etc/trino/config.properties:ro
@@ -25,6 +30,15 @@ services:
       # IMPORTANT: this must be the DIRECTORY that contains the connector JAR + dependency-jars/
       # Example local path: ./plugins/myconnector/
       - ./ulak-presto-quickwit-connector/target:/usr/lib/trino/plugin/quicwitconnector:ro
+
+      # GeoIP MMDB files — license-restricted, gitignored, present only on
+      # developer workstations. Uncomment together with the ULAK_GEOIP_*_DB
+      # env vars above to test ip_to_country / ip_to_latitude /
+      # ip_to_longitude UDFs against a real MMDB. Without these the UDFs
+      # return "" and log a WARN; the rest of the catalog keeps working.
+      # See geolocation/README.md for the production K8s pattern.
+      # - ./geolocation/maxmind/GeoLite2-Country_20240917/GeoLite2-Country.mmdb:/data/GeoLite2-Country.mmdb:ro
+      # - ./geolocation/maxmind/GeoLite2-City_20240917/GeoLite2-City.mmdb:/data/GeoLite2-City.mmdb:ro
 
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/v1/info"]
