@@ -33,7 +33,33 @@ file despite the non-`GeoIP2-*` header. See `CHANGELOG.md` "K04-followup".
 End-to-end test (Trino + the connector jar + SQL UDF) still
 recommended via the local `docker-compose.yml`.
 
-See [`TODO.md`](TODO.md) category K for open items.
+See [`TODO.md`](TODO.md) category K for open items, plus category L
+(architectural review 2026-04-28) covering test scaffold, multi-catalog
+singleton refactor, resource leaks, and Maven hygiene.
+
+## Known architectural debt (category L)
+
+A two-prong audit on 2026-04-28 surfaced two high-impact issues:
+
+1. **Multi-catalog registration is broken.** Six classes
+   (`ConnectorBaseUtil`, `UlakQuickwitMetadata`,
+   `QuickwitRecordSetProvider`, `QuickwitSplitManager`,
+   `UlakRecordSetProvider`, `UlakSplitManager`) use a
+   `private static <T> single` + `getInstance()` pattern that captures
+   the first catalog's config and silently returns it to every
+   subsequent catalog. Any second `quickwit_*` / `influxdb_*` /
+   `postgres_*` catalog gets the wrong URL/index/pool. Fix tracked as
+   **L04**.
+
+2. **Zero test coverage.** No `src/test/` directory exists in any of
+   the four modules; root `pom.xml` does not configure surefire/failsafe.
+   Refactor without tests is risky, so the L plan does test scaffold
+   (**L02**) + unit tests (**L03**) before the singleton rewrite
+   (**L04**).
+
+Plus a top-10 list of P1/P2 code-quality issues (resource leaks,
+swallowed exceptions, credential logging, `System.out` in production)
+tracked as **L05–L07**.
 
 ## GeoIP data policy — never commit
 
