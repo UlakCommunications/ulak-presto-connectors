@@ -59,6 +59,7 @@ public class QwUtil {
     public static final String SUM_OTHER_DOC_COUNT = "sum_other_doc_count";
     public static final String VALUE = "value";
     public static final String BUCKETS = "buckets";
+    public static long HISTORY_TIME_THRESHOLD_SECONDS = 3600; // 1 hour (in seconds)
 
     public static ApiClient getDefaultClient(QueryParameters queryParameters,
                                              Integer connectTimeout,
@@ -168,6 +169,19 @@ public class QwUtil {
         }
         if(StringUtils.isBlank(queryParameters.getQwIndex())) {
             queryParameters.setQwIndex(qwIndex);
+        }
+
+        // Switch to history index if enabled and time range exceeds threshold
+        if (queryParameters.isHistoryEnabled()
+                && StringUtils.isNotBlank(queryParameters.getHistoryIndex())) {
+            long from = queryParameters.getFrom();
+            long to = queryParameters.getTo();
+            long range = to - from;
+            if (from > 0 && to > 0 && range > HISTORY_TIME_THRESHOLD_SECONDS) {
+                logger.debug("Switching to history index '{}' (time range {}s > threshold {}s)",
+                        queryParameters.getHistoryIndex(), range, HISTORY_TIME_THRESHOLD_SECONDS);
+                queryParameters.setQwIndex(queryParameters.getHistoryIndex());
+            }
         }
 
         logger.debug("Executing select : {}\n\n\nurl:{}\n\n\nindex:{}",

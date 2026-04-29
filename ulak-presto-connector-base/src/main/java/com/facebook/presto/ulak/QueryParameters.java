@@ -24,6 +24,8 @@ public class QueryParameters {
     //public static final String TEXT_EAGER_CACHE = "eagercache";
     public static final String TEXT_NAME = "name";
     public static final String TEXT_QWINDEX = "qwindex";
+    public static final String TEXT_HISTORY_ENABLED = "historyenabled";
+    public static final String TEXT_HISTORY_INDEX = "historyindex";
     public static final String TEXT_NULL_FILL = "nullfill";
     public static final String TEXT_QWURL = "qwurl";
     public static final String TEXT_HASJS = "hasjs";
@@ -63,6 +65,8 @@ public class QueryParameters {
     private String error;
     private String qwUrl;
     private String qwIndex;
+    private boolean historyEnabled = false;
+    private String historyIndex;
     private String replaceFromColumns;
     private Integer connectTimeout;
     private Integer readTimeout;
@@ -228,6 +232,12 @@ public class QueryParameters {
                         case TEXT_QWINDEX:
                             ret.setQwIndex(value);
                             break;
+                        case TEXT_HISTORY_ENABLED:
+                            ret.setHistoryEnabled(Boolean.parseBoolean(value));
+                            break;
+                        case TEXT_HISTORY_INDEX:
+                            ret.setHistoryIndex(value);
+                            break;
                         case TEXT_QWREPLACEFROMCOLUMN:
                             ret.setReplaceFromColumns(value);
                             break;
@@ -390,6 +400,22 @@ public class QueryParameters {
 
     public String getQwIndex() {
         return qwIndex;
+    }
+
+    public boolean isHistoryEnabled() {
+        return historyEnabled;
+    }
+
+    public void setHistoryEnabled(boolean historyEnabled) {
+        this.historyEnabled = historyEnabled;
+    }
+
+    public String getHistoryIndex() {
+        return historyIndex;
+    }
+
+    public void setHistoryIndex(String historyIndex) {
+        this.historyIndex = historyIndex;
     }
 
     public void setReplaceFromColumns(String replaceFromColumns) {
