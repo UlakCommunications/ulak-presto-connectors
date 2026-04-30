@@ -40,5 +40,35 @@ this file to `CHANGELOG.md` once done.
       per-catalog runtime object (or a `Map<catalogName, Runtime>`
       registry) when a customer asks for it — not a speculative cut.
 
+- [ ] **L14 [P2, 1-2d] Deeper TVF schema fix (returned-table-mismatch).**
+      Surfaced live: `RewriteTableFunctionToTableScan` rule's
+      `Preconditions.checkState` fails with "returned table does not
+      match the node's output" when the descriptor returned from
+      `RawQueryFunction.analyze()` and the column list returned from
+      `UlakQuickwitMetadata.getTableMetadata` disagree. They disagree
+      because each path runs its own Quickwit search and the responses
+      differ (a row appears between calls, alias keys from L09 appear
+      only at execute time, etc.). L11 was a half-fix (only patched
+      `analyze()`) and was reverted (commit `5f3b3ec`). The right fix
+      binds three sites to a single column-list source:
+      `analyze()` (returnedType descriptor), `getTableMetadata`
+      (`getColumnsBase` result), and `parseResponseHits` (runtime row
+      column map). Probably easiest to compute once at handle creation
+      and stash it on `RawQuickwitQueryTableHandle` so all three read
+      from the same handle field.
+
+- [ ] **L15 [P3, 0.5d] Rhino classloader debug — `Math.floor` fails
+      under Trino plugin classloader.** L13 made the Rhino failure
+      visible (`hasjs script execution failed: <ExceptionClass>:
+      <message>`); now figure out *why* `Math.floor(1777551625/1000)`
+      fails when Rhino is loaded by the Trino plugin classloader. The
+      shaded jar bundles `org.mozilla:rhino:1.8.1` +
+      `rhino-engine:1.8.1` + `rhino-runtime:1.7.15.1`. Hypothesis:
+      version skew between rhino and rhino-runtime, or
+      Trino-plugin-isolation hides Rhino's stdlib initialisation. Repro
+      = reopen Throughput Chart / Network Throughput while watching
+      Trino logs for the new ApiException — the Rhino exception class
+      will name the exact failure (NPE? ClassNotFound? EvaluatorException?).
+
 
 
