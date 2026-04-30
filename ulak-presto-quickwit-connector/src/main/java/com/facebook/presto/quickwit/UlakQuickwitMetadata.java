@@ -20,6 +20,8 @@ import com.facebook.presto.ulak.UlakTableHandle;
 import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
 import com.google.common.collect.ImmutableList;
 import com.quickwit.javaclient.ApiException;
+import io.trino.spi.StandardErrorCode;
+import io.trino.spi.TrinoException;
 import io.trino.spi.connector.*;
 import io.trino.spi.function.table.ConnectorTableFunctionHandle;
 import org.apache.commons.lang3.StringUtils;
@@ -38,8 +40,7 @@ public class UlakQuickwitMetadata
     public static final String DEFAULT_SCHEMA = "default_schema";
     public static final String DEFAULT_TABLE = "default_Table";
     private static Logger logger = LoggerFactory.getLogger(UlakQuickwitMetadata.class);
-    private static UlakQuickwitMetadata single;
-    protected static String connectorId;
+    private final String connectorId;
     private String qwIndex;
     private final Integer connectTimeout;
     private final Integer readTimeout;
@@ -47,10 +48,10 @@ public class UlakQuickwitMetadata
     private String qwUrl;
     private static final String ERRORSTRING = "UlakQuickwitMetadata.java Error: {}";
 
-    private UlakQuickwitMetadata(String catalogName, String qwUrl, String qwIndex,
-                                 Integer connectTimeout,
-                                 Integer readTimeout,
-                                 Integer writeTimeout) {
+    public UlakQuickwitMetadata(String catalogName, String qwUrl, String qwIndex,
+                                Integer connectTimeout,
+                                Integer readTimeout,
+                                Integer writeTimeout) {
         this.qwUrl = qwUrl;
         this.qwIndex = qwIndex;
         this.connectTimeout = connectTimeout;
@@ -58,17 +59,11 @@ public class UlakQuickwitMetadata
         this.writeTimeout = writeTimeout;
         this.setQwUrl(qwUrl);
         this.setQwIndex(qwIndex);
-        connectorId = new UlakConnectorId(catalogName).toString();
+        this.connectorId = new UlakConnectorId(catalogName).toString();
     }
 
-    public static UlakQuickwitMetadata getInstance(String catalogName, String qwUrl, String qwIndex,
-                                                   Integer connectTimeout,
-                                                   Integer readTimeout,
-                                                   Integer writeTimeout) {
-        if (single == null) {
-            single = new UlakQuickwitMetadata(catalogName, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout);
-        }
-        return single;
+    public String getConnectorId() {
+        return connectorId;
     }
 
 
@@ -134,9 +129,16 @@ public class UlakQuickwitMetadata
                     }));
         } catch (IOException e) {
             logger.error(ERRORSTRING, e);
-            throw new RuntimeException(e);
+            throw new TrinoException(StandardErrorCode.GENERIC_INTERNAL_ERROR, e);
         } catch (Exception e) {
+            // Do not swallow — returning a null `list` from getTableMetadata
+            // makes Trino fail with the opaque "columns is null". Surface the
+            // real cause as a TrinoException (NOT RuntimeException) so the
+            // Trino transaction is aborted cleanly instead of being left in
+            // a "committed" state that breaks subsequent metadata calls with
+            // "Current transaction already committed".
             logger.error(ERRORSTRING, e);
+            throw new TrinoException(StandardErrorCode.GENERIC_INTERNAL_ERROR, e);
         }
         SchemaTableName tableNameSchema = new SchemaTableName((raw==null?influxdbTableHandle.getSchemaName():"test"), (raw==null?influxdbTableHandle.getTableName():tableName));
 
@@ -166,9 +168,16 @@ public class UlakQuickwitMetadata
 
         } catch (IOException e) {
             logger.error(ERRORSTRING, e);
-            throw new RuntimeException(e);
+            throw new TrinoException(StandardErrorCode.GENERIC_INTERNAL_ERROR, e);
         } catch (Exception e) {
+            // Do not swallow — returning a null `list` from getTableMetadata
+            // makes Trino fail with the opaque "columns is null". Surface the
+            // real cause as a TrinoException (NOT RuntimeException) so the
+            // Trino transaction is aborted cleanly instead of being left in
+            // a "committed" state that breaks subsequent metadata calls with
+            // "Current transaction already committed".
             logger.error(ERRORSTRING, e);
+            throw new TrinoException(StandardErrorCode.GENERIC_INTERNAL_ERROR, e);
         }
         for (int i = 0; i < list.size(); ++i) {
             ColumnMetadata metadata = list.get(i);

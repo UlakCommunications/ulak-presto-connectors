@@ -33,11 +33,25 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class InfluxdbUtil {
 
     private static Logger logger = LoggerFactory.getLogger(InfluxdbUtil.class);
-    private static Map<String, InfluxDBClient> influxDBClients;
+    private static final Map<String, InfluxDBClient> influxDBClients = new ConcurrentHashMap<>();
+
+    static {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            for (Map.Entry<String, InfluxDBClient> e : influxDBClients.entrySet()) {
+                try {
+                    e.getValue().close();
+                } catch (Exception ex) {
+                    logger.warn("Error closing InfluxDB client for {} on shutdown", e.getKey(), ex);
+                }
+            }
+            influxDBClients.clear();
+        }, "influxdb-clients-shutdown"));
+    }
 
     public static InfluxDBClient getClient(String url, String org, String token)
             throws
@@ -46,18 +60,8 @@ public class InfluxdbUtil {
         if (url == null) {
             return null;
         }
-        if (influxDBClients == null) {
-            influxDBClients =  new LinkedHashMap<>();
-
-        }
-        InfluxDBClient  influxDBClient = null;
-        if (!influxDBClients.containsKey(url)) {
-            influxDBClient = InfluxDBClientFactory.create(url, token.toCharArray(), org);
-            influxDBClients.put(url, influxDBClient);
-        }else {
-            influxDBClient = influxDBClients.get(url);
-        }
-        return influxDBClient;
+        return influxDBClients.computeIfAbsent(url,
+                u -> InfluxDBClientFactory.create(u, token.toCharArray(), org));
     }
 
     public static List<String> getSchemas(String url, String org, String token) throws IOException {

@@ -80,6 +80,334 @@ history-rewrite event details.
   Dependabot will close the 4 alerts automatically when the new
   versions land in the default branch.
 
+## 2026-04-28 — Architectural review (category L)
+
+In-progress. Branch `multi_catalog_refactor`. Each L-item lands as a
+separate commit on the branch; the whole branch lands in `develop` as
+one merge once the docker-compose smoke test passes.
+
+### Done
+
+- **L01 — Test fixtures harvested from `backend/anomaly` Grafana
+  dashboards.** 101 distinct `quickwit.system.raw_query(...)` calls
+  pulled from `grafana_dashboard*.json` + `grafana_alerts_watchdog.json`,
+  reduced to 82 distinct Aggs DSL strings + their full parameter set
+  (`qwindex`, `sqlversion`, `columns`, `replacefromcolumns`, `hasjs`,
+  `aggs`, ...). Three fixture files committed under
+  `ulak-presto-quickwit-connector/src/test/resources/fixtures/anomaly/`:
+  - `aggs-dsl.json` — the 82 distinct DSL strings.
+  - `raw-query-params.json` — 101 named-parameter records.
+  - `raw-queries.sql.json` — the 101 full SQL queries (for parsing tests).
+  Index covers all anomaly subsystems (`anomaly-events`,
+  `-events-cpe`, `-events-gateway`, `-events-metrics`,
+  `-events-collective`, `-flows`, `-model-stats`) and both
+  `sqlversion=0.1` and `0.2`.
+
+- **L02 — Maven test scaffold.** Root `pom.xml` now carries a
+  `<dependencyManagement>` block for the test stack (JUnit Jupiter
+  5.11.4 BOM, AssertJ 3.27.0, Mockito 4.11.0) plus a surefire 3.5.2
+  `<pluginManagement>` entry that overrides `JAVA_TOOL_OPTIONS` so the
+  docker-compose JDWP setting does not collide with the forked test
+  JVM. The four module poms declare the same four test dependencies
+  with explicit versions (parent migration is deferred to L07). Each
+  module pom now has its own surefire plugin block. `SmokeTest` in
+  base + quickwit modules confirms wiring (`mvn test` over both is
+  green: 3 tests pass).
+
+- **L03 — Unit tests for pure-logic classes.** Two modules covered:
+  - `ulak-presto-connector-base`: `IPToCountryTest` (8 tests) locks in
+    the K03 graceful-fallback contract for `ip_to_country`,
+    `ip_to_latitude`, `ip_to_longitude` — null/blank inputs and missing
+    MMDB return empty, never throw, never null.
+  - `ulak-presto-quickwit-connector`: `AggsDslCompilerTest` —
+    7 hand-written cases (null / empty / JSON-passthrough /
+    array-passthrough / garbage-rejection / simple histogram /
+    two-histograms-rejected) plus an 82-fixture parameterised
+    round-trip over the production DSL strings harvested in L01. Every
+    fixture compiles to syntactically-valid JSON.
+  - The 12 fixtures with Grafana template tokens
+    (`size=${top}`, `size=${top:csv}`, `interval=${__interval_ms}ms`,
+    `interval=${resolution_in_seconds}s`) used to fail the round-trip
+    with `Invalid integer: ${top:csv}`. Diagnosis: production never
+    sees raw `${...}` because Grafana substitutes them before sending
+    SQL to Trino; the compiler is correct to reject them. Fix: the
+    parameterised test now pre-renders templates via
+    `renderTemplates(dsl)` (regex `\$\{[^}]+\}` → `"10"`) so the
+    round-trip exercises the same shape Trino sees at runtime.
+  - Module totals: connector-base 9 tests / 0 fail, quickwit 92 tests /
+    0 fail. **L03 is green; L04 unblocked.**
+
+- **L04a — Singleton refactor (Phase 1, multi-catalog fix).** The five
+  classes that used the `private static <T> single` +
+  `public static getInstance(...)` pattern lose it: each Connector now
+  constructs its own per-catalog instance directly via `new`.
+  - `UlakQuickwitMetadata`: `single` field gone; constructor public;
+    the previously-static `connectorId` becomes a `private final` field
+    populated from the catalog name. `RawQuery.RawQueryFunction` now
+    reads `metadata.getConnectorId()` instead of the static reference.
+  - `QuickwitRecordSetProvider`, `QuickwitSplitManager`,
+    `UlakRecordSetProvider`, `UlakSplitManager`: same drop, constructors
+    now public.
+  - `UlakQuickwitConnector`, `InfluxdbConnector`, `UlakPostgresConnector`
+    each switch their `getInstance(...)` calls to `new ...()`. Two
+    `quickwit_a` + `quickwit_b` (or `pg_a` + `pg_b`) catalogs no longer
+    alias the first registrant's URL/index/timeouts — the user-reported
+    "iki tane catalog ekleyemiyoruz" symptom is gone for the typical
+    deployment shape.
+  - Tests added:
+    - `L04StructuralTest` (connector-base, 6 cases) — reads each of the
+      five source files as text, asserts the `static <T> single`
+      regex and `public static getInstance(` regex no longer match.
+      Also asserts the quickwit connector wires via `new ...()`. Cheap
+      regression guard that runs on the local JDK.
+    - `UlakQuickwitMetadataMultiCatalogTest` + `UlakBaseMultiCatalogTest`
+      lock in the behaviour (two distinct instances keep distinct
+      `qwUrl`, `qwIndex`, `connectorId`, `defaultParams`). **Disabled
+      until CI runs JDK 25**: Trino SPI 479 is class-file v69 and the
+      local GraalVM 24 build cannot load `ConnectorSplitManager` /
+      `ConnectorRecordSetProvider` / `ConnectorMetadata`. Re-enable on
+      JDK 25 — assertions are unconditional. Until then,
+      `L04StructuralTest` + `mvn compile` clean is the regression
+      surface.
+  - Module totals after L04a: connector-base 16 tests / 0 fail / 2
+    skipped, quickwit 95 tests / 0 fail / 3 skipped.
+  - **L04b — `ConnectorBaseUtil` per-catalog state — DEFERRED.** The
+    shared static state (`isCoordinator`, `workerId`,
+    `workerIndexToRunIn`, `keywords`, `redisUrl`, `JedisPool`,
+    `objectMapper`) is set identically by all three connectors at
+    startup, so two catalogs sharing the same Redis (the typical
+    deployment) work correctly today. Per-catalog Redis pools would
+    be needed only if two catalogs in the same Trino node had to
+    target different Redis instances — left as a follow-up TODO row
+    (L04b) gated on a real customer requirement.
+
+- **L13 — Surface Rhino script failures (no more silent swallow).**
+  Live cluster watch turned up
+  `NumberFormatException: For input string: "Math.floor(1777551625"` in
+  Throughput / Network panels. Diagnosis: when `hasjs=true` is set,
+  `QwUtil.executeOneQuery` calls `executeQueryScript` to evaluate JS
+  formulas (`Math.floor(...)`) inside the query body via Rhino. The
+  `try { ... } catch (Exception e) { logger.error(...); }` block was
+  silently swallowing the Rhino failure and letting the un-evaluated
+  query — with raw `Math.floor(...)` literals — fall through to Gson,
+  which then died with the opaque NumberFormatException. The user saw
+  a JSON-parse error and had no way to find the actual cause.
+  Two changes:
+  - `executeScript` now guards against `null` and non-`String` results
+    from Rhino (the previous code would silently `ClassCast` / `NPE`
+    inside the catch).
+  - `executeOneQuery` rethrows as `ApiException` with the underlying
+    Rhino exception class + message, so Trino reports
+    `hasjs script execution failed: <ExceptionClass>: <message>`
+    instead of the Gson red herring.
+  Tests still 128 / 0 / 5 skipped. Compile clean.
+
+- **L11 — Stable TVF schema (analyze == execute) — REVERTED.**
+  The intent was to make `RawQueryFunction.analyze()` and
+  `UlakQuickwitMetadata.getTableMetadata` return matching column lists
+  by trusting the SQL-declared `columns =>` parameter. In practice the
+  fix only patched the `analyze()` half; `getTableMetadata` kept doing
+  its own Quickwit round-trip and the resulting schema diverged in
+  more cases than before. Live cluster watch caught a wave of
+  `RewriteTableFunctionToTableScan` mismatches and we reverted the
+  whole commit (`git revert baab650` → `5f3b3ec`). The correct fix is
+  a larger refactor — bind all three code paths (`analyze()`,
+  `getTableMetadata`, runtime row schema from `parseResponseHits`) to
+  a single column-list source. Tracked as a follow-up.
+
+- **Grafana variable defaults applied (Postgres `grafana` DB).**
+  7 dashboards (Grafana Device Config, Throughput Chart, Hub Resource
+  Utilization, Quality of Service 12.02.26 / OGM FIXES, SLA Chart,
+  System Services) had query-type variables (`retention_period_in_hours`,
+  `top`, `resolution_in_seconds`) with `current=null`. Grafana cascade
+  was racing them and panels rendered first-load empty. Set explicit
+  `current = {text:"144", value:"144"}` (and `5`, `60`) so the first
+  render uses the default before the query-type variable resolves
+  against Postgres. Side note: the script `fix_grafana_defaults.py`
+  initially omitted `folderUid` from the POST body and 6 of the 7
+  dashboards silently moved to the "General" folder; recovered from
+  `monitoring_temp/grafana/grafana_init/init/dashboard.sql` (a fresh
+  SQL dump from earlier the same morning) and the script now always
+  passes `folderUid` back. See feedback memory
+  `feedback-grafana-folder-on-update.md`.
+
+- **L10 — TrinoException for transaction safety + null-body / unsubstituted-template guards.**
+  Surfaced during a 5-minute live cluster watch. Three new failures
+  appeared on top of L08:
+  - **`IllegalStateException: Current transaction already committed`** —
+    very high frequency. Cause: L08's `throw new RuntimeException(e)`
+    inside `UlakQuickwitMetadata.{getTableMetadata,getColumnHandles,
+    listTableColumns}` corrupts Trino's per-query transaction state.
+    Trino expects `TrinoException` for connector-side metadata failures;
+    a generic `RuntimeException` leaves the transaction in an
+    inconsistent committed state, causing every subsequent metadata
+    call on that thread to fail with `IllegalStateException`. Switched
+    to `throw new TrinoException(GENERIC_INTERNAL_ERROR, e)`.
+  - **`Quickwit 400: EOF while parsing a value at line 1 column 0`** —
+    `QwUtil.executeOneQuery` had one remaining swallow site: Gson parse
+    failure on the inner query JSON would leave `toQuery=null`, then
+    `searchPostHandlerCall(...)` POSTed an empty body. Now the parse
+    failure rethrows as `ApiException` with the underlying Gson message,
+    and a separate null-guard refuses to send empty POSTs.
+  - **`Date histogram parse error: NumberMissing("h")`** —
+    unsubstituted Grafana template like `${retention_period_in_hours}h`
+    survived to Quickwit, which choked on the trailing `h`. Defensive
+    guard added: if the query body still contains `${...}` after Trino
+    has handed it off, refuse the call with a clear message naming the
+    token, instead of letting Quickwit produce an opaque tantivy error.
+
+- **L09 — Aggs row column-name compatibility (`/6/key` vs `6/key`).**
+  Surfaced after L08 expose-the-real-error landed: the throughput
+  dashboard's `interface` template variable kept failing with
+  `Column '/6/key' cannot be resolved`. Probe test on JFlat showed the
+  parser produces 3 rows / 3 columns from the response, but the column
+  names came out as `6/buckets/key` etc. and the dashboard SQL referred
+  to `"/6/key"` (with leading slash). The historical `"1/5/key"` form
+  in SLA dashboards (no leading slash) worked, so the fix is a
+  backward-compat alias in `QwUtil.parseResponseHits`: every column is
+  now stored under both `X/key` and `/X/key`. Existing `select
+  "1/5/key"` calls keep working; new `select "/6/key"` calls also
+  resolve. Tests still 127 / 0 / 5 skipped.
+
+- **L08 — Quickwit error handling + getTableMetadata swallow + RedisCacheWorker NPE.**
+  Surfaced after the live-cluster smoke test, where dashboard panels were
+  receiving a Grafana `400 Bad Request` whose underlying cause
+  (`Quickwit: query requires a default search field and none was supplied`)
+  was being masked by three separate bugs in the connector:
+  - `QwUtil.executeOneQuery` deserialised the raw HTTP body straight into
+    `SearchResponseRest` regardless of HTTP status. Quickwit returns
+    `{"message":"..."}` on errors; that JSON does not match
+    `SearchResponseRest`'s strict `validateJsonObject`, so the parse
+    threw `IllegalArgumentException: field "message" not defined` and
+    the real Quickwit error was lost. Now the body is checked against
+    `Response.isSuccessful()` first; on non-2xx (or on a parse error)
+    the helper `extractQwErrorMessage(body)` extracts `message` and the
+    method throws `ApiException("Quickwit <code>: <message>")` with the
+    real cause.
+  - `UlakQuickwitMetadata.{getTableMetadata, getColumnHandles, listTableColumns}`
+    used to swallow generic `Exception` (logged but ignored) and let
+    callers see a `null` `List<ColumnMetadata>`. Trino SPI then threw
+    `INTERNAL_ERROR: columns is null`, surfaced to the user as 400.
+    Now those handlers re-throw `RuntimeException(e)` so the underlying
+    cause propagates.
+  - `RedisCacheWorker.run:146` called `ObjectMapper.readValue(json, ...)`
+    without checking that `json` was non-null. When a Redis key TTL
+    expired between the scan and the get, `jedis.get` returned `null`
+    and Jackson threw `IllegalArgumentException: argument "content" is
+    null` once per scan loop. Added an explicit `if (json == null) continue;`.
+  - Plus `QwUtil.replaceTrinoQWVars` now also rewrites `:IN []` and
+    `:IN [ ]` to `:*` (the `[*]` and `[-]` variants were already
+    handled). Closes the case where Grafana's `${sites:pipe}` substitutes
+    to an empty list.
+  - Tests still 126 / 0 / 5 skipped; clean compile.
+
+- **L-category smoke test (docker-compose).** End-to-end verification of
+  the L04a fix on `trinodb/trino:479`. Setup: a temporary
+  `quickwit_b.properties` catalog file alongside the existing
+  `quickwit.properties` — both with `connector.name=quickwit`, distinct
+  catalog names, distinct `qw-index`. Brought up with `docker compose
+  up -d trino` (host port remapped to 18080 via a local-only override
+  because 8080 was busy). Results:
+  - `Plugin quicwitconnector` loads, `UlakQuickwitPlugin` installs once.
+  - **Both catalogs register cleanly:** `Loading catalog quickwit_b` →
+    `Added catalog quickwit_b using connector quickwit`; same for
+    `quickwit`. Before L04a the second registrant would alias the first
+    via `static single`; after L04a both succeed.
+  - `SHOW CATALOGS` returns `quickwit`, `quickwit_b`, `system`, `tenant`.
+  - `SHOW SCHEMAS FROM quickwit` and `SHOW SCHEMAS FROM quickwit_b`
+    each return `default_schema` + `information_schema` independently.
+  - `SELECT ip_to_country('8.8.8.8')` returns `""` (the K03 graceful
+    fallback — no MMDB is mounted in this run; no crash, no exception).
+  - No errors in `docker logs trino`.
+  Smoke-test artifacts (the temporary `quickwit_b.properties` and the
+  `docker-compose.override.yml` port remap) were deleted after the run;
+  the gate the user asked for (`lokal compose docker test sonra
+  pushlarız`) is met. The branch is now ready to merge into `develop`
+  and force-push to all four remotes.
+
+- **L07 — Maven hygiene tail.** Three concerns:
+  - **Dead `<parent>` blocks dropped** from all four module poms — each
+    carried a stale `<!-- <parent>...presto-maya-*-base...0.432-SNAPSHOT
+    </parent> -->` block plus two parallel `<!-- <packaging>... </packaging> -->`
+    lines surrounding the real `<packaging>jar</packaging>`. Eight lines
+    of dead XML × 4 modules removed; the active `<packaging>jar</packaging>`
+    is preserved.
+  - **`commons-dbcp` 1.4 → `commons-dbcp2` 2.13.0** in the postgres
+    connector. The 1.x line is end-of-life since 2014 (last release
+    `1.4`, no security patches). DBCP 2.x is API-compatible for the
+    handful of methods `PGUtil` uses (`setUrl`, `setUsername`,
+    `setPassword`, `setMinIdle`, `setMaxIdle`,
+    `setMaxOpenPreparedStatements`); only the import line changed
+    (`org.apache.commons.dbcp.BasicDataSource` →
+    `org.apache.commons.dbcp2.BasicDataSource`). Compile clean.
+  - **SNAPSHOT deps documented.** `quickwit-java-client:0.0.1.36-SNAPSHOT`
+    and `json2flat-maya:1.0.3-SNAPSHOT` are internal Maya forks resolved
+    from the private Nexus at `192.168.57.202:8081`
+    (`maya-maven-snapshot`); they are not on Maven Central and cannot be
+    pinned to a release version until upstream publishes one. Each
+    `<dependency>` declaration now carries an XML comment pointing at
+    the Nexus and the canonical declaration in
+    `ulak-presto-quickwit-connector/pom.xml` (Quickwit) or
+    `ulak-presto-connector-base/pom.xml` (json2flat).
+  - Tests still 126 / 0 / 5 skipped; clean compile across all four
+    modules.
+
+- **L06 — Logging + security hygiene.** Three concerns addressed:
+  - **System.out in production.** Deleted the entire
+    `AggsDslCompiler.main(String[])` demo method that ended in two
+    `System.out.println(normalizeAggs(...))` calls. The same DSL shapes
+    are now exercised by `AggsDslCompilerTest`'s 82-fixture set, so the
+    demo's coverage is preserved without polluting stdout under Trino.
+  - **Credential redaction in `QueryParameters`.** `replaceEnv` used
+    to log `resEnv` (the env-var value) at INFO — a plaintext
+    `RO_POSTGRES_PASSWORD` ended up in `trino-server.log`. Now the only
+    log is a DEBUG line stating `present={true|false}`; the value
+    never leaves memory. `encodeUriComponent` lost its `logger.info(s)`
+    line for the same reason. Added a small `redactIfSecret(name, value)`
+    helper (regex `(?i).*(pass|pwd|secret|token|key|credential).*`)
+    and wired it into the `getQueryParameters` exception logger so a
+    failing parse for a secret-named parameter doesn't leak the value.
+  - **Swallowed exceptions.** Audited every `catch (Exception e)` in
+    production code (16 sites). 13 already passed `e` to the logger;
+    fixed the four genuine swallows:
+    - `QueryParameters:247` — `logger.error("getQueryParameters: {} / {}", param, value)` was missing `e`; now passes `e` and redacts `value` if `param` is secret-shaped.
+    - `QwUtil:233` — used `e.getMessage()` (loses stack trace); now passes `e`.
+    - `QwUtil:257` — dropped `e` entirely; now passes `e`.
+    - `RawQuery:201` — was `// fall through to default` with zero
+      logging on a hasjs script failure; now logs at DEBUG with the raw
+      value and `e`.
+  - Tests added: `QueryParametersRedactionTest` (14 cases) covers the
+    redaction helper across secret-shaped names, non-secret names, and
+    null/empty values.
+  - Module totals after L06: connector-base 30 / 0 / 2, quickwit 95 / 0 / 3.
+
+- **L05 — Resource leak fixes.** Three sites tightened:
+  - `ConnectorBaseUtil.select()` — replaced manual
+    `pool.getResource()` + `finally { jedis.close(); }` with
+    try-with-resources (`try (Jedis jedis = pool != null ?
+    pool.getResource() : null)`); the null-jedis branch is implicit in
+    try-with-resources and the body collapses by ~10 LOC. Also dropped a
+    dead "eager caching" comment block and an unused `containsKey` guard
+    around `inProgressLocks.remove(hash)`.
+  - `ConnectorBaseUtil.invalidateCache()` — same try-with-resources
+    refactor; early-return when pool is null; fixed `remove(hash, hash)`
+    (two-arg form silently no-ops because the value isn't `hash`) to
+    `remove(hash)`.
+  - `ConnectorBaseUtil` JVM shutdown hook — closes `jedisPool` on JVM
+    exit so idle pool connections don't leak.
+  - `InfluxdbUtil.influxDBClients` — was a non-thread-safe
+    `LinkedHashMap` populated by check-then-put. Switched to
+    `ConcurrentHashMap` + `computeIfAbsent` so a race between two
+    catalog-init threads can't double-create clients. Added a JVM
+    shutdown hook that closes every cached `InfluxDBClient` and clears
+    the map.
+  - `UlakRecordCursor.close()` — was `// Empty method`. Now nulls the
+    `row` reference for early GC and carries an honest comment that
+    rows are pre-materialised by `ConnectorBaseUtil.select()` so there
+    is no real connection / stream to release.
+  - Test surface unchanged (110 / 0 / 5 skipped); compile clean across
+    all four modules.
+
 ### Pending follow-up (still in TODO)
 
 - **K05** — license attribution audit on Grafana panels in

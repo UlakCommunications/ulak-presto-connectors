@@ -61,8 +61,8 @@ public class UlakPostgresConnector
         this.pgUrl = url;
 
         this.metadata = new UlakPostgresMetadata(catalogName, this.pgUrl, this.pgUser, this.pgPwd);
-        this.splitManager = UlakSplitManager.getInstance();
-        this.recordSetProvider = UlakRecordSetProvider.getInstance((q,s)-> {
+        this.splitManager = new UlakSplitManager();
+        this.recordSetProvider = new UlakRecordSetProvider((q,s)-> {
             try {
                 return PGUtil.select(q.getQuery(), this.pgUrl, this.pgUser, this.pgPwd);
             } catch (IOException | SQLException e) {

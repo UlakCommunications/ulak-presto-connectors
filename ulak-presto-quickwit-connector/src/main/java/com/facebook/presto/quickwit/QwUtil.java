@@ -148,11 +148,27 @@ public class QwUtil {
 //        return select(queryParameters, qwUrl, qwIndex);
 //    }
 
+    /**
+     * Extract the {@code "message"} field from a Quickwit error response body
+     * (Quickwit returns {@code {"message":"..."}} on parse / config errors).
+     * Returns {@code null} if the body is not JSON or has no message field.
+     */
+    private static String extractQwErrorMessage(String body) {
+        if (body == null || body.isEmpty()) return null;
+        try {
+            com.fasterxml.jackson.databind.JsonNode node = ConnectorBaseUtil.getObjectMapper().readTree(body);
+            if (node.has("message")) return node.get("message").asText();
+        } catch (Exception ignore) { }
+        return null;
+    }
+
     public static String replaceTrinoQWVars(String query){
         query=replaceAll(query,"|"," ");
         query=replaceAll(query," not "," NOT ");
         query=replaceAll(query,":IN [*]",":*");
         query=replaceAll(query,":IN [-]",":*");
+        query=replaceAll(query,":IN []",":*");
+        query=replaceAll(query,":IN [ ]",":*");
         return query;
     }
     public static List<UlakRow> select(QueryParameters queryParameters,
@@ -199,24 +215,20 @@ public class QwUtil {
         return query;
     }
     public static String executeScript(String query) {
-        // Creates and enters a Context. The Context stores information
-        // about the execution environment of a script.
         Context cx = Context.enter();
         try {
-            // Initialize the standard objects (Object, Function, etc.)
-            // This must be done before scripts can be executed. Returns
-            // a scope object that we use in later calls.
             Scriptable scope = cx.initStandardObjects();
-
-
-            // Now evaluate the string we've colected.
             Object result = cx.evaluateString(scope, query, "<cmd>", 1, null);
-
-            // Convert the result to a string and print it.
+            if (result == null) {
+                throw new RuntimeException("Rhino script returned null (script: " + query.substring(0, Math.min(120, query.length())) + ")");
+            }
+            if (!(result instanceof String)) {
+                throw new RuntimeException("Rhino script returned " + result.getClass().getSimpleName() + " not String");
+            }
             logger.debug(result.toString());
             return (String) result;
-        } finally {
-            // Exit from the context.
+        }
+        finally {
             Context.exit();
         }
     }
@@ -231,11 +243,17 @@ public class QwUtil {
             try {
                 query = executeQueryScript(query);
             } catch (Exception e) {
-                logger.error("Error Executing executeQueryScript: {}\n\n\nurl:{}\n\n\nindex:{}\n\n\nerror:{}",
+                logger.error("hasjs script execution failed for {} on {}/{}",
                         queryParameters.getQuery(),
                         queryParameters.getQwUrl(),
                         queryParameters.getQwIndex(),
-                        e.getMessage());
+                        e);
+                // Surface the real Rhino failure to the caller. Without this
+                // rethrow the un-evaluated query (with raw `Math.floor(...)`)
+                // silently falls through to Gson, which then dies with an
+                // opaque NumberFormatException — masking the actual cause.
+                throw new ApiException("hasjs script execution failed: "
+                        + e.getClass().getSimpleName() + ": " + e.getMessage());
             }
         }
 
@@ -251,11 +269,25 @@ public class QwUtil {
                 readTimeout,
                 writeTimeout));
 
-        SearchRequestQueryString toQuery = null;
+        SearchRequestQueryString toQuery;
         try {
             toQuery = getGson().fromJson(query, SearchRequestQueryString.class);
         } catch (Exception e) {
-            logger.error("Error in {}/{}: {}", queryParameters.getQwUrl(), qwIndex, query);
+            logger.error("Error parsing query JSON in {}/{}: {}", queryParameters.getQwUrl(), qwIndex, query, e);
+            throw new ApiException("Failed to parse Quickwit query JSON: " + e.getMessage());
+        }
+        if (toQuery == null) {
+            throw new ApiException("Quickwit query JSON parsed to null body — refusing to send empty POST");
+        }
+        // Defensive: if a Grafana template variable made it this far un-substituted
+        // (e.g. `${retention_period_in_hours}h` inside `fixed_interval`), Quickwit
+        // would reject the request with an opaque "NumberMissing" tantivy error.
+        // Reject early with the dashboard variable name in the message.
+        if (query.contains("${")) {
+            int idx = query.indexOf("${");
+            int end = query.indexOf("}", idx);
+            String token = end > idx ? query.substring(idx, end + 1) : query.substring(idx, Math.min(idx + 60, query.length()));
+            throw new ApiException("Grafana template not substituted: " + token + " — set a default value on the dashboard variable");
         }
         logger.debug("Running on {}/{}: {}", queryParameters.getQwUrl(), qwIndex, query);
         Call call = searchApi.searchPostHandlerCall(qwIndex, toQuery, null);
@@ -265,7 +297,21 @@ public class QwUtil {
 //            ApiResponse<SearchResponseRest> resp = searchApi.getApiClient()
 //                    .execute(call);
             try(Response execResp = call.execute()) {
-                SearchResponseRest ret = SearchResponseRest.fromJson(execResp.body().string());
+                String body = execResp.body() != null ? execResp.body().string() : "";
+                if (!execResp.isSuccessful()) {
+                    throw new ApiException("Quickwit " + execResp.code() + ": " + extractQwErrorMessage(body));
+                }
+                SearchResponseRest ret;
+                try {
+                    ret = SearchResponseRest.fromJson(body);
+                }
+                catch (RuntimeException parseErr) {
+                    String qwMsg = extractQwErrorMessage(body);
+                    if (qwMsg != null) {
+                        throw new ApiException("Quickwit error: " + qwMsg);
+                    }
+                    throw new ApiException("Quickwit response parse failed: " + parseErr.getMessage());
+                }
 
                 List<String> errors = ret == null ? new ArrayList<>() : ret.getErrors();
                 if (!errors.isEmpty()) {
@@ -566,6 +612,7 @@ public class QwUtil {
                 if(StringUtils.isNotBlank(toReplace)){
                     k=StringUtils.replace((String) k, toReplace,"");
                 }
+                String slashedKey = k.startsWith("/") ? k : "/" + k;
                 if (k.startsWith("/")) k = k.substring(1);
                 boolean isTimeField =StringUtils.isNotBlank(timeField) && k.endsWith(timeField);
                 if(value!=null){
@@ -581,7 +628,14 @@ public class QwUtil {
                     }
                     allNulls=false;
                 }
+                // Trino column names: existing dashboards select either
+                // "X/key" (no leading slash) or "/X/key" (with). Expose
+                // both forms so a `select "/6/key"` works alongside the
+                // historical `select "1/5/key"`.
                 r.put(k, value);
+                if (!slashedKey.equals(k)) {
+                    r.put(slashedKey, value);
+                }
             }
 //            if(!allNulls) {
                 toRet.add(new UlakRow(r));

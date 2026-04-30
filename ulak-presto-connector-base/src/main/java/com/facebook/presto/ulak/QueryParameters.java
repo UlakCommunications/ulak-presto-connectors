@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 
 
@@ -245,7 +246,7 @@ public class QueryParameters {
                             break;
                     }
                 } catch (Exception e) {
-                    logger.error("getQueryParameters: {} / {}", param, value);
+                    logger.error("getQueryParameters failed for param={} value={}", param, redactIfSecret(param, value), e);
                 }
             }
         }
@@ -399,12 +400,26 @@ public class QueryParameters {
     public String getReplaceFromColumns() {
         return replaceFromColumns;
     }
+    private static final Pattern SECRET_NAME = Pattern.compile(
+            "(?i).*(pass|pwd|secret|token|key|credential).*");
+
+    static String redactIfSecret(String name, String value) {
+        if (name != null && SECRET_NAME.matcher(name).matches() && value != null && !value.isEmpty()) {
+            return "***REDACTED***";
+        }
+        return value;
+    }
+
     public static String replaceEnv(String source, String env, boolean encode){
         if(StringUtils.isNotBlank(source)){
             //${ENV:RO_POSTGRES_PASSWORD}
             //source = source.replace("${ENV:","").replace("}","");
             String resEnv = System.getenv(env);
-            logger.info("env:" + env + ", " + "resEnv: " + resEnv + ", source:" + source );
+            // Never log resEnv directly — for *_PASSWORD / *_TOKEN env vars it
+            // is a credential. Log only whether the env was set.
+            if (logger.isDebugEnabled()) {
+                logger.debug("replaceEnv env={} present={}", env, StringUtils.isNotBlank(resEnv));
+            }
 
             if(StringUtils.isNotBlank(resEnv)) {
                 source = source.replace("${ENV:" + env + "}", encode ? encodeUriComponent(resEnv):resEnv);
@@ -414,9 +429,8 @@ public class QueryParameters {
         return source;
     }
     public static String encodeUriComponent(String s) {
-
-        logger.info("encodeUriComponent:" + (s==null?"":s));
-
+        // Do not log `s`: this method is called with secret env values
+        // (passwords, tokens) and earlier versions logged them in plaintext.
         if(s == null){
             return "";
         }

@@ -125,7 +125,7 @@ public class RawQuery
 
             // Your own ConnectorTableHandle that stores raw-query params
             RawQuickwitQueryTableHandle tableHandle = new RawQuickwitQueryTableHandle(
-                    UlakQuickwitMetadata.connectorId,
+                    metadata.getConnectorId(),
                     index,
                     query,
                     startTs.isPresent() ? Optional.of(startTs.getAsLong()) : Optional.empty(),
@@ -199,7 +199,7 @@ public class RawQuery
                     String evaluated = QwUtil.executeQueryScript(raw.get());
                     return parseLongSafely(evaluated);
                 } catch (Exception e) {
-                    // fall through to default
+                    logger.debug("hasjs script failed for raw={} — falling back to default", raw.get(), e);
                 }
             }
             return OptionalLong.of(defaultValue);

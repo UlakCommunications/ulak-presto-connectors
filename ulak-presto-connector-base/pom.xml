@@ -1,19 +1,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-<!--  <parent>-->
-<!--    <groupId>com.facebook.presto</groupId>-->
-<!--    <artifactId>presto-maya-connector-base-base</artifactId>-->
-<!--    <version>0.479-SNAPSHOT</version>&lt;!&ndash;maya-release-version&ndash;&gt;-->
-<!--    <relativePath>../pom.xml</relativePath>-->
-<!--  </parent>-->
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.facebook.presto</groupId>
   <version>0.479-SNAPSHOT</version>
   <artifactId>ulak-presto-connector-base</artifactId>
-<!--  <packaging>presto-plugin</packaging>-->
-      <packaging>jar</packaging>
-<!--  <packaging>pom</packaging>-->
+  <packaging>jar</packaging>
 
   <name>ulak-presto-connector-base</name>
   <url>http://maven.apache.org</url>
@@ -82,6 +74,10 @@
     </dependency>
 
 
+    <!-- Internal Maya fork of opendevl/json2flat. Resolved from the
+         maya-maven-snapshot Nexus (192.168.57.202:8081); not available
+         on Maven Central, so the SNAPSHOT version stays until upstream
+         publishes a release-quality maya-* artifact. -->
     <dependency>
       <groupId>com.github.opendevl</groupId>
       <artifactId>json2flat-maya</artifactId>
@@ -117,6 +113,33 @@
       <groupId>com.maxmind.geoip2</groupId>
       <artifactId>geoip2</artifactId>
       <version>5.0.0</version>
+    </dependency>
+
+    <!-- Test dependencies (versions managed by root pom dependencyManagement
+         once parent migration lands; explicit here for now). -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>5.11.4</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>3.27.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>4.11.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>4.11.0</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
@@ -161,12 +184,20 @@
         <version>3.13.0</version>
         <configuration combine.children="append">
           <fork>false</fork>
-            <!--          <target>1.8</target>-->
-<!--          <source>1.8</source>-->
         </configuration>
-
       </plugin>
-
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.5.2</version>
+        <configuration>
+          <!-- Override JAVA_TOOL_OPTIONS so the docker-compose JDWP setting
+               does not collide with mvn test fork. -->
+          <environmentVariables>
+            <JAVA_TOOL_OPTIONS></JAVA_TOOL_OPTIONS>
+          </environmentVariables>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
   <repositories>

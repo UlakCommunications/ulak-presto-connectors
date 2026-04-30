@@ -76,7 +76,10 @@ public class UlakRecordCursor
     @Override
     public void close()
     {
-        // Empty method
+        // Rows are materialised into a List by ConnectorBaseUtil.select() before
+        // the cursor is constructed, so there is no underlying connection or
+        // stream to release. Drop the row reference for early GC.
+        row = null;
     }
 
     private void checkFieldType(int field, Type expected)

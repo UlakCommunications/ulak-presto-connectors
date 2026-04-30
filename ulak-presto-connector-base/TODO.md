@@ -28,54 +28,50 @@ Plan: write tests first (otherwise refactor is risky), then refactor
 incrementally. Each L-item lands as its own commit; entries move from
 this file to `CHANGELOG.md` once done.
 
-- [ ] **L01 [P1, 0.5d] Test fixtures from sibling projects** — pull real
-      SQL / Aggs DSL examples from `backend/anomaly` and the SQLI project
-      (paths to be confirmed during exploration). Drop them under
-      `src/test/resources/` per module so unit tests exercise production
-      shapes, not invented strings.
 
-- [ ] **L02 [P1, 0.5d] Maven test scaffold** — root `pom.xml` becomes a
-      true parent with `<dependencyManagement>` (Trino, JUnit 5 BOM,
-      AssertJ, Mockito), `surefire-plugin` 3.x, and consistent test
-      dependencies in each of the 4 module poms. `src/test/java` +
-      `src/test/resources` directories created where missing.
+- [ ] **L04b [P3, 1d] ConnectorBaseUtil per-catalog state — gated on
+      real need.** L04a already replaced the `static single` +
+      `getInstance()` pattern across the five SPI classes; two catalogs
+      sharing infra (typical deployment) work today. Remaining static
+      state on `ConnectorBaseUtil` (`isCoordinator`, `workerId`,
+      `workerIndexToRunIn`, `keywords`, `redisUrl`, `JedisPool`,
+      `objectMapper`, `inProgressLocks`) only bites if two catalogs in
+      one Trino node target *different* Redis URLs. Refactor into a
+      per-catalog runtime object (or a `Map<catalogName, Runtime>`
+      registry) when a customer asks for it — not a speculative cut.
 
-- [ ] **L03 [P1, 1d] Unit tests for pure-logic classes** — JUnit 5 against
-      `AggsDslCompiler` (round-trip DSL → Quickwit aggs JSON for several
-      shapes from L01 fixtures), `QueryParameters` (table-name parsing,
-      env-var lookup with redaction), `IPToCountry` (UDF behaviour with
-      and without MMDB), `QwUtil` (timeout defaults, default client
-      construction). Goal: zero external dependencies, runs under
-      `mvn test`.
+- [ ] **L14 [P3, 1-2d] Deeper TVF schema fix (returned-table-mismatch).**
+      Low priority — production rarely hits this on the live cluster
+      and the symptom is just one query failing, not the connector
+      melting down.
+      Surfaced live: `RewriteTableFunctionToTableScan` rule's
+      `Preconditions.checkState` fails with "returned table does not
+      match the node's output" when the descriptor returned from
+      `RawQueryFunction.analyze()` and the column list returned from
+      `UlakQuickwitMetadata.getTableMetadata` disagree. They disagree
+      because each path runs its own Quickwit search and the responses
+      differ (a row appears between calls, alias keys from L09 appear
+      only at execute time, etc.). L11 was a half-fix (only patched
+      `analyze()`) and was reverted (commit `5f3b3ec`). The right fix
+      binds three sites to a single column-list source:
+      `analyze()` (returnedType descriptor), `getTableMetadata`
+      (`getColumnsBase` result), and `parseResponseHits` (runtime row
+      column map). Probably easiest to compute once at handle creation
+      and stash it on `RawQuickwitQueryTableHandle` so all three read
+      from the same handle field.
 
-- [ ] **L04 [P1, 2d] Singleton refactor — multi-catalog fix** — replace
-      `getInstance()` + `static single` pattern across six classes with
-      per-catalog instances:
-      `ConnectorBaseUtil`, `UlakQuickwitMetadata`, `QuickwitRecordSetProvider`,
-      `QuickwitSplitManager`, `UlakRecordSetProvider`, `UlakSplitManager`.
-      `ConnectorBaseUtil`'s static state (`isCoordinator`, `workerId`,
-      `keywords`, `JedisPool`, `redisUrl`, `inProgressLocks`) becomes
-      instance state on a per-catalog object passed via `ConnectorContext`
-      / constructor injection. Verify two `quickwit_a` + `quickwit_b`
-      catalogs can coexist with distinct config.
+- [ ] **L15 [P3, 0.5d, low priority] Rhino classloader debug — `Math.floor` fails
+      under Trino plugin classloader.** L13 made the Rhino failure
+      visible (`hasjs script execution failed: <ExceptionClass>:
+      <message>`); now figure out *why* `Math.floor(1777551625/1000)`
+      fails when Rhino is loaded by the Trino plugin classloader. The
+      shaded jar bundles `org.mozilla:rhino:1.8.1` +
+      `rhino-engine:1.8.1` + `rhino-runtime:1.7.15.1`. Hypothesis:
+      version skew between rhino and rhino-runtime, or
+      Trino-plugin-isolation hides Rhino's stdlib initialisation. Repro
+      = reopen Throughput Chart / Network Throughput while watching
+      Trino logs for the new ApiException — the Rhino exception class
+      will name the exact failure (NPE? ClassNotFound? EvaluatorException?).
 
-- [ ] **L05 [P1, 0.5d] Resource leak fixes** — `ConnectorBaseUtil.select()`
-      Jedis acquire path (try-with-resources for `pool.getResource()`),
-      `InfluxdbUtil` static client cache (close-on-eviction + JVM shutdown
-      hook), `UlakRecordCursor.close()` (release the underlying iterator
-      / connection instead of being a no-op).
-
-- [ ] **L06 [P1, 0.3d] Logging + security hygiene** — drop the
-      `System.out.println` calls in `AggsDslCompiler:471,481`, redact env
-      var values in `QueryParameters:407` (do not log
-      `REDIS_PASSWORD` / `*_POSTGRES_PASSWORD` / token-shaped strings),
-      audit swallowed `catch (Exception e) {}` blocks (`QueryParameters:247-249`,
-      others) — convert to `WARN` with stack-trace or rethrow.
-
-- [ ] **L07 [P2, 0.5d] Maven hygiene tail** — pin or upgrade SNAPSHOT
-      deps (`json2flat-maya:1.0.3-SNAPSHOT`, `quickwit-java-client:0.0.1.36-SNAPSHOT`)
-      to released versions if available, otherwise document why they
-      stay SNAPSHOT. Migrate `commons-dbcp:1.4` → `commons-dbcp2` (or
-      HikariCP). Drop dead commented-out `<parent>` blocks in module poms.
 
 

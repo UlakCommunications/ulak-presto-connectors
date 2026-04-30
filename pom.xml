@@ -5,9 +5,7 @@
   <groupId>com.facebook.presto</groupId>
   <version>0.479-SNAPSHOT</version>
   <artifactId>ulak-presto-connectors</artifactId>
-<!--  <packaging>presto-plugin</packaging>-->
-      <packaging>pom</packaging>
-<!--  <packaging>pom</packaging>-->
+  <packaging>pom</packaging>
   <description>Ulak presto connector libraries</description>
 
   <name>ulak-presto-connectors</name>
@@ -15,13 +13,65 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+
+    <!-- Test stack -->
+    <junit.jupiter.version>5.11.4</junit.jupiter.version>
+    <assertj.version>3.27.0</assertj.version>
+    <mockito.version>4.11.0</mockito.version>
+    <surefire.version>3.5.2</surefire.version>
   </properties>
 
+  <dependencyManagement>
+    <dependencies>
+      <!-- JUnit 5 BOM keeps jupiter / engine / params on the same version. -->
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.jupiter.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>${assertj.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-junit-jupiter</artifactId>
+        <version>${mockito.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
   </dependencies>
 
   <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${surefire.version}</version>
+          <configuration>
+            <!-- Plugin classloader leaks JDWP into forked test JVMs otherwise.
+                 Override JAVA_TOOL_OPTIONS so the K04 docker-compose JDWP
+                 setting does not collide with mvn test. -->
+            <environmentVariables>
+              <JAVA_TOOL_OPTIONS></JAVA_TOOL_OPTIONS>
+            </environmentVariables>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -40,7 +90,6 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
         <version>3.5.0</version>
-
       </plugin>
     </plugins>
   </build>
@@ -61,19 +110,9 @@
       <id>maya-maven-repo</id>
       <url>http://192.168.57.202:8081/repository/maya-maven-snapshot/</url>
     </snapshotRepository>
-
-    <!--		<snapshotRepository>-->
-    <!--			<id>maya-maven-snapshot</id>-->
-    <!--			<url>https://maya-nexus.ulakhaberlesme.com.tr/repository/maya-maven-snapshot/</url>-->
-    <!--		</snapshotRepository>-->
-    <!--		<repository>-->
-    <!--			<id>maya-maven-repo</id>-->
-    <!--			<url>https://maya-nexus.ulakhaberlesme.com.tr/repository/maya-maven-repo/</url>-->
-    <!--		</repository>-->
   </distributionManagement>
 
   <modules>
-<!--    <module>presto-maya-caching</module>-->
     <module>ulak-presto-postgres-connector</module>
     <module>ulak-presto-quickwit-connector</module>
     <module>ulak-presto-influxdb-connector</module>
