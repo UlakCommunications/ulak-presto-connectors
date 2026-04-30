@@ -61,6 +61,34 @@ Plus a top-10 list of P1/P2 code-quality issues (resource leaks,
 swallowed exceptions, credential logging, `System.out` in production)
 tracked as **L05–L07**.
 
+### Status snapshot (2026-04-30)
+
+The L category is mostly landed on the `multi_catalog_refactor`
+branch and deployed to `yucemonitoring` cluster as
+`maya-nexus:35000/maya/trino:0.0.1-multi-catalog-refactor-l13`:
+
+| L item | Status |
+|---|---|
+| L01 anomaly fixtures | ✓ done |
+| L02 maven test scaffold | ✓ done |
+| L03 pure-logic unit tests | ✓ done (101 → 128 tests) |
+| L04a singleton refactor (5 SPI classes) | ✓ done — multi-catalog bug fixed |
+| L04b ConnectorBaseUtil per-catalog state | deferred (gated on real customer need) |
+| L05 resource leak hygiene | ✓ done |
+| L06 logging + security hygiene | ✓ done |
+| L07 maven hygiene tail | ✓ done |
+| L08 Quickwit error mask removal + TrinoException + Redis NPE | ✓ done |
+| L09 aggs column alias (`X/key` ↔ `/X/key`) | ✓ done |
+| L10 TrinoException for transaction safety + null-body / template guards | ✓ done |
+| L11 stable TVF schema (analyze == execute) | ❌ **REVERTED** — re-attempt in **L14** |
+| L13 Rhino script swallow → ApiException rethrow | ✓ done |
+| L14 deeper TVF schema fix (3-site bind) | open |
+| L15 Rhino classloader debug under Trino plugin | open |
+
+Live cluster smoke test passed: two catalogs on the same connector
+(`mayapostgres` ×3, `quickwit` ×2 in dashboards) coexist cleanly,
+which is the user-reported `iki tane ekleyemiyoruz` symptom fixed.
+
 ## GeoIP data policy — never commit
 
 MaxMind GeoLite2 EULA and IP2Location LITE EULA both **forbid
