@@ -49,3 +49,11 @@ geolocation/ip2location/IP2LOCATION-LITE-DB11.CSV/
 geolocation/ip2location/IP2LOCATION-LITE-DB11.CSV.zip
 *.mmdb
 *.MMDB
+
+### Local-only credentials & deploy artefacts — never commit
+.env
+.env.local
+.env.*.local
+docker-compose.override.yml
+kubeconfig*
+*.kubeconfig
