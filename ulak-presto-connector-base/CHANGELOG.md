@@ -181,6 +181,31 @@ one merge once the docker-compose smoke test passes.
     target different Redis instances — left as a follow-up TODO row
     (L04b) gated on a real customer requirement.
 
+- **L10 — TrinoException for transaction safety + null-body / unsubstituted-template guards.**
+  Surfaced during a 5-minute live cluster watch. Three new failures
+  appeared on top of L08:
+  - **`IllegalStateException: Current transaction already committed`** —
+    very high frequency. Cause: L08's `throw new RuntimeException(e)`
+    inside `UlakQuickwitMetadata.{getTableMetadata,getColumnHandles,
+    listTableColumns}` corrupts Trino's per-query transaction state.
+    Trino expects `TrinoException` for connector-side metadata failures;
+    a generic `RuntimeException` leaves the transaction in an
+    inconsistent committed state, causing every subsequent metadata
+    call on that thread to fail with `IllegalStateException`. Switched
+    to `throw new TrinoException(GENERIC_INTERNAL_ERROR, e)`.
+  - **`Quickwit 400: EOF while parsing a value at line 1 column 0`** —
+    `QwUtil.executeOneQuery` had one remaining swallow site: Gson parse
+    failure on the inner query JSON would leave `toQuery=null`, then
+    `searchPostHandlerCall(...)` POSTed an empty body. Now the parse
+    failure rethrows as `ApiException` with the underlying Gson message,
+    and a separate null-guard refuses to send empty POSTs.
+  - **`Date histogram parse error: NumberMissing("h")`** —
+    unsubstituted Grafana template like `${retention_period_in_hours}h`
+    survived to Quickwit, which choked on the trailing `h`. Defensive
+    guard added: if the query body still contains `${...}` after Trino
+    has handed it off, refuse the call with a clear message naming the
+    token, instead of letting Quickwit produce an opaque tantivy error.
+
 - **L09 — Aggs row column-name compatibility (`/6/key` vs `6/key`).**
   Surfaced after L08 expose-the-real-error landed: the throughput
   dashboard's `interface` template variable kept failing with

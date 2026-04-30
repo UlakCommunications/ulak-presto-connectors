@@ -20,6 +20,8 @@ import com.facebook.presto.ulak.UlakTableHandle;
 import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
 import com.google.common.collect.ImmutableList;
 import com.quickwit.javaclient.ApiException;
+import io.trino.spi.StandardErrorCode;
+import io.trino.spi.TrinoException;
 import io.trino.spi.connector.*;
 import io.trino.spi.function.table.ConnectorTableFunctionHandle;
 import org.apache.commons.lang3.StringUtils;
@@ -127,13 +129,16 @@ public class UlakQuickwitMetadata
                     }));
         } catch (IOException e) {
             logger.error(ERRORSTRING, e);
-            throw new RuntimeException(e);
+            throw new TrinoException(StandardErrorCode.GENERIC_INTERNAL_ERROR, e);
         } catch (Exception e) {
             // Do not swallow — returning a null `list` from getTableMetadata
             // makes Trino fail with the opaque "columns is null". Surface the
-            // real cause so the caller sees the underlying Quickwit error.
+            // real cause as a TrinoException (NOT RuntimeException) so the
+            // Trino transaction is aborted cleanly instead of being left in
+            // a "committed" state that breaks subsequent metadata calls with
+            // "Current transaction already committed".
             logger.error(ERRORSTRING, e);
-            throw new RuntimeException(e);
+            throw new TrinoException(StandardErrorCode.GENERIC_INTERNAL_ERROR, e);
         }
         SchemaTableName tableNameSchema = new SchemaTableName((raw==null?influxdbTableHandle.getSchemaName():"test"), (raw==null?influxdbTableHandle.getTableName():tableName));
 
@@ -163,13 +168,16 @@ public class UlakQuickwitMetadata
 
         } catch (IOException e) {
             logger.error(ERRORSTRING, e);
-            throw new RuntimeException(e);
+            throw new TrinoException(StandardErrorCode.GENERIC_INTERNAL_ERROR, e);
         } catch (Exception e) {
             // Do not swallow — returning a null `list` from getTableMetadata
             // makes Trino fail with the opaque "columns is null". Surface the
-            // real cause so the caller sees the underlying Quickwit error.
+            // real cause as a TrinoException (NOT RuntimeException) so the
+            // Trino transaction is aborted cleanly instead of being left in
+            // a "committed" state that breaks subsequent metadata calls with
+            // "Current transaction already committed".
             logger.error(ERRORSTRING, e);
-            throw new RuntimeException(e);
+            throw new TrinoException(StandardErrorCode.GENERIC_INTERNAL_ERROR, e);
         }
         for (int i = 0; i < list.size(); ++i) {
             ColumnMetadata metadata = list.get(i);

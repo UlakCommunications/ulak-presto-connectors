@@ -267,11 +267,25 @@ public class QwUtil {
                 readTimeout,
                 writeTimeout));
 
-        SearchRequestQueryString toQuery = null;
+        SearchRequestQueryString toQuery;
         try {
             toQuery = getGson().fromJson(query, SearchRequestQueryString.class);
         } catch (Exception e) {
             logger.error("Error parsing query JSON in {}/{}: {}", queryParameters.getQwUrl(), qwIndex, query, e);
+            throw new ApiException("Failed to parse Quickwit query JSON: " + e.getMessage());
+        }
+        if (toQuery == null) {
+            throw new ApiException("Quickwit query JSON parsed to null body — refusing to send empty POST");
+        }
+        // Defensive: if a Grafana template variable made it this far un-substituted
+        // (e.g. `${retention_period_in_hours}h` inside `fixed_interval`), Quickwit
+        // would reject the request with an opaque "NumberMissing" tantivy error.
+        // Reject early with the dashboard variable name in the message.
+        if (query.contains("${")) {
+            int idx = query.indexOf("${");
+            int end = query.indexOf("}", idx);
+            String token = end > idx ? query.substring(idx, end + 1) : query.substring(idx, Math.min(idx + 60, query.length()));
+            throw new ApiException("Grafana template not substituted: " + token + " — set a default value on the dashboard variable");
         }
         logger.debug("Running on {}/{}: {}", queryParameters.getQwUrl(), qwIndex, query);
         Call call = searchApi.searchPostHandlerCall(qwIndex, toQuery, null);
