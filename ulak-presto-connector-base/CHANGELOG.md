@@ -181,6 +181,56 @@ one merge once the docker-compose smoke test passes.
     target different Redis instances — left as a follow-up TODO row
     (L04b) gated on a real customer requirement.
 
+- **L13 — Surface Rhino script failures (no more silent swallow).**
+  Live cluster watch turned up
+  `NumberFormatException: For input string: "Math.floor(1777551625"` in
+  Throughput / Network panels. Diagnosis: when `hasjs=true` is set,
+  `QwUtil.executeOneQuery` calls `executeQueryScript` to evaluate JS
+  formulas (`Math.floor(...)`) inside the query body via Rhino. The
+  `try { ... } catch (Exception e) { logger.error(...); }` block was
+  silently swallowing the Rhino failure and letting the un-evaluated
+  query — with raw `Math.floor(...)` literals — fall through to Gson,
+  which then died with the opaque NumberFormatException. The user saw
+  a JSON-parse error and had no way to find the actual cause.
+  Two changes:
+  - `executeScript` now guards against `null` and non-`String` results
+    from Rhino (the previous code would silently `ClassCast` / `NPE`
+    inside the catch).
+  - `executeOneQuery` rethrows as `ApiException` with the underlying
+    Rhino exception class + message, so Trino reports
+    `hasjs script execution failed: <ExceptionClass>: <message>`
+    instead of the Gson red herring.
+  Tests still 128 / 0 / 5 skipped. Compile clean.
+
+- **L11 — Stable TVF schema (analyze == execute) — REVERTED.**
+  The intent was to make `RawQueryFunction.analyze()` and
+  `UlakQuickwitMetadata.getTableMetadata` return matching column lists
+  by trusting the SQL-declared `columns =>` parameter. In practice the
+  fix only patched the `analyze()` half; `getTableMetadata` kept doing
+  its own Quickwit round-trip and the resulting schema diverged in
+  more cases than before. Live cluster watch caught a wave of
+  `RewriteTableFunctionToTableScan` mismatches and we reverted the
+  whole commit (`git revert baab650` → `5f3b3ec`). The correct fix is
+  a larger refactor — bind all three code paths (`analyze()`,
+  `getTableMetadata`, runtime row schema from `parseResponseHits`) to
+  a single column-list source. Tracked as a follow-up.
+
+- **Grafana variable defaults applied (Postgres `grafana` DB).**
+  7 dashboards (Grafana Device Config, Throughput Chart, Hub Resource
+  Utilization, Quality of Service 12.02.26 / OGM FIXES, SLA Chart,
+  System Services) had query-type variables (`retention_period_in_hours`,
+  `top`, `resolution_in_seconds`) with `current=null`. Grafana cascade
+  was racing them and panels rendered first-load empty. Set explicit
+  `current = {text:"144", value:"144"}` (and `5`, `60`) so the first
+  render uses the default before the query-type variable resolves
+  against Postgres. Side note: the script `fix_grafana_defaults.py`
+  initially omitted `folderUid` from the POST body and 6 of the 7
+  dashboards silently moved to the "General" folder; recovered from
+  `monitoring_temp/grafana/grafana_init/init/dashboard.sql` (a fresh
+  SQL dump from earlier the same morning) and the script now always
+  passes `folderUid` back. See feedback memory
+  `feedback-grafana-folder-on-update.md`.
+
 - **L10 — TrinoException for transaction safety + null-body / unsubstituted-template guards.**
   Surfaced during a 5-minute live cluster watch. Three new failures
   appeared on top of L08:
