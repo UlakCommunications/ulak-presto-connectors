@@ -181,6 +181,19 @@ one merge once the docker-compose smoke test passes.
     target different Redis instances — left as a follow-up TODO row
     (L04b) gated on a real customer requirement.
 
+- **L09 — Aggs row column-name compatibility (`/6/key` vs `6/key`).**
+  Surfaced after L08 expose-the-real-error landed: the throughput
+  dashboard's `interface` template variable kept failing with
+  `Column '/6/key' cannot be resolved`. Probe test on JFlat showed the
+  parser produces 3 rows / 3 columns from the response, but the column
+  names came out as `6/buckets/key` etc. and the dashboard SQL referred
+  to `"/6/key"` (with leading slash). The historical `"1/5/key"` form
+  in SLA dashboards (no leading slash) worked, so the fix is a
+  backward-compat alias in `QwUtil.parseResponseHits`: every column is
+  now stored under both `X/key` and `/X/key`. Existing `select
+  "1/5/key"` calls keep working; new `select "/6/key"` calls also
+  resolve. Tests still 127 / 0 / 5 skipped.
+
 - **L08 — Quickwit error handling + getTableMetadata swallow + RedisCacheWorker NPE.**
   Surfaced after the live-cluster smoke test, where dashboard panels were
   receiving a Grafana `400 Bad Request` whose underlying cause

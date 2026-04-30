@@ -596,6 +596,7 @@ public class QwUtil {
                 if(StringUtils.isNotBlank(toReplace)){
                     k=StringUtils.replace((String) k, toReplace,"");
                 }
+                String slashedKey = k.startsWith("/") ? k : "/" + k;
                 if (k.startsWith("/")) k = k.substring(1);
                 boolean isTimeField =StringUtils.isNotBlank(timeField) && k.endsWith(timeField);
                 if(value!=null){
@@ -611,7 +612,14 @@ public class QwUtil {
                     }
                     allNulls=false;
                 }
+                // Trino column names: existing dashboards select either
+                // "X/key" (no leading slash) or "/X/key" (with). Expose
+                // both forms so a `select "/6/key"` works alongside the
+                // historical `select "1/5/key"`.
                 r.put(k, value);
+                if (!slashedKey.equals(k)) {
+                    r.put(slashedKey, value);
+                }
             }
 //            if(!allNulls) {
                 toRet.add(new UlakRow(r));
