@@ -100,16 +100,34 @@ class AggsDslCompilerTest
      * dashboards. Each string must compile to syntactically-valid JSON.
      * Any failure here is a regression in the compiler — investigate
      * before relaxing the expectation.
+     *
+     * <p>The harvested fixtures still carry Grafana template tokens
+     * (e.g. {@code size=${top:csv}}, {@code interval=${__interval_ms}ms}).
+     * In production those are substituted by Grafana before the SQL ever
+     * reaches Trino, so the compiler is correct to reject them; this test
+     * pre-renders them via {@link #renderTemplates} to exercise the
+     * compiler against the same shape Trino sees at runtime.
      */
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource("anomalyAggsDslFixtures")
     void anomaly_dashboard_aggs_dsl_compiles_to_valid_json(String dsl)
             throws Exception
     {
-        String out = AggsDslCompiler.normalizeAggs(dsl);
-        assertThat(out).as("compiled output for: %s", abbreviate(dsl)).isNotNull();
+        String rendered = renderTemplates(dsl);
+        String out = AggsDslCompiler.normalizeAggs(rendered);
+        assertThat(out).as("compiled output for: %s", abbreviate(rendered)).isNotNull();
         JsonNode node = MAPPER.readTree(out);
         assertThat(node).as("parses as JSON").isNotNull();
+    }
+
+    /**
+     * Substitute Grafana {@code ${var}} / {@code ${var:fmt}} tokens with a
+     * plausible numeric default. Mirrors what Grafana does before sending
+     * SQL to Trino — the compiler never sees raw tokens at runtime.
+     */
+    private static String renderTemplates(String dsl)
+    {
+        return dsl == null ? null : dsl.replaceAll("\\$\\{[^}]+\\}", "10");
     }
 
     static Stream<String> anomalyAggsDslFixtures()

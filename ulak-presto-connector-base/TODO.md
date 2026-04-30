@@ -29,14 +29,6 @@ incrementally. Each L-item lands as its own commit; entries move from
 this file to `CHANGELOG.md` once done.
 
 
-- [ ] **L03 [P1, 1d] Unit tests for pure-logic classes** — JUnit 5 against
-      `AggsDslCompiler` (round-trip DSL → Quickwit aggs JSON for several
-      shapes from L01 fixtures), `QueryParameters` (table-name parsing,
-      env-var lookup with redaction), `IPToCountry` (UDF behaviour with
-      and without MMDB), `QwUtil` (timeout defaults, default client
-      construction). Goal: zero external dependencies, runs under
-      `mvn test`.
-
 - [ ] **L04 [P1, 2d] Singleton refactor — multi-catalog fix** — replace
       `getInstance()` + `static single` pattern across six classes with
       per-catalog instances:

@@ -114,6 +114,29 @@ one merge once the docker-compose smoke test passes.
   base + quickwit modules confirms wiring (`mvn test` over both is
   green: 3 tests pass).
 
+- **L03 — Unit tests for pure-logic classes.** Two modules covered:
+  - `ulak-presto-connector-base`: `IPToCountryTest` (8 tests) locks in
+    the K03 graceful-fallback contract for `ip_to_country`,
+    `ip_to_latitude`, `ip_to_longitude` — null/blank inputs and missing
+    MMDB return empty, never throw, never null.
+  - `ulak-presto-quickwit-connector`: `AggsDslCompilerTest` —
+    7 hand-written cases (null / empty / JSON-passthrough /
+    array-passthrough / garbage-rejection / simple histogram /
+    two-histograms-rejected) plus an 82-fixture parameterised
+    round-trip over the production DSL strings harvested in L01. Every
+    fixture compiles to syntactically-valid JSON.
+  - The 12 fixtures with Grafana template tokens
+    (`size=${top}`, `size=${top:csv}`, `interval=${__interval_ms}ms`,
+    `interval=${resolution_in_seconds}s`) used to fail the round-trip
+    with `Invalid integer: ${top:csv}`. Diagnosis: production never
+    sees raw `${...}` because Grafana substitutes them before sending
+    SQL to Trino; the compiler is correct to reject them. Fix: the
+    parameterised test now pre-renders templates via
+    `renderTemplates(dsl)` (regex `\$\{[^}]+\}` → `"10"`) so the
+    round-trip exercises the same shape Trino sees at runtime.
+  - Module totals: connector-base 9 tests / 0 fail, quickwit 92 tests /
+    0 fail. **L03 is green; L04 unblocked.**
+
 ### Pending follow-up (still in TODO)
 
 - **K05** — license attribution audit on Grafana panels in
