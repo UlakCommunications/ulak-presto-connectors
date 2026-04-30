@@ -181,6 +181,30 @@ one merge once the docker-compose smoke test passes.
     target different Redis instances — left as a follow-up TODO row
     (L04b) gated on a real customer requirement.
 
+- **L-category smoke test (docker-compose).** End-to-end verification of
+  the L04a fix on `trinodb/trino:479`. Setup: a temporary
+  `quickwit_b.properties` catalog file alongside the existing
+  `quickwit.properties` — both with `connector.name=quickwit`, distinct
+  catalog names, distinct `qw-index`. Brought up with `docker compose
+  up -d trino` (host port remapped to 18080 via a local-only override
+  because 8080 was busy). Results:
+  - `Plugin quicwitconnector` loads, `UlakQuickwitPlugin` installs once.
+  - **Both catalogs register cleanly:** `Loading catalog quickwit_b` →
+    `Added catalog quickwit_b using connector quickwit`; same for
+    `quickwit`. Before L04a the second registrant would alias the first
+    via `static single`; after L04a both succeed.
+  - `SHOW CATALOGS` returns `quickwit`, `quickwit_b`, `system`, `tenant`.
+  - `SHOW SCHEMAS FROM quickwit` and `SHOW SCHEMAS FROM quickwit_b`
+    each return `default_schema` + `information_schema` independently.
+  - `SELECT ip_to_country('8.8.8.8')` returns `""` (the K03 graceful
+    fallback — no MMDB is mounted in this run; no crash, no exception).
+  - No errors in `docker logs trino`.
+  Smoke-test artifacts (the temporary `quickwit_b.properties` and the
+  `docker-compose.override.yml` port remap) were deleted after the run;
+  the gate the user asked for (`lokal compose docker test sonra
+  pushlarız`) is met. The branch is now ready to merge into `develop`
+  and force-push to all four remotes.
+
 - **L07 — Maven hygiene tail.** Three concerns:
   - **Dead `<parent>` blocks dropped** from all four module poms — each
     carried a stale `<!-- <parent>...presto-maya-*-base...0.432-SNAPSHOT
