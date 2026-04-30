@@ -626,13 +626,30 @@ public class QwUtil {
                     }
                     allNulls=false;
                 }
-                // Trino column names: existing dashboards select either
-                // "X/key" (no leading slash) or "/X/key" (with). Expose
-                // both forms so a `select "/6/key"` works alongside the
-                // historical `select "1/5/key"`.
+                // Trino column names — defensive aliases so dashboards
+                // hit something regardless of which form the SQL author
+                // chose:
+                //   k                 — stripped leading slash (legacy
+                //                       SLA `1/5/key` — sqlversion=0)
+                //   slashedKey        — leading slash kept (`/6/key`)
+                //   noBuckets         — `/buckets/` collapsed (newer
+                //                       sqlversion=0.1 / 0.2 dashboards
+                //                       reference `host/key` while JFlat
+                //                       emits `host/buckets/key`)
+                //   slashedNoBuckets  — leading slash + collapsed buckets
+                // The buckets-stripped variants are added ONLY for
+                // sqlversion 0.1+, since user-confirmed v=0 dashboards
+                // depend on the verbose `X/buckets/...` form and should
+                // not get a colliding alias.
                 r.put(k, value);
-                if (!slashedKey.equals(k)) {
-                    r.put(slashedKey, value);
+                if (!slashedKey.equals(k)) r.put(slashedKey, value);
+                String sqlVer = queryParameters.getSqlVersion();
+                boolean isPostV0 = sqlVer != null && !"0".equals(sqlVer.trim()) && !sqlVer.trim().isEmpty();
+                if (isPostV0) {
+                    String noBuckets = StringUtils.replace(k, "buckets/", "");
+                    String slashedNoBuckets = StringUtils.replace(slashedKey, "/buckets/", "/");
+                    if (!noBuckets.equals(k) && !noBuckets.equals(slashedKey)) r.put(noBuckets, value);
+                    if (!slashedNoBuckets.equals(k) && !slashedNoBuckets.equals(slashedKey) && !slashedNoBuckets.equals(noBuckets)) r.put(slashedNoBuckets, value);
                 }
             }
 //            if(!allNulls) {

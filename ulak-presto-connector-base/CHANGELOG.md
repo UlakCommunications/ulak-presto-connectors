@@ -181,6 +181,28 @@ one merge once the docker-compose smoke test passes.
     target different Redis instances — left as a follow-up TODO row
     (L04b) gated on a real customer requirement.
 
+- **L11 — Stable TVF schema (analyze == execute) + sqlversion-aware column alias.**
+  Two follow-ups after the live cluster watch.
+  - **Returned-table-mismatch fix**: queries like
+    `SELECT * FROM TABLE(quickwit.system.raw_query("columns" => 'h,m,...'))`
+    failed with `returned table does not match the node's output` —
+    Trino's `RewriteTableFunctionToTableScan` asserts that the schema
+    declared at analyze() exactly matches what comes back from execute().
+    `RawQueryFunction.analyze()` was running the Quickwit round-trip a
+    second time (via `getColumnsInternal`) which can produce a different
+    column set than `getRecordSet()` (extra alias keys from L09, a row
+    appearing between calls, etc.). When the caller already declared a
+    `columns =>` list in SQL, trust that list and skip the Quickwit
+    call — analyze and execute then line up.
+  - **Defensive 4-way alias re-introduced (L09b), but gated on
+    `sqlversion != "0"`**: User confirmed v=0.1/0.2 dashboards already
+    emit the buckets-stripped form, while v=0 dashboards still rely on
+    the verbose `X/buckets/...` shape. The original
+    stripped + leading-slash aliases stay unconditional (they only
+    add aliases, never remove). The buckets-stripped variants are
+    added only when sqlversion is post-0, so v=0 dashboards keep
+    their existing column names.
+
 - **L10 — TrinoException for transaction safety + null-body / unsubstituted-template guards.**
   Surfaced during a 5-minute live cluster watch. Three new failures
   appeared on top of L08:
