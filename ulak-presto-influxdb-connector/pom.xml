@@ -1,19 +1,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-<!--  <parent>-->
-<!--    <groupId>com.facebook.presto</groupId>-->
-<!--    <artifactId>presto-maya-influxdb-base</artifactId>-->
-<!--    <version>0.432-SNAPSHOT</version>&lt;!&ndash;maya-release-version&ndash;&gt;-->
-<!--    <relativePath>../pom.xml</relativePath>-->
-<!--  </parent>-->
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.facebook.presto</groupId>
   <version>0.479-SNAPSHOT</version>
   <artifactId>ulak-presto-influxdb-connector</artifactId>
-<!--  <packaging>presto-plugin</packaging>-->
-      <packaging>jar</packaging>
-<!--  <packaging>pom</packaging>-->
+  <packaging>jar</packaging>
 
   <name>ulak-presto-influxdb-connector</name>
   <url>http://maven.apache.org</url>
@@ -99,12 +91,14 @@
       <groupId>org.quickwit</groupId>
       <artifactId>quickwit-java-client</artifactId>
       <version>0.0.1.36-SNAPSHOT</version>
+      <!-- Internal Maya fork; see ulak-presto-quickwit-connector/pom.xml. -->
     </dependency>
 
     <dependency>
       <groupId>com.github.opendevl</groupId>
       <artifactId>json2flat-maya</artifactId>
       <version>1.0.3-SNAPSHOT</version>
+      <!-- Internal Maya fork; see ulak-presto-connector-base/pom.xml. -->
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.mozilla/rhino -->
     <dependency>

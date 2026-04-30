@@ -1,19 +1,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-<!--  <parent>-->
-<!--    <groupId>com.facebook.presto</groupId>-->
-<!--    <artifactId>presto-maya-quickwit-base</artifactId>-->
-<!--    <version>0.432-SNAPSHOT</version>&lt;!&ndash;maya-release-version&ndash;&gt;-->
-<!--    <relativePath>../pom.xml</relativePath>-->
-<!--  </parent>-->
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.facebook.presto</groupId>
   <version>0.479-SNAPSHOT</version>
   <artifactId>ulak-presto-quickwit-connector</artifactId>
-<!--  <packaging>presto-plugin</packaging>-->
-      <packaging>jar</packaging>
-<!--  <packaging>pom</packaging>-->
+  <packaging>jar</packaging>
 
   <name>ulak-presto-quickwit-connector</name>
   <url>http://maven.apache.org</url>
@@ -85,12 +77,17 @@
       <version>2.20.1</version>
     </dependency>
 
+    <!-- Internal Maya fork of the Quickwit Java client. Resolved from
+         the maya-maven-snapshot Nexus (192.168.57.202:8081); upstream
+         org.quickwit:quickwit-java-client is not yet published to
+         Maven Central, so the SNAPSHOT stays until upstream releases. -->
     <dependency>
       <groupId>org.quickwit</groupId>
       <artifactId>quickwit-java-client</artifactId>
       <version>0.0.1.36-SNAPSHOT</version>
     </dependency>
 
+    <!-- Internal Maya fork of opendevl/json2flat. See connector-base/pom.xml. -->
     <dependency>
       <groupId>com.github.opendevl</groupId>
       <artifactId>json2flat-maya</artifactId>

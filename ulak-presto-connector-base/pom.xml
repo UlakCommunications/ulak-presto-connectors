@@ -1,19 +1,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-<!--  <parent>-->
-<!--    <groupId>com.facebook.presto</groupId>-->
-<!--    <artifactId>presto-maya-connector-base-base</artifactId>-->
-<!--    <version>0.479-SNAPSHOT</version>&lt;!&ndash;maya-release-version&ndash;&gt;-->
-<!--    <relativePath>../pom.xml</relativePath>-->
-<!--  </parent>-->
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.facebook.presto</groupId>
   <version>0.479-SNAPSHOT</version>
   <artifactId>ulak-presto-connector-base</artifactId>
-<!--  <packaging>presto-plugin</packaging>-->
-      <packaging>jar</packaging>
-<!--  <packaging>pom</packaging>-->
+  <packaging>jar</packaging>
 
   <name>ulak-presto-connector-base</name>
   <url>http://maven.apache.org</url>
@@ -82,6 +74,10 @@
     </dependency>
 
 
+    <!-- Internal Maya fork of opendevl/json2flat. Resolved from the
+         maya-maven-snapshot Nexus (192.168.57.202:8081); not available
+         on Maven Central, so the SNAPSHOT version stays until upstream
+         publishes a release-quality maya-* artifact. -->
     <dependency>
       <groupId>com.github.opendevl</groupId>
       <artifactId>json2flat-maya</artifactId>

@@ -181,6 +181,33 @@ one merge once the docker-compose smoke test passes.
     target different Redis instances — left as a follow-up TODO row
     (L04b) gated on a real customer requirement.
 
+- **L07 — Maven hygiene tail.** Three concerns:
+  - **Dead `<parent>` blocks dropped** from all four module poms — each
+    carried a stale `<!-- <parent>...presto-maya-*-base...0.432-SNAPSHOT
+    </parent> -->` block plus two parallel `<!-- <packaging>... </packaging> -->`
+    lines surrounding the real `<packaging>jar</packaging>`. Eight lines
+    of dead XML × 4 modules removed; the active `<packaging>jar</packaging>`
+    is preserved.
+  - **`commons-dbcp` 1.4 → `commons-dbcp2` 2.13.0** in the postgres
+    connector. The 1.x line is end-of-life since 2014 (last release
+    `1.4`, no security patches). DBCP 2.x is API-compatible for the
+    handful of methods `PGUtil` uses (`setUrl`, `setUsername`,
+    `setPassword`, `setMinIdle`, `setMaxIdle`,
+    `setMaxOpenPreparedStatements`); only the import line changed
+    (`org.apache.commons.dbcp.BasicDataSource` →
+    `org.apache.commons.dbcp2.BasicDataSource`). Compile clean.
+  - **SNAPSHOT deps documented.** `quickwit-java-client:0.0.1.36-SNAPSHOT`
+    and `json2flat-maya:1.0.3-SNAPSHOT` are internal Maya forks resolved
+    from the private Nexus at `192.168.57.202:8081`
+    (`maya-maven-snapshot`); they are not on Maven Central and cannot be
+    pinned to a release version until upstream publishes one. Each
+    `<dependency>` declaration now carries an XML comment pointing at
+    the Nexus and the canonical declaration in
+    `ulak-presto-quickwit-connector/pom.xml` (Quickwit) or
+    `ulak-presto-connector-base/pom.xml` (json2flat).
+  - Tests still 126 / 0 / 5 skipped; clean compile across all four
+    modules.
+
 - **L06 — Logging + security hygiene.** Three concerns addressed:
   - **System.out in production.** Deleted the entire
     `AggsDslCompiler.main(String[])` demo method that ended in two

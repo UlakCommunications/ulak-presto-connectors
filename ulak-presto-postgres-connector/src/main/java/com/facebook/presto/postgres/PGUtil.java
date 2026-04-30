@@ -19,7 +19,7 @@ import com.facebook.presto.ulak.QueryParameters;
 import com.facebook.presto.ulak.UlakRow;
 import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import org.apache.commons.dbcp.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

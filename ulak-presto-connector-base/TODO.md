@@ -40,10 +40,5 @@ this file to `CHANGELOG.md` once done.
       per-catalog runtime object (or a `Map<catalogName, Runtime>`
       registry) when a customer asks for it — not a speculative cut.
 
-- [ ] **L07 [P2, 0.5d] Maven hygiene tail** — pin or upgrade SNAPSHOT
-      deps (`json2flat-maya:1.0.3-SNAPSHOT`, `quickwit-java-client:0.0.1.36-SNAPSHOT`)
-      to released versions if available, otherwise document why they
-      stay SNAPSHOT. Migrate `commons-dbcp:1.4` → `commons-dbcp2` (or
-      HikariCP). Drop dead commented-out `<parent>` blocks in module poms.
 
 
