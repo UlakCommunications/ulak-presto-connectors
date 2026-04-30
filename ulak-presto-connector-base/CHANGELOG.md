@@ -181,6 +181,33 @@ one merge once the docker-compose smoke test passes.
     target different Redis instances — left as a follow-up TODO row
     (L04b) gated on a real customer requirement.
 
+- **L05 — Resource leak fixes.** Three sites tightened:
+  - `ConnectorBaseUtil.select()` — replaced manual
+    `pool.getResource()` + `finally { jedis.close(); }` with
+    try-with-resources (`try (Jedis jedis = pool != null ?
+    pool.getResource() : null)`); the null-jedis branch is implicit in
+    try-with-resources and the body collapses by ~10 LOC. Also dropped a
+    dead "eager caching" comment block and an unused `containsKey` guard
+    around `inProgressLocks.remove(hash)`.
+  - `ConnectorBaseUtil.invalidateCache()` — same try-with-resources
+    refactor; early-return when pool is null; fixed `remove(hash, hash)`
+    (two-arg form silently no-ops because the value isn't `hash`) to
+    `remove(hash)`.
+  - `ConnectorBaseUtil` JVM shutdown hook — closes `jedisPool` on JVM
+    exit so idle pool connections don't leak.
+  - `InfluxdbUtil.influxDBClients` — was a non-thread-safe
+    `LinkedHashMap` populated by check-then-put. Switched to
+    `ConcurrentHashMap` + `computeIfAbsent` so a race between two
+    catalog-init threads can't double-create clients. Added a JVM
+    shutdown hook that closes every cached `InfluxDBClient` and clears
+    the map.
+  - `UlakRecordCursor.close()` — was `// Empty method`. Now nulls the
+    `row` reference for early GC and carries an honest comment that
+    rows are pre-materialised by `ConnectorBaseUtil.select()` so there
+    is no real connection / stream to release.
+  - Test surface unchanged (110 / 0 / 5 skipped); compile clean across
+    all four modules.
+
 ### Pending follow-up (still in TODO)
 
 - **K05** — license attribution audit on Grafana panels in

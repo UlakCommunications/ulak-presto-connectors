@@ -98,6 +98,19 @@ public class ConnectorBaseUtil {
     private static Logger logger = LoggerFactory.getLogger(ConnectorBaseUtil.class);
     private static ObjectMapper objectMapper = null;
 
+    static {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            JedisPool p = jedisPool;
+            if (p != null) {
+                try {
+                    p.close();
+                } catch (Exception e) {
+                    logger.warn("Error closing Jedis pool on shutdown", e);
+                }
+            }
+        }, "connector-base-jedis-shutdown"));
+    }
+
     private static JedisPoolConfig buildPoolConfig() {
         final JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(1000);
@@ -200,11 +213,7 @@ public class ConnectorBaseUtil {
         queryParameters.setStart(System.currentTimeMillis());
 
         JedisPool pool = getJedisPool();
-        Jedis jedis = null;
-        if (pool != null) {
-            jedis = pool.getResource();
-        }
-        try {
+        try (Jedis jedis = pool != null ? pool.getResource() : null) {
             List<UlakRow> fromCache = getCacheResultAsList(forceRefresh, jedis, hash);
             if (fromCache != null) {
                 queryParameters.setRows(fromCache);
@@ -231,14 +240,6 @@ public class ConnectorBaseUtil {
                         queryParameters.setRows(fromCache);
                         setCacheItem(jedis, queryParameters);
                         return fromCache;
-                    } else {
-                        //TODO: eager caching is to be added
-//                        if (queryParameters.isEagerCached() && !forceRefresh) {
-//                            LinkedList<UlakRow> rows = new LinkedList<>();
-//                            queryParameters.setRows(rows);
-//                            setCacheItem(jedis, queryParameters);
-//                            return rows.iterator();
-//                        }
                     }
 
                     queryParameters.setError("");
@@ -250,51 +251,34 @@ public class ConnectorBaseUtil {
                         queryParameters.setFinish(System.currentTimeMillis());
                         setCacheItem(jedis, queryParameters);
                     }
-                    //TODO: stat checking is to be added
-//                    addOneStat(hash, 1);
                     return list;
                 }
             } finally {
                 synchronized (inProgressLock) {
-                    if (inProgressLocks.containsKey(hash)) {
-                        inProgressLocks.remove(hash);
-                    }
+                    inProgressLocks.remove(hash);
                 }
-            }
-        } finally {
-            if (jedis != null) {
-                jedis.close();
             }
         }
     }
 
-    public static void invalidateCache(int hash )  {
+    public static void invalidateCache(int hash) {
         JedisPool pool = getJedisPool();
-        Jedis jedis = null;
-        if(pool !=null){
-            jedis = pool.getResource();
+        if (pool == null) {
+            return;
         }
-        if(jedis!=null) {
-            try {
-                synchronized (inProgressLock) {
-                    if (!inProgressLocks.containsKey(hash)) {
-                        inProgressLocks.put(hash, new Object());
-                    }
+        try (Jedis jedis = pool.getResource()) {
+            synchronized (inProgressLock) {
+                if (!inProgressLocks.containsKey(hash)) {
+                    inProgressLocks.put(hash, new Object());
                 }
-                synchronized (inProgressLocks.get(hash)) {
-                    try {
-                        jedis.del(getTrinoCacheString(hash));
-                    } finally {
-                        synchronized (inProgressLock) {
-                            if (inProgressLocks.containsKey(hash)) {
-                                inProgressLocks.remove(hash, hash);
-                            }
-                        }
+            }
+            synchronized (inProgressLocks.get(hash)) {
+                try {
+                    jedis.del(getTrinoCacheString(hash));
+                } finally {
+                    synchronized (inProgressLock) {
+                        inProgressLocks.remove(hash);
                     }
-                }
-            } finally {
-                if (jedis != null) {
-                    jedis.close();
                 }
             }
         }

@@ -40,12 +40,6 @@ this file to `CHANGELOG.md` once done.
       per-catalog runtime object (or a `Map<catalogName, Runtime>`
       registry) when a customer asks for it — not a speculative cut.
 
-- [ ] **L05 [P1, 0.5d] Resource leak fixes** — `ConnectorBaseUtil.select()`
-      Jedis acquire path (try-with-resources for `pool.getResource()`),
-      `InfluxdbUtil` static client cache (close-on-eviction + JVM shutdown
-      hook), `UlakRecordCursor.close()` (release the underlying iterator
-      / connection instead of being a no-op).
-
 - [ ] **L06 [P1, 0.3d] Logging + security hygiene** — drop the
       `System.out.println` calls in `AggsDslCompiler:471,481`, redact env
       var values in `QueryParameters:407` (do not log
