@@ -215,24 +215,20 @@ public class QwUtil {
         return query;
     }
     public static String executeScript(String query) {
-        // Creates and enters a Context. The Context stores information
-        // about the execution environment of a script.
         Context cx = Context.enter();
         try {
-            // Initialize the standard objects (Object, Function, etc.)
-            // This must be done before scripts can be executed. Returns
-            // a scope object that we use in later calls.
             Scriptable scope = cx.initStandardObjects();
-
-
-            // Now evaluate the string we've colected.
             Object result = cx.evaluateString(scope, query, "<cmd>", 1, null);
-
-            // Convert the result to a string and print it.
+            if (result == null) {
+                throw new RuntimeException("Rhino script returned null (script: " + query.substring(0, Math.min(120, query.length())) + ")");
+            }
+            if (!(result instanceof String)) {
+                throw new RuntimeException("Rhino script returned " + result.getClass().getSimpleName() + " not String");
+            }
             logger.debug(result.toString());
             return (String) result;
-        } finally {
-            // Exit from the context.
+        }
+        finally {
             Context.exit();
         }
     }
@@ -247,11 +243,17 @@ public class QwUtil {
             try {
                 query = executeQueryScript(query);
             } catch (Exception e) {
-                logger.error("Error Executing executeQueryScript: {} url:{} index:{}",
+                logger.error("hasjs script execution failed for {} on {}/{}",
                         queryParameters.getQuery(),
                         queryParameters.getQwUrl(),
                         queryParameters.getQwIndex(),
                         e);
+                // Surface the real Rhino failure to the caller. Without this
+                // rethrow the un-evaluated query (with raw `Math.floor(...)`)
+                // silently falls through to Gson, which then dies with an
+                // opaque NumberFormatException — masking the actual cause.
+                throw new ApiException("hasjs script execution failed: "
+                        + e.getClass().getSimpleName() + ": " + e.getMessage());
             }
         }
 
