@@ -80,11 +80,31 @@ history-rewrite event details.
   Dependabot will close the 4 alerts automatically when the new
   versions land in the default branch.
 
+## 2026-04-30 — Category L merged to `develop`
+
+`multi_catalog_refactor` merged to `develop` via GitLab MR — merge
+commit `fee80ab` ("Merge branch 'multi_catalog_refactor' into
+'develop'"). All four push-able remotes (`origin`, `github` mfyuce,
+`github_ulakcom`, `gitlab_mfyuce`) hold `develop = fee80ab`.
+`origin-github` Chasingdreams6 fork untouched per remote-topology
+policy.
+
+Cluster `yucemonitoring` runs
+`maya-nexus:35000/maya/trino:0.0.1-multi-catalog-refactor-l13` (built
+from `multi_catalog_refactor` HEAD). The deployed image and the
+merged develop tip are equivalent.
+
+Open items remaining (see TODO.md): K05 (Grafana attribution audit,
+separate repo), L04b (deferred — gated on real customer ask), L14
+(deeper TVF schema fix, low priority), L15 (Rhino classloader debug,
+low priority).
+
 ## 2026-04-28 — Architectural review (category L)
 
-In-progress. Branch `multi_catalog_refactor`. Each L-item lands as a
-separate commit on the branch; the whole branch lands in `develop` as
-one merge once the docker-compose smoke test passes.
+Branch `multi_catalog_refactor` was used during the L-category work.
+Each L-item landed as a separate commit; the whole branch shipped to
+`develop` on 2026-04-30 once the live cluster smoke test was green
+(see entry above).
 
 ### Done
 

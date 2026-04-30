@@ -61,10 +61,10 @@ Plus a top-10 list of P1/P2 code-quality issues (resource leaks,
 swallowed exceptions, credential logging, `System.out` in production)
 tracked as **L05–L07**.
 
-### Status snapshot (2026-04-30)
+### Status snapshot (2026-04-30, merged to develop)
 
-The L category is mostly landed on the `multi_catalog_refactor`
-branch and deployed to `yucemonitoring` cluster as
+The L category was merged to `develop` via GitLab MR (merge commit
+`fee80ab`). Cluster `yucemonitoring` runs
 `maya-nexus:35000/maya/trino:0.0.1-multi-catalog-refactor-l13`:
 
 | L item | Status |
@@ -88,6 +88,10 @@ branch and deployed to `yucemonitoring` cluster as
 Live cluster smoke test passed: two catalogs on the same connector
 (`mayapostgres` ×3, `quickwit` ×2 in dashboards) coexist cleanly,
 which is the user-reported `iki tane ekleyemiyoruz` symptom fixed.
+
+Future sessions resume from `develop` (no longer the
+`multi_catalog_refactor` branch). The branch is preserved on `origin`
+for history but no further commits land there.
 
 ## GeoIP data policy — never commit
 
