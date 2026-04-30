@@ -140,39 +140,18 @@ public class RawQuery
                     Optional.of(hasjs),
                     Optional.of(sqlversion));
 
-            // Stable return type (recommended). Trino's
-            // RewriteTableFunctionToTableScan rule asserts that the descriptor
-            // returned here exactly matches the schema produced at execute
-            // time. If we ask Quickwit for the column list once during
-            // analyze() and again during getRecordSet(), the two responses can
-            // differ (a row appears between calls, parseResponseHits emits
-            // extra alias keys, etc.) and Trino fails with
-            // "returned table does not match the node's output".
-            //
-            // To keep analyze() deterministic: when the caller declared the
-            // column list explicitly via SQL `columns => '...'`, trust that
-            // list and skip the Quickwit round-trip. The execute-time path
-            // includes those names so the schemas line up.
-            String tmpCls;
-            String declared = columns;
-            boolean hasDeclared = declared != null
-                    && !declared.trim().isEmpty()
-                    && !"no-data".equalsIgnoreCase(declared.trim());
-            if (hasDeclared) {
-                tmpCls = declared;
-            }
-            else {
-                try {
-                    tmpCls = String.join(",", getColumnsInternal(buildSearchRequestJson(tableHandle),
-                            metadata.getQwUrl(),
-                            metadata.getQwIndex(),
-                            metadata.getConnectTimeout(),
-                            metadata.getConnectTimeout(),
-                            metadata.getConnectTimeout()).stream().map(t -> t.getName()).collect(Collectors.toList()));
-                }
-                catch (IOException e) {
-                    tmpCls = "";
-                }
+            // Stable return type (recommended)
+            String tmpCls = null;
+
+            try {
+                tmpCls = String.join(",", getColumnsInternal(buildSearchRequestJson(tableHandle),
+                        metadata.getQwUrl(),
+                        metadata.getQwIndex(),
+                        metadata.getConnectTimeout(),
+                        metadata.getConnectTimeout(),
+                        metadata.getConnectTimeout()).stream().map(t->t.getName()).collect(Collectors.toList()));
+            } catch (IOException e) {
+                tmpCls = columns;
             }
             int noDataIndex=0;
             Descriptor returnedType = new Descriptor(Arrays.stream(tmpCls.split(",")).map(t->new Descriptor.Field(StringUtils.isEmpty(t) || StringUtils.isBlank(t) ? "no-data-" + noDataIndex : t, Optional.of(VARCHAR))).collect(Collectors.toList()));
