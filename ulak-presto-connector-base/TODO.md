@@ -40,7 +40,10 @@ this file to `CHANGELOG.md` once done.
       per-catalog runtime object (or a `Map<catalogName, Runtime>`
       registry) when a customer asks for it — not a speculative cut.
 
-- [ ] **L14 [P2, 1-2d] Deeper TVF schema fix (returned-table-mismatch).**
+- [ ] **L14 [P3, 1-2d] Deeper TVF schema fix (returned-table-mismatch).**
+      Low priority — production rarely hits this on the live cluster
+      and the symptom is just one query failing, not the connector
+      melting down.
       Surfaced live: `RewriteTableFunctionToTableScan` rule's
       `Preconditions.checkState` fails with "returned table does not
       match the node's output" when the descriptor returned from
@@ -57,7 +60,7 @@ this file to `CHANGELOG.md` once done.
       and stash it on `RawQuickwitQueryTableHandle` so all three read
       from the same handle field.
 
-- [ ] **L15 [P3, 0.5d] Rhino classloader debug — `Math.floor` fails
+- [ ] **L15 [P3, 0.5d, low priority] Rhino classloader debug — `Math.floor` fails
       under Trino plugin classloader.** L13 made the Rhino failure
       visible (`hasjs script execution failed: <ExceptionClass>:
       <message>`); now figure out *why* `Math.floor(1777551625/1000)`
