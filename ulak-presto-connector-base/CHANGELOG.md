@@ -181,6 +181,38 @@ one merge once the docker-compose smoke test passes.
     target different Redis instances — left as a follow-up TODO row
     (L04b) gated on a real customer requirement.
 
+- **L08 — Quickwit error handling + getTableMetadata swallow + RedisCacheWorker NPE.**
+  Surfaced after the live-cluster smoke test, where dashboard panels were
+  receiving a Grafana `400 Bad Request` whose underlying cause
+  (`Quickwit: query requires a default search field and none was supplied`)
+  was being masked by three separate bugs in the connector:
+  - `QwUtil.executeOneQuery` deserialised the raw HTTP body straight into
+    `SearchResponseRest` regardless of HTTP status. Quickwit returns
+    `{"message":"..."}` on errors; that JSON does not match
+    `SearchResponseRest`'s strict `validateJsonObject`, so the parse
+    threw `IllegalArgumentException: field "message" not defined` and
+    the real Quickwit error was lost. Now the body is checked against
+    `Response.isSuccessful()` first; on non-2xx (or on a parse error)
+    the helper `extractQwErrorMessage(body)` extracts `message` and the
+    method throws `ApiException("Quickwit <code>: <message>")` with the
+    real cause.
+  - `UlakQuickwitMetadata.{getTableMetadata, getColumnHandles, listTableColumns}`
+    used to swallow generic `Exception` (logged but ignored) and let
+    callers see a `null` `List<ColumnMetadata>`. Trino SPI then threw
+    `INTERNAL_ERROR: columns is null`, surfaced to the user as 400.
+    Now those handlers re-throw `RuntimeException(e)` so the underlying
+    cause propagates.
+  - `RedisCacheWorker.run:146` called `ObjectMapper.readValue(json, ...)`
+    without checking that `json` was non-null. When a Redis key TTL
+    expired between the scan and the get, `jedis.get` returned `null`
+    and Jackson threw `IllegalArgumentException: argument "content" is
+    null` once per scan loop. Added an explicit `if (json == null) continue;`.
+  - Plus `QwUtil.replaceTrinoQWVars` now also rewrites `:IN []` and
+    `:IN [ ]` to `:*` (the `[*]` and `[-]` variants were already
+    handled). Closes the case where Grafana's `${sites:pipe}` substitutes
+    to an empty list.
+  - Tests still 126 / 0 / 5 skipped; clean compile.
+
 - **L-category smoke test (docker-compose).** End-to-end verification of
   the L04a fix on `trinodb/trino:479`. Setup: a temporary
   `quickwit_b.properties` catalog file alongside the existing

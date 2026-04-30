@@ -142,6 +142,7 @@ public class RedisCacheWorker extends Thread{
                                             String json = jedis.get(currentRedisKey);
                                             if (json == null) {
                                                 logger.debug("Key does not exists (ttl expired?): {}", currentRedisKey);
+                                                continue;
                                             }
                                             queryParameters = getObjectMapper().readValue(json,
                                                     QueryParameters.class);

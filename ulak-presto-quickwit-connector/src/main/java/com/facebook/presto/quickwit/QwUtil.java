@@ -148,11 +148,27 @@ public class QwUtil {
 //        return select(queryParameters, qwUrl, qwIndex);
 //    }
 
+    /**
+     * Extract the {@code "message"} field from a Quickwit error response body
+     * (Quickwit returns {@code {"message":"..."}} on parse / config errors).
+     * Returns {@code null} if the body is not JSON or has no message field.
+     */
+    private static String extractQwErrorMessage(String body) {
+        if (body == null || body.isEmpty()) return null;
+        try {
+            com.fasterxml.jackson.databind.JsonNode node = ConnectorBaseUtil.getObjectMapper().readTree(body);
+            if (node.has("message")) return node.get("message").asText();
+        } catch (Exception ignore) { }
+        return null;
+    }
+
     public static String replaceTrinoQWVars(String query){
         query=replaceAll(query,"|"," ");
         query=replaceAll(query," not "," NOT ");
         query=replaceAll(query,":IN [*]",":*");
         query=replaceAll(query,":IN [-]",":*");
+        query=replaceAll(query,":IN []",":*");
+        query=replaceAll(query,":IN [ ]",":*");
         return query;
     }
     public static List<UlakRow> select(QueryParameters queryParameters,
@@ -265,7 +281,21 @@ public class QwUtil {
 //            ApiResponse<SearchResponseRest> resp = searchApi.getApiClient()
 //                    .execute(call);
             try(Response execResp = call.execute()) {
-                SearchResponseRest ret = SearchResponseRest.fromJson(execResp.body().string());
+                String body = execResp.body() != null ? execResp.body().string() : "";
+                if (!execResp.isSuccessful()) {
+                    throw new ApiException("Quickwit " + execResp.code() + ": " + extractQwErrorMessage(body));
+                }
+                SearchResponseRest ret;
+                try {
+                    ret = SearchResponseRest.fromJson(body);
+                }
+                catch (RuntimeException parseErr) {
+                    String qwMsg = extractQwErrorMessage(body);
+                    if (qwMsg != null) {
+                        throw new ApiException("Quickwit error: " + qwMsg);
+                    }
+                    throw new ApiException("Quickwit response parse failed: " + parseErr.getMessage());
+                }
 
                 List<String> errors = ret == null ? new ArrayList<>() : ret.getErrors();
                 if (!errors.isEmpty()) {

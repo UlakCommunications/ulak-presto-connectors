@@ -129,7 +129,11 @@ public class UlakQuickwitMetadata
             logger.error(ERRORSTRING, e);
             throw new RuntimeException(e);
         } catch (Exception e) {
+            // Do not swallow — returning a null `list` from getTableMetadata
+            // makes Trino fail with the opaque "columns is null". Surface the
+            // real cause so the caller sees the underlying Quickwit error.
             logger.error(ERRORSTRING, e);
+            throw new RuntimeException(e);
         }
         SchemaTableName tableNameSchema = new SchemaTableName((raw==null?influxdbTableHandle.getSchemaName():"test"), (raw==null?influxdbTableHandle.getTableName():tableName));
 
@@ -161,7 +165,11 @@ public class UlakQuickwitMetadata
             logger.error(ERRORSTRING, e);
             throw new RuntimeException(e);
         } catch (Exception e) {
+            // Do not swallow — returning a null `list` from getTableMetadata
+            // makes Trino fail with the opaque "columns is null". Surface the
+            // real cause so the caller sees the underlying Quickwit error.
             logger.error(ERRORSTRING, e);
+            throw new RuntimeException(e);
         }
         for (int i = 0; i < list.size(); ++i) {
             ColumnMetadata metadata = list.get(i);
