@@ -32,17 +32,9 @@ import java.time.temporal.ChronoUnit;
 
 public class QuickwitRecordSetProvider extends UlakRecordSetProvider {
     private static Logger logger = LoggerFactory.getLogger(QuickwitRecordSetProvider.class);
-    private static QuickwitRecordSetProvider single;
 
     public QuickwitRecordSetProvider(BiFunction<QueryParameters,String[], List<UlakRow>> exec1, String[] defaultParams){
         super(exec1,defaultParams);
-    }
-    public static QuickwitRecordSetProvider getInstance(BiFunction<QueryParameters,String[], List<UlakRow>> exec1, String[] defaultParams)
-    {
-        if (single == null) {
-            single = new QuickwitRecordSetProvider(exec1,defaultParams);
-        }
-        return single;
     }
 
     @Override

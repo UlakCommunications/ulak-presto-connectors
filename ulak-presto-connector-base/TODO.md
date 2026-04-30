@@ -29,16 +29,16 @@ incrementally. Each L-item lands as its own commit; entries move from
 this file to `CHANGELOG.md` once done.
 
 
-- [ ] **L04 [P1, 2d] Singleton refactor — multi-catalog fix** — replace
-      `getInstance()` + `static single` pattern across six classes with
-      per-catalog instances:
-      `ConnectorBaseUtil`, `UlakQuickwitMetadata`, `QuickwitRecordSetProvider`,
-      `QuickwitSplitManager`, `UlakRecordSetProvider`, `UlakSplitManager`.
-      `ConnectorBaseUtil`'s static state (`isCoordinator`, `workerId`,
-      `keywords`, `JedisPool`, `redisUrl`, `inProgressLocks`) becomes
-      instance state on a per-catalog object passed via `ConnectorContext`
-      / constructor injection. Verify two `quickwit_a` + `quickwit_b`
-      catalogs can coexist with distinct config.
+- [ ] **L04b [P3, 1d] ConnectorBaseUtil per-catalog state — gated on
+      real need.** L04a already replaced the `static single` +
+      `getInstance()` pattern across the five SPI classes; two catalogs
+      sharing infra (typical deployment) work today. Remaining static
+      state on `ConnectorBaseUtil` (`isCoordinator`, `workerId`,
+      `workerIndexToRunIn`, `keywords`, `redisUrl`, `JedisPool`,
+      `objectMapper`, `inProgressLocks`) only bites if two catalogs in
+      one Trino node target *different* Redis URLs. Refactor into a
+      per-catalog runtime object (or a `Map<catalogName, Runtime>`
+      registry) when a customer asks for it — not a speculative cut.
 
 - [ ] **L05 [P1, 0.5d] Resource leak fixes** — `ConnectorBaseUtil.select()`
       Jedis acquire path (try-with-resources for `pool.getResource()`),

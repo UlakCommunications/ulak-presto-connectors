@@ -57,8 +57,8 @@ public class InfluxdbConnector
 
 
         this.metadata = new InfluxdbMetadata(catalogName,url,org,token);
-        this.splitManager = UlakSplitManager.getInstance();
-        this.recordSetProvider = UlakRecordSetProvider.getInstance((q,s)-> {
+        this.splitManager = new UlakSplitManager();
+        this.recordSetProvider = new UlakRecordSetProvider((q,s)-> {
             try {
                 return InfluxdbUtil.exec(q.getQuery(),url,org,token);
             } catch (IOException | ClassNotFoundException | SQLException | ApiException e) {

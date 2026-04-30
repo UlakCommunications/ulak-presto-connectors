@@ -29,19 +29,9 @@ import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 public class QuickwitSplitManager
         implements ConnectorSplitManager
 {
-    public static QuickwitSplitManager single;
-
-    private QuickwitSplitManager()
+    public QuickwitSplitManager()
     {
         super();
-    }
-
-    public static QuickwitSplitManager getInstance()
-    {
-        if (single == null) {
-            single = new QuickwitSplitManager();
-        }
-        return single;
     }
 
     @Override

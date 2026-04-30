@@ -73,10 +73,10 @@ public class UlakQuickwitConnector
         }
 
         this.setQwIndex(qwIndex);
-        this.metadata = UlakQuickwitMetadata.getInstance(catalogName,qwUrl,qwIndex,connectTimeout,readTimeout,writeTimeout);
+        this.metadata = new UlakQuickwitMetadata(catalogName, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout);
         tableFunctions = new RawQuery.RawQueryFunction(metadata);
-        this.splitManager = QuickwitSplitManager.getInstance();
-        this.recordSetProvider = QuickwitRecordSetProvider.getInstance(((q,s)-> {
+        this.splitManager = new QuickwitSplitManager();
+        this.recordSetProvider = new QuickwitRecordSetProvider(((q,s)-> {
             try {
                 java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q,s[0],s[1], connectTimeout, readTimeout, writeTimeout);
                 return ret;

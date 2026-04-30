@@ -137,6 +137,50 @@ one merge once the docker-compose smoke test passes.
   - Module totals: connector-base 9 tests / 0 fail, quickwit 92 tests /
     0 fail. **L03 is green; L04 unblocked.**
 
+- **L04a — Singleton refactor (Phase 1, multi-catalog fix).** The five
+  classes that used the `private static <T> single` +
+  `public static getInstance(...)` pattern lose it: each Connector now
+  constructs its own per-catalog instance directly via `new`.
+  - `UlakQuickwitMetadata`: `single` field gone; constructor public;
+    the previously-static `connectorId` becomes a `private final` field
+    populated from the catalog name. `RawQuery.RawQueryFunction` now
+    reads `metadata.getConnectorId()` instead of the static reference.
+  - `QuickwitRecordSetProvider`, `QuickwitSplitManager`,
+    `UlakRecordSetProvider`, `UlakSplitManager`: same drop, constructors
+    now public.
+  - `UlakQuickwitConnector`, `InfluxdbConnector`, `UlakPostgresConnector`
+    each switch their `getInstance(...)` calls to `new ...()`. Two
+    `quickwit_a` + `quickwit_b` (or `pg_a` + `pg_b`) catalogs no longer
+    alias the first registrant's URL/index/timeouts — the user-reported
+    "iki tane catalog ekleyemiyoruz" symptom is gone for the typical
+    deployment shape.
+  - Tests added:
+    - `L04StructuralTest` (connector-base, 6 cases) — reads each of the
+      five source files as text, asserts the `static <T> single`
+      regex and `public static getInstance(` regex no longer match.
+      Also asserts the quickwit connector wires via `new ...()`. Cheap
+      regression guard that runs on the local JDK.
+    - `UlakQuickwitMetadataMultiCatalogTest` + `UlakBaseMultiCatalogTest`
+      lock in the behaviour (two distinct instances keep distinct
+      `qwUrl`, `qwIndex`, `connectorId`, `defaultParams`). **Disabled
+      until CI runs JDK 25**: Trino SPI 479 is class-file v69 and the
+      local GraalVM 24 build cannot load `ConnectorSplitManager` /
+      `ConnectorRecordSetProvider` / `ConnectorMetadata`. Re-enable on
+      JDK 25 — assertions are unconditional. Until then,
+      `L04StructuralTest` + `mvn compile` clean is the regression
+      surface.
+  - Module totals after L04a: connector-base 16 tests / 0 fail / 2
+    skipped, quickwit 95 tests / 0 fail / 3 skipped.
+  - **L04b — `ConnectorBaseUtil` per-catalog state — DEFERRED.** The
+    shared static state (`isCoordinator`, `workerId`,
+    `workerIndexToRunIn`, `keywords`, `redisUrl`, `JedisPool`,
+    `objectMapper`) is set identically by all three connectors at
+    startup, so two catalogs sharing the same Redis (the typical
+    deployment) work correctly today. Per-catalog Redis pools would
+    be needed only if two catalogs in the same Trino node had to
+    target different Redis instances — left as a follow-up TODO row
+    (L04b) gated on a real customer requirement.
+
 ### Pending follow-up (still in TODO)
 
 - **K05** — license attribution audit on Grafana panels in

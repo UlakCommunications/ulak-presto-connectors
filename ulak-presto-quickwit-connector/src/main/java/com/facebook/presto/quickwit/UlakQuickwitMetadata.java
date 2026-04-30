@@ -38,8 +38,7 @@ public class UlakQuickwitMetadata
     public static final String DEFAULT_SCHEMA = "default_schema";
     public static final String DEFAULT_TABLE = "default_Table";
     private static Logger logger = LoggerFactory.getLogger(UlakQuickwitMetadata.class);
-    private static UlakQuickwitMetadata single;
-    protected static String connectorId;
+    private final String connectorId;
     private String qwIndex;
     private final Integer connectTimeout;
     private final Integer readTimeout;
@@ -47,10 +46,10 @@ public class UlakQuickwitMetadata
     private String qwUrl;
     private static final String ERRORSTRING = "UlakQuickwitMetadata.java Error: {}";
 
-    private UlakQuickwitMetadata(String catalogName, String qwUrl, String qwIndex,
-                                 Integer connectTimeout,
-                                 Integer readTimeout,
-                                 Integer writeTimeout) {
+    public UlakQuickwitMetadata(String catalogName, String qwUrl, String qwIndex,
+                                Integer connectTimeout,
+                                Integer readTimeout,
+                                Integer writeTimeout) {
         this.qwUrl = qwUrl;
         this.qwIndex = qwIndex;
         this.connectTimeout = connectTimeout;
@@ -58,17 +57,11 @@ public class UlakQuickwitMetadata
         this.writeTimeout = writeTimeout;
         this.setQwUrl(qwUrl);
         this.setQwIndex(qwIndex);
-        connectorId = new UlakConnectorId(catalogName).toString();
+        this.connectorId = new UlakConnectorId(catalogName).toString();
     }
 
-    public static UlakQuickwitMetadata getInstance(String catalogName, String qwUrl, String qwIndex,
-                                                   Integer connectTimeout,
-                                                   Integer readTimeout,
-                                                   Integer writeTimeout) {
-        if (single == null) {
-            single = new UlakQuickwitMetadata(catalogName, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout);
-        }
-        return single;
+    public String getConnectorId() {
+        return connectorId;
     }
 
 

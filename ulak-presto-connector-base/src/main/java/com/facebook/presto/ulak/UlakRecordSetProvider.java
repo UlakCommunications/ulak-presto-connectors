@@ -25,7 +25,6 @@ public class UlakRecordSetProvider
         implements ConnectorRecordSetProvider
 {
     private static Logger logger = LoggerFactory.getLogger(UlakRecordSetProvider.class);
-    private static UlakRecordSetProvider single;
     protected final BiFunction<QueryParameters,String[], List<UlakRow>> exec1;
     protected String[] defaultParams;
 
@@ -33,12 +32,9 @@ public class UlakRecordSetProvider
         this.exec1 = exec1;
         this.defaultParams = defaultParams;
     }
-    public static UlakRecordSetProvider getInstance(BiFunction<QueryParameters,String[], List<UlakRow>> exec1,String[] defaultParams)
-    {
-        if (single == null) {
-            single = new UlakRecordSetProvider(exec1,defaultParams);
-        }
-        return single;
+
+    public String[] getDefaultParams() {
+        return defaultParams;
     }
 
     @Override

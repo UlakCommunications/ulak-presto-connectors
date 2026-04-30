@@ -125,7 +125,7 @@ public class RawQuery
 
             // Your own ConnectorTableHandle that stores raw-query params
             RawQuickwitQueryTableHandle tableHandle = new RawQuickwitQueryTableHandle(
-                    UlakQuickwitMetadata.connectorId,
+                    metadata.getConnectorId(),
                     index,
                     query,
                     startTs.isPresent() ? Optional.of(startTs.getAsLong()) : Optional.empty(),
