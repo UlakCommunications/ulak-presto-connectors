@@ -449,35 +449,7 @@ public final class AggsDslCompiler {
         }
     }
 
-    // ---- tiny demo ----
-    public static void main(String[] args) {
-        String dsl =
-                "[\n" +
-                        "  histogram(field=span_start_timestamp_nanos, interval=${retention_period_in_hours:csv}h, min=1, id=6),\n" +
-                        "\n" +
-                        "  terms(field=span_attributes.i, size=1, order=id:1:desc, min=1, id=10),\n" +
-                        "\n" +
-                        "  min(field=span_attributes.t, id=1),\n" +
-                        "\n" +
-                        "  terms(field=span_attributes.i, size=9999, order=id:3:desc, min=1, id=11),\n" +
-                        "\n" +
-                        "  sum(field=span_attributes.t, id=3),\n" +
-                        "  sum(field=span_attributes.u, id=4),\n" +
-                        "  sum(field=span_attributes.ab, id=12),\n" +
-                        "  sum(field=span_attributes.ac, id=7),\n" +
-                        "  count(field=span_attributes.u, id=13)\n" +
-                        "]";
-
-        System.out.println(normalizeAggs(dsl));
-
-        String dslNoIds =
-                "[\n" +
-                        "  histogram(field=span_start_timestamp_nanos, interval=1h),\n" +
-                        "  terms(field=span_attributes.n, size=10, min=1),\n" +
-                        "  terms(field=span_attributes.v, size=10, min=1),\n" +
-                        "  sum(field=span_attributes.u),\n" +
-                        "  avg(field=span_attributes.t)\n" +
-                        "]";
-        System.out.println(normalizeAggs(dslNoIds));
-    }
+    // The development-only `main(String[])` demo was deleted in L06; its
+    // `System.out.println` calls violated logging hygiene and the same DSL
+    // shapes are now exercised by the AggsDslCompilerTest fixture set.
 }

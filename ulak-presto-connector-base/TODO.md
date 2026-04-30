@@ -40,13 +40,6 @@ this file to `CHANGELOG.md` once done.
       per-catalog runtime object (or a `Map<catalogName, Runtime>`
       registry) when a customer asks for it — not a speculative cut.
 
-- [ ] **L06 [P1, 0.3d] Logging + security hygiene** — drop the
-      `System.out.println` calls in `AggsDslCompiler:471,481`, redact env
-      var values in `QueryParameters:407` (do not log
-      `REDIS_PASSWORD` / `*_POSTGRES_PASSWORD` / token-shaped strings),
-      audit swallowed `catch (Exception e) {}` blocks (`QueryParameters:247-249`,
-      others) — convert to `WARN` with stack-trace or rethrow.
-
 - [ ] **L07 [P2, 0.5d] Maven hygiene tail** — pin or upgrade SNAPSHOT
       deps (`json2flat-maya:1.0.3-SNAPSHOT`, `quickwit-java-client:0.0.1.36-SNAPSHOT`)
       to released versions if available, otherwise document why they

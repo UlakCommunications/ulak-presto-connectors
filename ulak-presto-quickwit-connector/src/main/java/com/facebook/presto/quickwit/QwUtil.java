@@ -231,11 +231,11 @@ public class QwUtil {
             try {
                 query = executeQueryScript(query);
             } catch (Exception e) {
-                logger.error("Error Executing executeQueryScript: {}\n\n\nurl:{}\n\n\nindex:{}\n\n\nerror:{}",
+                logger.error("Error Executing executeQueryScript: {} url:{} index:{}",
                         queryParameters.getQuery(),
                         queryParameters.getQwUrl(),
                         queryParameters.getQwIndex(),
-                        e.getMessage());
+                        e);
             }
         }
 
@@ -255,7 +255,7 @@ public class QwUtil {
         try {
             toQuery = getGson().fromJson(query, SearchRequestQueryString.class);
         } catch (Exception e) {
-            logger.error("Error in {}/{}: {}", queryParameters.getQwUrl(), qwIndex, query);
+            logger.error("Error parsing query JSON in {}/{}: {}", queryParameters.getQwUrl(), qwIndex, query, e);
         }
         logger.debug("Running on {}/{}: {}", queryParameters.getQwUrl(), qwIndex, query);
         Call call = searchApi.searchPostHandlerCall(qwIndex, toQuery, null);

@@ -181,6 +181,35 @@ one merge once the docker-compose smoke test passes.
     target different Redis instances — left as a follow-up TODO row
     (L04b) gated on a real customer requirement.
 
+- **L06 — Logging + security hygiene.** Three concerns addressed:
+  - **System.out in production.** Deleted the entire
+    `AggsDslCompiler.main(String[])` demo method that ended in two
+    `System.out.println(normalizeAggs(...))` calls. The same DSL shapes
+    are now exercised by `AggsDslCompilerTest`'s 82-fixture set, so the
+    demo's coverage is preserved without polluting stdout under Trino.
+  - **Credential redaction in `QueryParameters`.** `replaceEnv` used
+    to log `resEnv` (the env-var value) at INFO — a plaintext
+    `RO_POSTGRES_PASSWORD` ended up in `trino-server.log`. Now the only
+    log is a DEBUG line stating `present={true|false}`; the value
+    never leaves memory. `encodeUriComponent` lost its `logger.info(s)`
+    line for the same reason. Added a small `redactIfSecret(name, value)`
+    helper (regex `(?i).*(pass|pwd|secret|token|key|credential).*`)
+    and wired it into the `getQueryParameters` exception logger so a
+    failing parse for a secret-named parameter doesn't leak the value.
+  - **Swallowed exceptions.** Audited every `catch (Exception e)` in
+    production code (16 sites). 13 already passed `e` to the logger;
+    fixed the four genuine swallows:
+    - `QueryParameters:247` — `logger.error("getQueryParameters: {} / {}", param, value)` was missing `e`; now passes `e` and redacts `value` if `param` is secret-shaped.
+    - `QwUtil:233` — used `e.getMessage()` (loses stack trace); now passes `e`.
+    - `QwUtil:257` — dropped `e` entirely; now passes `e`.
+    - `RawQuery:201` — was `// fall through to default` with zero
+      logging on a hasjs script failure; now logs at DEBUG with the raw
+      value and `e`.
+  - Tests added: `QueryParametersRedactionTest` (14 cases) covers the
+    redaction helper across secret-shaped names, non-secret names, and
+    null/empty values.
+  - Module totals after L06: connector-base 30 / 0 / 2, quickwit 95 / 0 / 3.
+
 - **L05 — Resource leak fixes.** Three sites tightened:
   - `ConnectorBaseUtil.select()` — replaced manual
     `pool.getResource()` + `finally { jedis.close(); }` with
