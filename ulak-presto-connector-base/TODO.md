@@ -77,7 +77,9 @@ this file to `CHANGELOG.md` once done.
       (2) `Context.enter()` uses the Thread Context Classloader (TCL); Trino's plugin
       classloader is not set as TCL, so Rhino fell back to the system classloader which
       doesn't see the plugin JAR — fixed by saving/restoring TCL around Context.enter()
-      in `QwUtil.executeScript()`. Needs live-cluster smoke-test to confirm.
+      in `QwUtil.executeScript()`. Smoke-test confirmed 2026-05-12: Trino 479 plugin
+      classloader, hasjs=true + Math.floor query → Rhino evaluated cleanly, Quickwit
+      404 received (no RhinoException). Fix verified under Trino plugin classloader.
 
 
 
