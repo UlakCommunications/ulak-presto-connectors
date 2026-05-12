@@ -244,8 +244,18 @@ public class ConnectorBaseUtil {
                     }
 
                     queryParameters.setError("");
+                    long execStart = System.currentTimeMillis();
                     List<UlakRow> list = exec1.apply(queryParameters, defaultParameters);
-                    logger.debug("Running: {}", hash);
+                    long execMs = System.currentTimeMillis() - execStart;
+                    if (execMs > 5000) {
+                        logger.warn("SLOW_QUERY {}ms name={} index={} rows={}",
+                                execMs,
+                                queryParameters.getName(),
+                                queryParameters.getQwIndex(),
+                                list == null ? 0 : list.size());
+                    } else {
+                        logger.debug("query {}ms name={}", execMs, queryParameters.getName());
+                    }
 
                     if (jedis != null) {
                         queryParameters.setRows(Lists.newArrayList(list));
