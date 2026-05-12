@@ -21,6 +21,18 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 
+/**
+ * Trino scalar UDFs for IP geolocation.
+ *
+ * <p>This product includes GeoLite2 data created by MaxMind, available from
+ * <a href="https://www.maxmind.com">https://www.maxmind.com</a>.
+ *
+ * <p>This product uses IP2Location LITE data available from
+ * <a href="https://lite.ip2location.com">https://lite.ip2location.com</a>.
+ *
+ * <p>The GeoIP database files are NOT bundled with this software (license-restricted).
+ * They must be mounted at runtime. See {@code geolocation/README.md}.
+ */
 public class IPToCountry
 {
     private static final Logger logger = LoggerFactory.getLogger(IPToCountry.class);

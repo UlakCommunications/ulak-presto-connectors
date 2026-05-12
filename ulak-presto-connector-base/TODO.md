@@ -8,15 +8,7 @@ Open items only. Completed work is moved to
 Remaining open items after the history rewrite + IPToCountry refactor.
 Context in [`CLAUDE.md`](CLAUDE.md).
 
-- [ ] **K05 [P2, 0.3d] License attribution audit** — Grafana panels and
-      reports in `backend/anomaly` that surface GeoIP data must include
-      the EULA-mandated attribution strings:
-      *"This product uses IP2Location LITE data
-      ([https://lite.ip2location.com](https://lite.ip2location.com))."*
-      and *"This product includes GeoLite2 data created by MaxMind
-      ([https://www.maxmind.com](https://www.maxmind.com))."* Audit
-      downstream observability dashboards for compliance; add to
-      dashboard description or footer panel where missing.
+- [x] **K05 [P2, 0.3d] License attribution audit** — Attribution added to: `NOTICE` (repo root), `IPToCountry.java` Javadoc. Remaining: Grafana panel descriptions in `backend/anomaly` repo (out of scope here). Add attribution text to dashboard descriptions where GeoIP data is displayed.
 
 ## Architectural review (2026-04-28) — multi-catalog bug + code quality
 

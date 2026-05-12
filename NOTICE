@@ -1,0 +1,23 @@
+ulak-presto-connectors
+Copyright 2024-2026 Ulak Haberlesme A.S.
+
+---
+
+This product includes GeoLite2 data created by MaxMind, available from
+https://www.maxmind.com
+
+This product uses IP2Location LITE data available from
+https://lite.ip2location.com
+
+The GeoIP database files (GeoLite2-Country.mmdb, GeoLite2-City.mmdb) are
+NOT included in this distribution. They are license-restricted and must be
+obtained separately and mounted at runtime. See geolocation/README.md.
+
+---
+
+This product includes software developed as part of the Trino project
+(https://trino.io), licensed under the Apache License 2.0.
+
+This product includes the InfluxDB connector originally developed by
+Chasingdreams6 (https://github.com/Chasingdreams6/presto-influxdb-connector),
+licensed under the Apache License 2.0.
