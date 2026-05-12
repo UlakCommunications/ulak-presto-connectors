@@ -18,16 +18,16 @@ From the full cross-repo review in `backend/anomaly` → `TODO.md` "Architectura
 
 ## Code review findings (2026-05-12) — QW connector scope
 
-- [ ] **R01 [Critical, security] Rhino ClassShutter missing** — `QwUtil.java:217-234`: `cx.initStandardObjects()` exposes full Java stdlib (Runtime, File, network). Add `ClassShutter` + `initSafeStandardObjects()` + instruction count limit. Related: L15.
-- [ ] **R02 [Critical, security] SSRF via embedded `//qwurl=`** — `QwUtil.java:182` / `QueryParameters.java:226`: user embeds `//qwurl=http://internal-host/` in TVF arg → connector issues HTTP to arbitrary host. Add catalog-level URL allowlist property. Track as J57.
-- [ ] **R03 [High] `defaultClients` map is not thread-safe** — `QwUtil.java:54,76-111`: plain `LinkedHashMap` with TOCTOU race under concurrent queries. Replace with `ConcurrentHashMap` + `computeIfAbsent`.
+- [x] **R01 [Critical, security] Rhino ClassShutter missing** — `QwUtil.java:217-234`: `cx.initStandardObjects()` exposes full Java stdlib (Runtime, File, network). Fixed: `ClassShutter` (blocks all Java classes) + `initSafeStandardObjects()` + 100k instruction limit.
+- [x] **R02 [Critical, security] SSRF via embedded `//qwurl=`** — Fixed: `UlakQuickwitMetadata.validateQwUrl()` enforces catalog allowlist. Default: only `qw-connection-url` is allowed. Set `qw-allowed-urls=*` to allow any URL (opt-in), or `qw-allowed-urls=url1,url2` for a whitelist.
+- [x] **R03 [High] `defaultClients` map is not thread-safe** — `QwUtil.java:54,76-111`: plain `LinkedHashMap` with TOCTOU race under concurrent queries. Fixed: `ConcurrentHashMap` + `computeIfAbsent`.
 - [x] **R04 [High] `//name=` header writes cache flag, not name** — `QuickwitRecordSetProvider.java:100`: `h.isCache().get()` should be `h.getName().get()`. Fixed.
 - [x] **R05 [High] All three timeouts use `connectTimeout` in `analyze()`** — `RawQuery.java:150-152`: read and write timeouts silently use connect timeout value. Fixed.
 - [x] **R06 [High] `Optional` compared with `==` in `equals()`** — `RawQuickwitQueryTableHandle.java:150`: `cache == other.cache` must use `.equals()`. Fixed.
-- [ ] **R07 [High] `getSchemas()`/`getTableNames()` NPE when called** — `QwUtil.java:120,134`: `getDefaultClient(null,null,null,null)` dereferences null `queryParameters`. Guard or refactor.
+- [x] **R07 [High] `getSchemas()`/`getTableNames()` NPE when called** — Fixed: null guard in logger + null client guard before IndexesApi instantiation.
 - [x] **R08 [Medium] `buildSearchRequestJson` called twice in split manager** — `QuickwitSplitManager.java:47-48`: double call produces diverging `//from=`/`//to=` timestamps. Fixed.
 - [x] **R09 [Medium] `noDataIndex` never increments → duplicate `no-data-0` columns** — `RawQuery.java:156-157`: lambda captures effectively-final int; Trino rejects duplicate column names. Fixed with `AtomicInteger`.
-- [ ] **R10 [Medium] `prefix.getTable().get()` without `isPresent()` guard** — `UlakQuickwitMetadata.java:221`: throws `NoSuchElementException` on wildcard listing; also `session.getSource()` (client name) used as schema filter is semantically wrong.
+- [x] **R10 [Medium] `prefix.getTable().get()` without `isPresent()` guard** — Fixed: `!prefix.getTable().isPresent()` check added before `.get()`.
 - [x] **R11 [Medium] `trimTimeEdges` deletes all rows when all timestamps equal** — `QwUtil.java:475-480`: `removeIf(v == fMax || v == fMin)` wipes everything when `maxTime == minTime`. Fixed.
 - [x] **R12 [Medium] ClassCastException on `Integer` numeric in aggregation** — `QwUtil.java:509,513`: `(long)(double)obj` cast fails if Gson returns `Integer`. Fixed with instanceof chain.
 - [x] **R13 [Medium] `c[j]` without length guard → AIOOBE on short rows** — `QwUtil.java:596-601`: missing fields in a document produce shorter rows than headers. Fixed.
@@ -35,7 +35,7 @@ From the full cross-repo review in `backend/anomaly` → `TODO.md` "Architectura
 - [x] **R15 [Low] `QwUtil.main()` with hardcoded `10.20.4.53` internal IP** — `QwUtil.java:664,819`: production class with debug entry point exposes internal network topology in published JAR. Removed.
 - [x] **R16 [Low] DSL parser does not handle `[`/`]` bracket nesting** — `AggsDslCompiler.java:378-404`: comma inside `[...]` splits incorrectly. Fixed.
 - [x] **R17 [Low] `order=id:X:dir` split unbounded** — `AggsDslCompiler.java:305`: `split(":")` should be `split(":", 3)`. Fixed.
-- [ ] **R18 [Low] Inconsistent `@JsonProperty` on Optional getters** — `RawQuickwitQueryTableHandle.java:186-202`: most getters lack annotation; add for serialization safety.
+- [x] **R18 [Low] Inconsistent `@JsonProperty` on Optional getters** — `RawQuickwitQueryTableHandle.java:186-202`: all Optional getters now have `@JsonProperty`.
 - [x] **R19 [Low] Logger fields not `static final`** — Multiple QW connector classes. Fixed.
 
 ## Notes — Aggs DSL reference

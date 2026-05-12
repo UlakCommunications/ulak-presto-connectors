@@ -62,6 +62,25 @@ public class UlakQuickwitConnector
                                  Integer connectTimeout,
                                  Integer readTimeout,
                                  Integer writeTimeout) {
+        this(url, catalogName, redisUrl, keywords, runInCoordinatorOnly, workerId,
+             workerIndexToRunIn, isCoordinator, numThreads, qwIndex,
+             connectTimeout, readTimeout, writeTimeout, null);
+    }
+
+    public UlakQuickwitConnector(String url,
+                                 String catalogName,
+                                 String redisUrl,
+                                 String keywords,
+                                 boolean runInCoordinatorOnly,
+                                 String workerId,
+                                 String workerIndexToRunIn,
+                                 boolean isCoordinator,
+                                 int numThreads,
+                                 String qwIndex,
+                                 Integer connectTimeout,
+                                 Integer readTimeout,
+                                 Integer writeTimeout,
+                                 String allowedUrls) {
         // need to get database connection here
         logger.debug("Connector by url: {}", url);
 
@@ -73,7 +92,7 @@ public class UlakQuickwitConnector
         }
 
         this.setQwIndex(qwIndex);
-        this.metadata = new UlakQuickwitMetadata(catalogName, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout);
+        this.metadata = new UlakQuickwitMetadata(catalogName, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout, allowedUrls);
         tableFunctions = new RawQuery.RawQueryFunction(metadata);
         this.splitManager = new QuickwitSplitManager();
         this.recordSetProvider = new QuickwitRecordSetProvider(((q,s)-> {

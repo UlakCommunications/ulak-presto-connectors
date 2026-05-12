@@ -61,6 +61,7 @@ public class UlakQuickwitConnectorFactory
         String connectTimeout = config.get("connect-timeout");
         String readTimeout = config.get("read-timeout");
         String writeTimeout = config.get("write-timeout");
+        String allowedUrls = config.get("qw-allowed-urls");
         return new UlakQuickwitConnector(
             url,
             catalogName,
@@ -74,6 +75,7 @@ public class UlakQuickwitConnectorFactory
             config.get("qw-index"),
             connectTimeout == null ? null : Integer.parseInt(connectTimeout),
             readTimeout == null ? null : Integer.parseInt(readTimeout),
-            writeTimeout == null ? null : Integer.parseInt(writeTimeout));
+            writeTimeout == null ? null : Integer.parseInt(writeTimeout),
+            allowedUrls);
     }
 }

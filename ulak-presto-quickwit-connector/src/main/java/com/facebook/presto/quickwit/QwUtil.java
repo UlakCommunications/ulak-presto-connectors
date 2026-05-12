@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import org.mozilla.javascript.ClassShutter;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
 
@@ -201,10 +202,14 @@ public class QwUtil {
 
         return query;
     }
+    private static final int RHINO_INSTRUCTION_LIMIT = 100_000;
+
     public static String executeScript(String query) {
         Context cx = Context.enter();
         try {
-            Scriptable scope = cx.initStandardObjects();
+            cx.setClassShutter(className -> false);
+            cx.setInstructionObserverThreshold(RHINO_INSTRUCTION_LIMIT);
+            Scriptable scope = cx.initSafeStandardObjects();
             Object result = cx.evaluateString(scope, query, "<cmd>", 1, null);
             if (result == null) {
                 throw new RuntimeException("Rhino script returned null (script: " + query.substring(0, Math.min(120, query.length())) + ")");

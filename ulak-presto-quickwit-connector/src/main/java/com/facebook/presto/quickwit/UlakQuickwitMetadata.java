@@ -30,6 +30,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import static com.facebook.presto.quickwit.QuickwitRecordSetProvider.buildSearchRequestJson;
 import static com.facebook.presto.ulak.caching.ConnectorBaseUtil.getColumnsBase;
@@ -46,12 +48,21 @@ public class UlakQuickwitMetadata
     private final Integer readTimeout;
     private final Integer writeTimeout;
     private String qwUrl;
+    private final Set<String> allowedQwUrls;
     private static final String ERRORSTRING = "UlakQuickwitMetadata.java Error: {}";
 
     public UlakQuickwitMetadata(String catalogName, String qwUrl, String qwIndex,
                                 Integer connectTimeout,
                                 Integer readTimeout,
                                 Integer writeTimeout) {
+        this(catalogName, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout, null);
+    }
+
+    public UlakQuickwitMetadata(String catalogName, String qwUrl, String qwIndex,
+                                Integer connectTimeout,
+                                Integer readTimeout,
+                                Integer writeTimeout,
+                                String allowedUrlsCsv) {
         this.qwUrl = qwUrl;
         this.qwIndex = qwIndex;
         this.connectTimeout = connectTimeout;
@@ -60,6 +71,28 @@ public class UlakQuickwitMetadata
         this.setQwUrl(qwUrl);
         this.setQwIndex(qwIndex);
         this.connectorId = new UlakConnectorId(catalogName).toString();
+        Set<String> allowed = new HashSet<>();
+        if (qwUrl != null && !qwUrl.isBlank()) allowed.add(qwUrl.stripTrailing().replaceAll("/+$", ""));
+        if (allowedUrlsCsv != null && !allowedUrlsCsv.isBlank() && !"*".equals(allowedUrlsCsv.trim())) {
+            Arrays.stream(allowedUrlsCsv.split(","))
+                  .map(String::trim)
+                  .filter(s -> !s.isEmpty())
+                  .forEach(allowed::add);
+        }
+        this.allowedQwUrls = allowedUrlsCsv != null && "*".equals(allowedUrlsCsv.trim())
+                ? Collections.emptySet()
+                : Collections.unmodifiableSet(allowed);
+    }
+
+    String validateQwUrl(String url) {
+        if (StringUtils.isBlank(url)) return this.qwUrl;
+        String normalized = url.stripTrailing().replaceAll("/+$", "");
+        if (!allowedQwUrls.isEmpty() && !allowedQwUrls.contains(normalized)) {
+            throw new TrinoException(StandardErrorCode.PERMISSION_DENIED,
+                    "qwurl '" + url + "' is not in the catalog allowlist. " +
+                    "Set qw-allowed-urls in the catalog config to permit additional URLs.");
+        }
+        return url;
     }
 
     public String getConnectorId() {
@@ -111,6 +144,7 @@ public class UlakQuickwitMetadata
                     tableName);
             QueryParameters qp = QueryParameters.getQueryParameters(tableName);
 
+            qp.setQwUrl(validateQwUrl(qp.getQwUrl()));
             if (StringUtils.isBlank(qp.getQwUrl())) {
                 qp.setQwUrl(this.qwUrl);
             }
@@ -223,6 +257,7 @@ public class UlakQuickwitMetadata
 
                     QueryParameters qp = QueryParameters.getQueryParameters(tableName.getTableName());
 
+                    qp.setQwUrl(validateQwUrl(qp.getQwUrl()));
                     if (StringUtils.isBlank(qp.getQwUrl())) {
                         qp.setQwUrl(this.qwUrl);
                     }
