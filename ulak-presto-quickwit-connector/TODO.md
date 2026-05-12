@@ -14,6 +14,7 @@ From the full cross-repo review in `backend/anomaly` → `TODO.md` "Architectura
 - [ ] **J53 [P2, 0.5d] Slow-query observability** — per-dashboard / per-panel query latency + Quickwit request count. Trino query log → Loki or `anomaly-query-stats` QW index.
 - [ ] **J54 [P2, 0.3d] Quickwit version-compatibility matrix** — document which connector version works with which Quickwit version; current 0.8.2 lock; upgrade risk list for 0.9/1.0.
 - [ ] **J55 [doc, 0.3d] ADR `0003-sqlversion-deprecation.md`** — record the J47 deprecation decision and migration plan.
+- [ ] **J56 [P2, 1d] Plain Table Query Mode** — implement `FROM quickwit.public."<index-name>"` as a first-class query surface (no embedded `//param` required). Phase 1: schema inference from `DocMapping.fieldMappings` via `IndexesApi.getIndexesMetadatas()`; detect plain mode by absence of `//` in table name; return raw hits via existing `parseResponseHits()`. Phase 2: `applyFilter()` pushdown — convert Trino `TupleDomain<ColumnHandle>` to Quickwit query string (`field:value`, `field:IN [v1 v2]`, `field:[min TO max]`); `applyLimit()` → `max_hits`. Files: `UlakQuickwitMetadata`, `QwUtil`, `QuickwitSplitManager`, `QuickwitRecordSetProvider`. Not a `sqlversion` variant — separate code path gated on plain table name detection.
 
 ## Notes — Aggs DSL reference
 - Form: `[histogram(...), terms(...), max(...), sum(...), avg(...), min(...), count(...)]`. Compiled by `AggsDslCompiler.java` to Quickwit aggs JSON.

@@ -63,16 +63,19 @@ quickwit.read-timeout=30000
 
 ## Table Query Mode
 
-Standard index fields are accessible as a regular Trino table (all columns are `VARCHAR`):
+> **Not yet implemented.** Tracked as [J56 in TODO.md](TODO.md).
+
+Planned: expose Quickwit index fields as a regular Trino table without embedded `//param` syntax:
 
 ```sql
+-- DOES NOT WORK YET
 SELECT host_uuid, src_ip, max_score
 FROM quickwit.public."anomaly-flows"
 WHERE alerted = 'true'
 LIMIT 100
 ```
 
-Schema is inferred by running a sample query against Quickwit on first access.
+When implemented, schema will be inferred from the index's `DocMapping.fieldMappings` (all columns `VARCHAR`), and `WHERE` predicates will be pushed down as Quickwit query strings. Until then, use the [`raw_query` Table Function](#raw_query-table-function) for all queries.
 
 ---
 
@@ -112,6 +115,19 @@ FROM TABLE(
 | `replacefromcolumns` | *(empty)* | JFlat path prefix stripped from all column names |
 | `hasjs` | `false` | Set `true` to enable aggregation tree flattening |
 | `cache` | `false` | Enable Redis result caching |
+| `sqlversion` | `0` | Aggregation response parsing mode (see below) |
+
+### `sqlversion` — aggregation parsing modes
+
+Controls how Quickwit's nested aggregation JSON is converted to Trino rows. Only applies when `aggs` is non-empty.
+
+| Value | Column name format | When to use |
+|---|---|---|
+| `0` (default) | JFlat path after `replacefromcolumns` stripping, e.g. `4/value`, `4/2/key` | Legacy queries; required when `replacefromcolumns` is set |
+| `0.1` | `<aggId>/value`, `<aggId>/key` — recursive tree walk | New queries without `replacefromcolumns` |
+| `0.2` | Bare `<aggId>` — same as `0.1` but `/value` and `/key` suffixes stripped | Cleanest column names; target for J47 migration |
+
+> **Deprecation plan (J47):** `0` and `0.1` will be deprecated in favour of `0.2`. See `TODO.md`.
 
 ---
 

@@ -65,6 +65,8 @@ order by _value desc
 
 ## Sample Quickwit Query
 
+> For full Quickwit connector documentation (TVF syntax, Aggs DSL, `sqlversion` modes, column naming): **[ulak-presto-quickwit-connector/README.md](ulak-presto-quickwit-connector/README.md)**
+
 ```bash
 select 1 as r, status, count(*) as cnt
 from (
