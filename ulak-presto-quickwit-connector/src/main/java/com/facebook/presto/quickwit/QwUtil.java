@@ -49,7 +49,7 @@ import static com.facebook.presto.ulak.QueryParameters.replaceAll;
 
 public class QwUtil {
 
-    private static Logger logger = LoggerFactory.getLogger(QwUtil.class);
+    private static final Logger logger = LoggerFactory.getLogger(QwUtil.class);
 
     private static Map<String, ApiClient> defaultClients = null;
 
@@ -468,7 +468,7 @@ public class QwUtil {
             }
         }
 
-        if (maxTime == 0 || minTime == Long.MAX_VALUE) return rows;
+        if (maxTime == 0 || minTime == Long.MAX_VALUE || maxTime == minTime) return rows;
 
         final long fMax = maxTime, fMin = minTime;
         final String fTimeField = actualTimeField;
@@ -506,11 +506,15 @@ public class QwUtil {
     private static Map<String, Object> arrangeAggregation(Map<String, Object> currentValuesIn, Map<String, Object> aggValue, String aggKey) {
         Map<String, Object> currentValues = new HashMap<>(currentValuesIn);
         Object docCntVal = aggValue.getOrDefault(DOC_COUNT, -1L);
-        long doc_count =docCntVal instanceof Long ? (long) docCntVal : (long)(double)docCntVal;
+        long doc_count = docCntVal instanceof Long ? (long) docCntVal
+                : docCntVal instanceof Integer ? (long)(int) docCntVal
+                : (long)(double) docCntVal;
         Object key = aggValue.getOrDefault(KEY, null);
         String key_as_string = (String) aggValue.getOrDefault(KEY_AS_STRING, null);
         Object sumOtherDocCountObj =  aggValue.getOrDefault(SUM_OTHER_DOC_COUNT, -1L);
-        double sum_other_doc_count = sumOtherDocCountObj instanceof Long ? (long) sumOtherDocCountObj : (long)(double)sumOtherDocCountObj;
+        double sum_other_doc_count = sumOtherDocCountObj instanceof Long ? (long) sumOtherDocCountObj
+                : sumOtherDocCountObj instanceof Integer ? (long)(int) sumOtherDocCountObj
+                : (long)(double) sumOtherDocCountObj;
         String prefix = aggKey + "/" ;
         if (doc_count > 0) {
             currentValues.put(prefix +  DOC_COUNT, doc_count);
@@ -594,7 +598,7 @@ public class QwUtil {
             Object[] c = flatted.get(i);
             boolean allNulls=true;
             for (int j = 0; j < headers.length; j++) {
-                Object val = c[j];
+                Object val = j < c.length ? c[j] : null;
                 if (queryParameters.getNullFill()
                         && val == null
                         && i + 1 < flatted.size()) {
@@ -661,185 +665,5 @@ public class QwUtil {
         return toRet;
     }
 
-    public static void main(String[] args)    {
-        long start = System.currentTimeMillis();
-        QueryParameters params = QueryParameters.getQueryParameters(" \n" +
-                "  //ttl=150\n" +
-                "              //refresh=75\n" +
-                "              //cache=false\n" +
-                "              //name=Dataplane Status\n" +
-                "              //columns=1/5/key,1/10/key,1/4/key,1/9/key,1/8/key,1/7/key,11/value,1/6/key,1/2/key,1/value,111/value,222/value,abc\n" +
-                "              //dbtype=qw\n" +
-                "              //qwindex=metrics3\n" +
-                "              //replacefromcolumns=/3/buckets/2/buckets/4/buckets/5/buckets/6/buckets/7/buckets/8/buckets/9/buckets/10/buckets/\n" +
-                "              //hasjs=true\n" +
-                "              //from=1725547942\n" +
-                "              //to=1725548242\n" +
-                "              \n" +
-                "              {\n" +
-                "              \"aggs\": {\n" +
-                "                \"3\": {\n" +
-                "                  \"aggs\": {\n" +
-                "                    \"2\": {\n" +
-                "                      \"aggs\": {\n" +
-                "                        \"4\": {\n" +
-                "                          \"aggs\": {\n" +
-                "                            \"5\": {\n" +
-                "                              \"aggs\": {\n" +
-                "                                \"6\": {\n" +
-                "                                  \"aggs\": {\n" +
-                "                                    \"7\": {\n" +
-                "                                      \"aggs\": {\n" +
-                "                                        \"8\": {\n" +
-                "                                          \"aggs\": {\n" +
-                "                                            \"9\": {\n" +
-                "                                              \"aggs\": {\n" +
-                "                                                \"10\": {\n" +
-                "                                                  \"aggs\": {\n" +
-                "                                                    \"222\": {\n" +
-                "                                                      \"avg\": {\n" +
-                "                                                        \"field\": \"span_attributes.availability\"\n" +
-                "                                                      }\n" +
-                "                                                    },\n" +
-                "                                                    \"1\": {\n" +
-                "                                                      \"sum\": {\n" +
-                "                                                        \"field\": \"span_attributes.status_ni\"\n" +
-                "                                                      }\n" +
-                "                                                    },\n" +
-                "                                                    \"11\": {\n" +
-                "                                                      \"max\": {\n" +
-                "                                                        \"field\": \"span_start_timestamp_nanos\"\n" +
-                "                                                      }\n" +
-                "                                                    },\n" +
-                "                                                    \"111\": {\n" +
-                "                                                      \"value_count\": {\n" +
-                "                                                        \"field\": \"span_attributes.status_ni\"\n" +
-                "                                                      }\n" +
-                "                                                    }\n" +
-                "                                                  },\n" +
-                "                                                  \"terms\": {\n" +
-                "                                                    \"field\": \"span_attributes.m_ns_name\", \n" +
-                "                                                    \"size\":1,\n" +
-                "                                                    \"order\": {\n" +
-                "                                                      \"11\": \"desc\"\n" +
-                "                                                    },\n" +
-                "                                                    \"min_doc_count\": 1\n" +
-                "                                                  }\n" +
-                "                                                }\n" +
-                "                                              },\n" +
-                "                                              \"terms\": {\n" +
-                "                                                \"field\": \"span_attributes.m_target\", \n" +
-                "                                                \"size\":9999,\n" +
-                "                                                \"order\": {\n" +
-                "                                                  \"_key\": \"desc\"\n" +
-                "                                                },\n" +
-                "                                                \"min_doc_count\": 1\n" +
-                "                                              }\n" +
-                "                                            }\n" +
-                "                                          },\n" +
-                "                                          \"terms\": {\n" +
-                "                                            \"field\": \"span_attributes.m_ns_id\", \n" +
-                "                                            \"size\":9999,\n" +
-                "                                            \"order\": {\n" +
-                "                                              \"_key\": \"desc\"\n" +
-                "                                            },\n" +
-                "                                            \"min_doc_count\": 1\n" +
-                "                                          }\n" +
-                "                                        }\n" +
-                "                                      },\n" +
-                "                                      \"terms\": {\n" +
-                "                                        \"field\": \"span_attributes.m_uuid\", \n" +
-                "                                        \"size\":9999,\n" +
-                "                                        \"order\": {\n" +
-                "                                          \"_key\": \"desc\"\n" +
-                "                                        },\n" +
-                "                                        \"min_doc_count\": 1\n" +
-                "                                      }\n" +
-                "                                    }\n" +
-                "                                  },\n" +
-                "                                  \"terms\": {\n" +
-                "                                    \"field\": \"span_attributes.m_iface\", \n" +
-                "                                    \"size\":9999,\n" +
-                "                                    \"order\": {\n" +
-                "                                      \"_key\": \"desc\"\n" +
-                "                                    },\n" +
-                "                                    \"min_doc_count\": 1\n" +
-                "                                  }\n" +
-                "                                }\n" +
-                "                              },\n" +
-                "                              \"terms\": {\n" +
-                "                                \"field\": \"span_attributes.m_overlay\", \n" +
-                "                                \"size\":9999,\n" +
-                "                                \"order\": {\n" +
-                "                                  \"_key\": \"desc\"\n" +
-                "                                },\n" +
-                "                                \"min_doc_count\": 1\n" +
-                "                              }\n" +
-                "                            }\n" +
-                "                          },\n" +
-                "                          \"terms\": {\n" +
-                "                            \"field\": \"span_attributes.m_origin\", \n" +
-                "                            \"size\":9999,\n" +
-                "                            \"order\": {\n" +
-                "                              \"_key\": \"desc\"\n" +
-                "                            },\n" +
-                "                            \"min_doc_count\": 1\n" +
-                "                          }\n" +
-                "                        }\n" +
-                "                      },\n" +
-                "                      \"terms\": {\n" +
-                "                        \"field\": \"span_attributes.h\", \n" +
-                "                        \"size\":9999,\n" +
-                "                        \"order\": {\n" +
-                "                          \"_key\": \"desc\"\n" +
-                "                        },\n" +
-                "                        \"min_doc_count\": 1\n" +
-                "                      }\n" +
-                "                    }\n" +
-                "                  },\n" +
-                "                  \"date_histogram\": {\n" +
-                "                    \"field\": \"span_start_timestamp_nanos\",\n" +
-                "                    \"fixed_interval\": \"10s\",\n" +
-                "                    \"min_doc_count\": 1\n" +
-                "                  }\n" +
-                "                }\n" +
-                "              },\n" +
-                "              \"query\": \"span_attributes.p:maya_probe AND span_attributes.h:IN [ee7b566c-68d7-4ffb-9d0a-29477a39b195 ee7b566c-68d7-4ffb-9d0a-29477a39b196 ee7b566c-68d7-4ffb-9d0a-29477a39b197 ee7b566c-68d7-4ffb-9d0a-29477a39b198 ee7b566c-68d7-4ffb-9d0a-29477a39b199]\",\n" +
-                "              \"max_hits\": 0,\n" +
-                "              \"start_timestamp\": 1725547942,\n" +
-                "              \"end_timestamp\": 1725548242\n" +
-                "            }".toLowerCase());
-
-        params.setQuery(replaceAll(params.getQuery(),"|"," "));
-        params.setQuery(replaceAll(params.getQuery()," not "," NOT "));
-        params.setQuery(replaceAll(params.getQuery(),":IN [*]",":*"));
-        params.setQuery(replaceAll(params.getQuery(),":IN [-]",":*"));
-        params.setQwIndex("flows3");
-        params.setDbType(DBType.QW);
-        params.setQwUrl("http://10.20.4.53:32215");
-        params.setReplaceFromColumns("/3/buckets/2/buckets/4/buckets/5/buckets/1");
-        params.setHasJs(true);
-        params.setToBeCached(true);
-        List<UlakRow> ret = null;
-        try {
-            ret = ConnectorBaseUtil.select(params,
-                    false,new String[]{params.getQwUrl(), params.getQwIndex()}, (q, s)-> {
-                        try {
-//                                logger.debug("From UlakQuickwitMetadata getTableMetadata: {}\n\n\nurl:{}\n\n\nindex:{}",
-//                                        q.getQuery(),
-//                                        s[0],
-//                                        s[1]);
-                            return  QwUtil.select(q , s[0], s[1],null,null,null);
-                        } catch (ApiException e) {
-                            logger.error("ERRORSTRING", e);
-                            throw new RuntimeException(e);
-                        }
-                    });
-//            ret = Lists.newArrayList(QwUtil.select(params,params.getQwUrl(), params.getQwIndex()));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        logger.info(String.valueOf(System.currentTimeMillis() - start));
-
-    }
 }
+

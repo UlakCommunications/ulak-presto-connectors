@@ -302,7 +302,7 @@ public final class AggsDslCompiler {
             if (!o.startsWith("id:")) {
                 throw new IllegalArgumentException("terms.order must be like order=id:11 or order=id:11:asc");
             }
-            String[] parts = o.split(":");
+            String[] parts = o.split(":", 3);
             if (parts.length < 2) throw new IllegalArgumentException("terms.order missing metric id (order=id:11)");
             orderMetricId = parts[1].trim();
             if (orderMetricId.isEmpty()) throw new IllegalArgumentException("terms.order metric id is empty");

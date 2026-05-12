@@ -39,7 +39,7 @@ public class UlakQuickwitMetadata
         implements ConnectorMetadata {
     public static final String DEFAULT_SCHEMA = "default_schema";
     public static final String DEFAULT_TABLE = "default_Table";
-    private static Logger logger = LoggerFactory.getLogger(UlakQuickwitMetadata.class);
+    private static final Logger logger = LoggerFactory.getLogger(UlakQuickwitMetadata.class);
     private final String connectorId;
     private String qwIndex;
     private final Integer connectTimeout;

@@ -147,7 +147,7 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
             return false;
         }
         RawQuickwitQueryTableHandle other = (RawQuickwitQueryTableHandle) obj;
-        return cache == other.cache
+        return cache.equals(other.cache)
                 && connectorId.equals(other.connectorId)
                 && index.equals(other.index)
                 && query.equals(other.query)

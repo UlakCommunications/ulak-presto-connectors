@@ -31,7 +31,7 @@ import java.time.temporal.ChronoUnit;
 
 
 public class QuickwitRecordSetProvider extends UlakRecordSetProvider {
-    private static Logger logger = LoggerFactory.getLogger(QuickwitRecordSetProvider.class);
+    private static final Logger logger = LoggerFactory.getLogger(QuickwitRecordSetProvider.class);
 
     public QuickwitRecordSetProvider(BiFunction<QueryParameters,String[], List<UlakRow>> exec1, String[] defaultParams){
         super(exec1,defaultParams);
@@ -97,7 +97,7 @@ public class QuickwitRecordSetProvider extends UlakRecordSetProvider {
 
         initialString = "//qwindex=" + h.getIndex() + "\n" + initialString;
         initialString = "//cache=" + (h.isCache().isPresent()?h.isCache().get():"false") + "\n" + initialString;
-        initialString = "//name=" + (h.getName().isPresent()?h.isCache().get():"<no_name>") + "\n" + initialString;
+        initialString = "//name=" + (h.getName().isPresent()?h.getName().get():"<no_name>") + "\n" + initialString;
         initialString = "//columns=" + (h.getColumns().isPresent()?h.getColumns().get():"") + "\n" + initialString;
         initialString = "//dbtype=" + (h.getDbtype().isPresent()?h.getDbtype().get():"qw") + "\n" + initialString;
         initialString = "//replacefromcolumns=" + (h.getReplacefromcolumns().isPresent()?h.getReplacefromcolumns().get():"") + "\n" + initialString;

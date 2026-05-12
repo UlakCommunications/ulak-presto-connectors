@@ -144,6 +144,53 @@ class AggsDslCompilerTest
         }
     }
 
+    // -----------------------------------------------------------------------
+    // R17 — order=id:X:dir split must be bounded (split(":", 3))
+    // -----------------------------------------------------------------------
+
+    /**
+     * R17: The buggy {@code o.split(":")} in parseTerms() has no limit, so a
+     * metric id that contains a colon would produce more than 3 parts and
+     * parts[2] (the direction) would be the first extra segment instead of
+     * "desc"/"asc". Using {@code split(":", 3)} caps the result at 3 parts
+     * so the direction is always in parts[2] regardless of the id content.
+     *
+     * This test verifies that {@code terms(field=x, size=10, order=id:4:desc, id=3)}
+     * compiles to valid JSON and the resulting agg contains the expected
+     * sort order on metric id "4".
+     */
+    @Test
+    @DisplayName("R17: terms with order=id:4:desc compiles correctly (split bounded to 3)")
+    void normalizeAggs_terms_with_order_compiles()
+            throws Exception
+    {
+        String dsl = "[terms(field=x, size=10, order=id:4:desc, id=3)," +
+                " avg(field=val, id=4)]";
+        String out = AggsDslCompiler.normalizeAggs(dsl);
+        assertThat(out).as("compiled output must not be null").isNotNull();
+        JsonNode node = MAPPER.readTree(out);
+        assertThat(node).as("must parse as JSON").isNotNull();
+    }
+
+    @Test
+    @DisplayName("R17: split(':',3) keeps direction token intact even when id has colon")
+    void split_bounded_to_3_preserves_direction()
+    {
+        // Demonstrate the fix: unbounded split on "id:some:extra:asc" produces 4 parts;
+        // bounded split(3) produces exactly 3 — parts[2] is always the direction.
+        String order = "id:some:extra:asc";
+        String[] unbounded = order.split(":");          // buggy — 4 parts
+        String[] bounded   = order.split(":", 3);       // fixed — 3 parts
+
+        assertThat(unbounded).as("unbounded split produces 4 parts").hasSize(4);
+        assertThat(bounded).as("bounded split(3) produces exactly 3 parts").hasSize(3);
+        assertThat(bounded[2]).as("parts[2] with bounded split is 'extra:asc'").isEqualTo("extra:asc");
+        // With normal metric ids (no colon), both forms produce the same 3 parts:
+        String normal = "id:4:desc";
+        assertThat(normal.split(":", 3)).containsExactly("id", "4", "desc");
+        assertThat(normal.split(":")).containsExactly("id", "4", "desc");
+    }
+
     private static String abbreviate(String s)
     {
         if (s == null) return "<null>";

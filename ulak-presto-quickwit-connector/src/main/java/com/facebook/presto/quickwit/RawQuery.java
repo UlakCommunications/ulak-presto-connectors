@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.facebook.presto.quickwit.QuickwitRecordSetProvider.buildSearchRequestJson;
@@ -47,7 +48,7 @@ import static java.util.Objects.requireNonNull;
 public class RawQuery
         implements Provider<ConnectorTableFunction> {
 
-    private static Logger logger = LoggerFactory.getLogger(QwUtil.class);
+    private static final Logger logger = LoggerFactory.getLogger(QwUtil.class);
     public static final String SCHEMA_NAME = "system";
     public static final String NAME = "raw_query";
 
@@ -148,13 +149,13 @@ public class RawQuery
                         metadata.getQwUrl(),
                         metadata.getQwIndex(),
                         metadata.getConnectTimeout(),
-                        metadata.getConnectTimeout(),
-                        metadata.getConnectTimeout()).stream().map(t->t.getName()).collect(Collectors.toList()));
+                        metadata.getReadTimeout(),
+                        metadata.getWriteTimeout()).stream().map(t->t.getName()).collect(Collectors.toList()));
             } catch (IOException e) {
                 tmpCls = columns;
             }
-            int noDataIndex=0;
-            Descriptor returnedType = new Descriptor(Arrays.stream(tmpCls.split(",")).map(t->new Descriptor.Field(StringUtils.isEmpty(t) || StringUtils.isBlank(t) ? "no-data-" + noDataIndex : t, Optional.of(VARCHAR))).collect(Collectors.toList()));
+            AtomicInteger noDataIndex = new AtomicInteger(0);
+            Descriptor returnedType = new Descriptor(Arrays.stream(tmpCls.split(",")).map(t->new Descriptor.Field(StringUtils.isEmpty(t) || StringUtils.isBlank(t) ? "no-data-" + noDataIndex.getAndIncrement() : t, Optional.of(VARCHAR))).collect(Collectors.toList()));
 
 
             RawQueryFunctionHandle handle = new RawQueryFunctionHandle(tableHandle);
@@ -180,7 +181,7 @@ public class RawQuery
                 return Optional.empty();
             }
             String s = slice.toStringUtf8().trim();
-            if (s.isEmpty() || s.equalsIgnoreCase("null")) {
+            if (s.isEmpty()) {
                 return Optional.empty();
             }
             return Optional.of(s);

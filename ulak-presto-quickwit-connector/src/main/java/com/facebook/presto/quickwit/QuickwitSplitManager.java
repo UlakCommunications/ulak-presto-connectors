@@ -44,8 +44,9 @@ public class QuickwitSplitManager
         List<ConnectorSplit> splits = new ArrayList<>();
         if (table instanceof RawQuickwitQueryTableHandle ) {
             RawQuickwitQueryTableHandle raw = (RawQuickwitQueryTableHandle) table;
-            UlakSplit ulakSplit = new UlakSplit("test", buildSearchRequestJson(raw));
-            ulakSplit.setTableName(buildSearchRequestJson(raw));
+            String searchRequest = buildSearchRequestJson(raw);
+            UlakSplit ulakSplit = new UlakSplit("test", searchRequest);
+            ulakSplit.setTableName(searchRequest);
             splits.add(ulakSplit);
         }else{
             UlakTableHandle tableHandle = (UlakTableHandle) table;
