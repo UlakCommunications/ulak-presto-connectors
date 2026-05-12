@@ -23,7 +23,12 @@ class QueryParametersRedactionTest
             "API_TOKEN",
             "AWS_SECRET_ACCESS_KEY",
             "redis-credential",
-            "Auth_Key"
+            "Auth_Key",
+            // R32: url-bearing names are now also redacted
+            "QW_URL",
+            "REDIS_URL",
+            "redis-url",
+            "connection-url"
     })
     void secret_like_names_are_redacted(String name)
             throws Exception
@@ -33,8 +38,6 @@ class QueryParametersRedactionTest
 
     @ParameterizedTest(name = "[{index}] {0} → passthrough")
     @CsvSource({
-            "QW_URL",
-            "REDIS_URL",
             "PG_HOST",
             "WORKER_INDEX",
             "connecttimeout",

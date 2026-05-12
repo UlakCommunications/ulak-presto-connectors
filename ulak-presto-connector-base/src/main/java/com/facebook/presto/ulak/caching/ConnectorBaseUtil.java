@@ -91,12 +91,12 @@ public class ConnectorBaseUtil {
             }
         }
     }
-    static JedisPool jedisPool = null;
+    static volatile JedisPool jedisPool = null;
 
 
     public static String redisUrl = null;
-    private static Logger logger = LoggerFactory.getLogger(ConnectorBaseUtil.class);
-    private static ObjectMapper objectMapper = null;
+    private static final Logger logger = LoggerFactory.getLogger(ConnectorBaseUtil.class);
+    private static volatile ObjectMapper objectMapper = null;
 
     static {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -139,9 +139,9 @@ public class ConnectorBaseUtil {
     }
 
     public static String arrangeCase(String query) {
-        Map<String, String> ktr = keywords;
-        if (ktr == null || ktr.size() == 0) {
-            ktr = const_keywords;
+        final Map<String, String> ktr;
+        synchronized (inProgressLock) {
+            ktr = (keywords == null || keywords.isEmpty()) ? const_keywords : keywords;
         }
         for (Map.Entry<String, String> kv: ktr.entrySet()){
             query = query.replaceAll(kv.getKey(),kv.getValue());
@@ -325,7 +325,7 @@ public class ConnectorBaseUtil {
                 }
             }
         } else {
-            throw new NullPointerException("Empty Query");
+            throw new io.trino.spi.TrinoException(io.trino.spi.StandardErrorCode.INVALID_FUNCTION_ARGUMENT, "Empty Query");
             //TODO: eager caching is to be added
 //            String[] cols = QueryParameters.getQueryParameters(tableName).getColumns();
 //            if (cols.length > 0) {

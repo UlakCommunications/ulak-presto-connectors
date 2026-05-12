@@ -38,7 +38,7 @@ public class QueryParameters {
     public static final String TEXT_FROM = "from";
     public static final String TEXT_TO = "to";
     public static final String TEXT_SQL_VERSION = "sqlversion";
-    private static Logger logger = LoggerFactory.getLogger(QueryParameters.class);
+    private static final Logger logger = LoggerFactory.getLogger(QueryParameters.class);
     public static final String NEW_LINE_CHAR = System.lineSeparator();
     public static final int DEFAULT_CACHE_TTL = 60 * 60 * 24;
     public static final int DEFAULT_TTL = 10;
@@ -116,7 +116,7 @@ public class QueryParameters {
         return lastTableName;
     }
     public static String getTableNameForHash(String tableName){
-        String lastTableName = replaceAll(tableName,"(.*)(\\/\\/.*)","");
+        String lastTableName = tableName;
 
 
         String[] splits = lastTableName.split(NEW_LINE_CHAR);
@@ -142,7 +142,9 @@ public class QueryParameters {
         return current;
     }
     public static QueryParameters getQueryParameters(String tableName) {
-        if (BaseEncoding.base32().canDecode(tableName.toUpperCase())) {
+        if (!tableName.contains("//") && !tableName.contains("\n") && !tableName.contains(" ")
+                && tableName.length() % 8 == 0
+                && BaseEncoding.base32().canDecode(tableName.toUpperCase())) {
             logger.debug("Encoded: {}\n", tableName);
             byte[] decodedBytes = BaseEncoding.base32().decode(tableName.toUpperCase());
             tableName = (new String(decodedBytes, StandardCharsets.UTF_8));
@@ -162,7 +164,7 @@ public class QueryParameters {
         for (int i = 0; i < splits.length; i++) {
             //get query parameters
             String current = stringTrimmer(splits[i]);
-            String[] params = current.split("=");
+            String[] params = current.split("=", 2);
             if (params.length > 1) {
                 String param = params[0].trim();
                 String value = params[1].trim();
@@ -401,7 +403,7 @@ public class QueryParameters {
         return replaceFromColumns;
     }
     private static final Pattern SECRET_NAME = Pattern.compile(
-            "(?i).*(pass|pwd|secret|token|key|credential).*");
+            "(?i).*(pass|pwd|secret|token|key|credential|url).*");
 
     static String redactIfSecret(String name, String value) {
         if (name != null && SECRET_NAME.matcher(name).matches() && value != null && !value.isEmpty()) {
@@ -423,7 +425,6 @@ public class QueryParameters {
 
             if(StringUtils.isNotBlank(resEnv)) {
                 source = source.replace("${ENV:" + env + "}", encode ? encodeUriComponent(resEnv):resEnv);
-                source = source.replace(resEnv,  encode ? encodeUriComponent(resEnv):resEnv);
             }
         }
         return source;
@@ -448,8 +449,6 @@ public class QueryParameters {
                 out.append(String.format("%%%02X", b));
             }
         }
-
-        logger.info("encodeDUriComponent:" + (out.toString()));
 
         return out.toString();
     }
