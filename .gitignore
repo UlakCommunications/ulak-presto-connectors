@@ -57,3 +57,7 @@ geolocation/ip2location/IP2LOCATION-LITE-DB11.CSV.zip
 docker-compose.override.yml
 kubeconfig*
 *.kubeconfig
+
+# Catalog config files contain live credentials — never commit
+trino/etc/catalog/quickwit.properties
+trino/etc/catalog/tenant.properties

@@ -60,6 +60,23 @@ this file to `CHANGELOG.md` once done.
       and stash it on `RawQuickwitQueryTableHandle` so all three read
       from the same handle field.
 
+## Code review findings (2026-05-12) — base connector scope
+
+- [x] **R20 [Critical] `encodeUriComponent` logs encoded secret at INFO level** — `QueryParameters.java:452`: comment above method says "do not log"; log line removed.
+- [x] **R21 [Critical] Credential files tracked in git** — `trino/etc/catalog/quickwit.properties` + `tenant.properties` contain live Redis + PostgreSQL passwords. Untracked via `git rm --cached`, added to `.gitignore`, `.example` files created. History rewrite (filter-repo) tracked as R22.
+- [ ] **R22 [Critical] Credential history rewrite** — `filter-repo` to purge `trino/etc/catalog/quickwit.properties` and `tenant.properties` blobs from all branches + tags + force-push 4 remotes. Rotate Redis + PostgreSQL credentials before and after.
+- [x] **R23 [High] `getJedisPool()` double-checked locking without `volatile`** — `ConnectorBaseUtil.java:129-139`: `jedisPool` not volatile; two threads can create two pools, one leaked. Fixed with `volatile`.
+- [x] **R24 [High] `arrangeCase` reads `keywords` map without synchronization** — `ConnectorBaseUtil.java:141-151`: concurrent write in `setKeywords` (synchronized) vs unsynchronized read causes `ConcurrentModificationException`. Fixed.
+- [x] **R25 [High] `getObjectMapper()` unsynchronized lazy-init race** — `ConnectorBaseUtil.java:156-162`: `objectMapper` not volatile. Fixed with `volatile`.
+- [x] **R26 [High] Blind credential substring replace corrupts other values** — `QueryParameters.java:425-426`: second `source.replace(resEnv, ...)` replaces the raw credential value everywhere in source string. Fixed by removing blind second replace.
+- [x] **R27 [Medium] Base32 false-positive corrupts plain queries** — `QueryParameters.java:145-149`: plain names like `METRICS3` satisfy Base32 constraints and get silently decoded. Added `//` prefix check before Base32 attempt.
+- [ ] **R28 [Medium] 32-bit `hashCode()` as Redis cache key** — `QueryParameters.java:155`: collision risk; deliberate collision = cache poisoning. Upgrade to SHA-256 truncated to 64-bit or use full query string as key.
+- [x] **R29 [Medium] Comment-strip regex passed to literal-string replace** — `QueryParameters.java:119`: `StringUtils.replace` treats pattern as literal; regex metacharacters never evaluate. Dead code; removed.
+- [x] **R30 [Medium] `split("=")` truncates values containing `=`** — `QueryParameters.java:165-168`: `qwurl=http://host?a=b` loses everything after second `=`. Fixed with `split("=", 2)`.
+- [x] **R31 [Medium] Raw `NullPointerException` instead of `TrinoException`** — `ConnectorBaseUtil.java:328`: throw `TrinoException(INVALID_FUNCTION_ARGUMENT)` for clean Trino error propagation. Fixed.
+- [x] **R32 [Low] `redactIfSecret` misses URL-embedded passwords** — `QueryParameters.java:403-404`: pattern doesn't match `redis-url` or `qwurl`. Added `url` to pattern.
+- [x] **R33 [Low] Logger fields not `static final`** — Base connector classes. Fixed.
+
 - [ ] **L15 [P3, 0.5d, low priority] Rhino classloader debug — `Math.floor` fails
       under Trino plugin classloader.** L13 made the Rhino failure
       visible (`hasjs script execution failed: <ExceptionClass>:

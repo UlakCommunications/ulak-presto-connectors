@@ -10,7 +10,7 @@ services:
       # Trino official image supports this pattern; if it doesn't in your tag,
       # use Option B below.
       JAVA_TOOL_OPTIONS: >-
-        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=127.0.0.1:5005
       # GeoIP MMDB paths — uncomment together with the volume bind below
       # to test ip_to_country/latitude/longitude UDFs against a real MMDB.
       # Defaults to /usr/lib/trino/plugin/GeoLite2-*.mmdb if unset.

@@ -1,4 +1,7 @@
-FROM 192.168.57.202:35000/trinodb/trino:479
+# Internal registry (default for local/cluster builds).
+# Public/CI build: docker build --build-arg TRINO_BASE=trinodb/trino:479 .
+ARG TRINO_BASE=192.168.57.202:35000/trinodb/trino:479
+FROM ${TRINO_BASE}
 
 USER root
 
@@ -39,4 +42,6 @@ COPY openapi/plugin/trino-openapi-1.86-SNAPSHOT/ /usr/lib/trino/plugin/trino-ope
 #COPY openapi/trino-openapi-1.86-SNAPSHOT-sources.jar /usr/lib/trino/plugin/trino-openapi/
 #COPY openapi/trino-openapi-1.86-SNAPSHOT-test-sources.jar /usr/lib/trino/plugin/trino-openapi/
 #COPY openapi/trino-openapi-1.86-SNAPSHOT-tests.jar /usr/lib/trino/plugin/trino-openapi/
+
+USER trino
 

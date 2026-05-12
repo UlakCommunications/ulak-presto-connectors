@@ -1,0 +1,4 @@
+connector.name=postgresql
+connection-url=jdbc:postgresql://<PG_HOST>:<PG_PORT>/<DATABASE>
+connection-user=<PG_USER>
+connection-password=<PG_PASSWORD>
