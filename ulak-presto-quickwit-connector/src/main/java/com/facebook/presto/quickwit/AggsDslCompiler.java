@@ -3,10 +3,13 @@ package com.facebook.presto.quickwit;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public final class AggsDslCompiler {
+    private static final Logger logger = LoggerFactory.getLogger(AggsDslCompiler.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private AggsDslCompiler() {}
@@ -436,6 +439,11 @@ public final class AggsDslCompiler {
             if (preferred != null && !preferred.trim().isEmpty()) {
                 String s = preferred.trim();
                 if (used.add(s)) return s;
+                String fallback = allocate();
+                logger.warn("Auto-ID collision: preferred id '{}' already taken; assigned '{}' instead. " +
+                        "SQL column references to '{}' will break if data adds a new field with this name. " +
+                        "Consider assigning explicit ids in the Aggs DSL.", s, fallback, s);
+                return fallback;
             }
             return allocate();
         }

@@ -6,7 +6,7 @@ From the full cross-repo review in `backend/anomaly` → `TODO.md` "Architectura
 
 - [ ] **J46 [P1, 0.5d] Connector health + Grafana datasource failover** — Trino down = every dashboard blank. Start: Prometheus readiness alert on Trino pod; Grafana proxy or fallback datasource; consider query-level cache for cold panels.
 - [x] **J47 [P1, 1d] `sqlversion` deprecation plan** — Target: `0.2`. ADR written: `docs/adr/0003-sqlversion-deprecation.md`. WARN log added for `0` and `0.1` at parse time. Code removal deferred to future major release.
-- [ ] **J48 [P1, 0.3d] Auto-ID collision — fail loud, not silent** — "name taken → numeric id fallback" silently breaks SQL column refs when data adds a new field. Start: connector logs WARN on collision; build-time duplicate-auto-id check in `AggsDslCompiler`.
+- [x] **J48 [P1, 0.3d] Auto-ID collision — fail loud, not silent** — `AggsDslCompiler.IdAllocator.claim()` now logs WARN with preferred id, assigned fallback id, and guidance when a collision occurs.
 - [ ] **J49 [P2, 0.5d] `CAPABILITIES.md`** — document supported agg/modifier combinations vs Quickwit 0.8 limitations (no `top_hits`; `id=` rules; `order=id:X:dir` coupling with auto-id; `replacefromcolumns` only in sqlversion `0`). Saves panel authors trial-and-error.
 - [ ] **J50 [P2, 1d] Connector integration tests** — 3–5 sentinel queries (histogram+terms+max, top-N, JOIN pattern) run in CI against a test Quickwit. Catches silent regressions on Trino or Quickwit upgrade.
 - [ ] **J51 [P1, 0.5d] Injection audit** — `raw_query(json_string)` takes arbitrary JSON; Grafana dashboard variables flow into it. Document escape discipline; test crafted payloads for SQL/JSON injection via dashboard variable.
