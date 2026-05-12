@@ -213,6 +213,12 @@ public class QwUtil {
     private static final int RHINO_INSTRUCTION_LIMIT = 100_000;
 
     public static String executeScript(String query) {
+        // L15: Trino's plugin classloader may not be set as the Thread Context
+        // ClassLoader (TCL). Rhino's Context.enter() uses the TCL to find its own
+        // implementation classes (including NativeMath). Without this, the system
+        // classloader is used and Rhino can't find its classes in the plugin JAR.
+        ClassLoader savedTcl = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(QwUtil.class.getClassLoader());
         Context cx = Context.enter();
         try {
             cx.setClassShutter(className -> false);
@@ -230,6 +236,7 @@ public class QwUtil {
         }
         finally {
             Context.exit();
+            Thread.currentThread().setContextClassLoader(savedTcl);
         }
     }
     public static List<UlakRow> executeOneQuery( QueryParameters queryParameters,

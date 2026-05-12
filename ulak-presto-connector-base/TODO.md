@@ -69,18 +69,15 @@ this file to `CHANGELOG.md` once done.
 - [x] **R32 [Low] `redactIfSecret` misses URL-embedded passwords** — `QueryParameters.java:403-404`: pattern doesn't match `redis-url` or `qwurl`. Added `url` to pattern.
 - [x] **R33 [Low] Logger fields not `static final`** — Base connector classes. Fixed.
 
-- [ ] **L15 [P3, 0.5d, low priority] Rhino classloader debug — `Math.floor` fails
-      under Trino plugin classloader.** L13 made the Rhino failure
-      visible (`hasjs script execution failed: <ExceptionClass>:
-      <message>`); now figure out *why* `Math.floor(1777551625/1000)`
-      fails when Rhino is loaded by the Trino plugin classloader. The
-      shaded jar bundles `org.mozilla:rhino:1.8.1` +
-      `rhino-engine:1.8.1` + `rhino-runtime:1.7.15.1`. Hypothesis:
-      version skew between rhino and rhino-runtime, or
-      Trino-plugin-isolation hides Rhino's stdlib initialisation. Repro
-      = reopen Throughput Chart / Network Throughput while watching
-      Trino logs for the new ApiException — the Rhino exception class
-      will name the exact failure (NPE? ClassNotFound? EvaluatorException?).
+- [x] **L15 [P3, 0.5d] Rhino classloader fix — `Math.floor` under Trino plugin classloader.**
+      Root causes found and fixed statically (no live-cluster repro needed):
+      (1) `rhino-runtime:1.7.15.1` + `rhino-engine:1.8.1` were declared alongside the
+      self-contained `rhino:1.8.1` JAR, putting duplicate/older `NativeMath.class` on the
+      classpath — removed both redundant deps from pom.xml.
+      (2) `Context.enter()` uses the Thread Context Classloader (TCL); Trino's plugin
+      classloader is not set as TCL, so Rhino fell back to the system classloader which
+      doesn't see the plugin JAR — fixed by saving/restoring TCL around Context.enter()
+      in `QwUtil.executeScript()`. Needs live-cluster smoke-test to confirm.
 
 
 

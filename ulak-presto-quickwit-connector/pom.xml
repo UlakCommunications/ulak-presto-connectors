@@ -93,23 +93,16 @@
       <artifactId>json2flat-maya</artifactId>
       <version>1.0.3-SNAPSHOT</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/org.mozilla/rhino -->
+    <!-- https://mvnrepository.com/artifact/org.mozilla/rhino
+         L15: only rhino:1.8.1 is needed — it is a standalone jar that bundles all
+         Rhino runtime classes including NativeMath. Declaring rhino-engine (ScriptEngine
+         wrapper, unused) or rhino-runtime separately at any version puts duplicate/older
+         class files on the classpath, causing NativeMath (Math.floor) to fail at runtime
+         when loaded by the Trino plugin classloader (it may resolve the 1.7.x version). -->
     <dependency>
       <groupId>org.mozilla</groupId>
       <artifactId>rhino</artifactId>
       <version>1.8.1</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.mozilla</groupId>
-      <artifactId>rhino-engine</artifactId>
-      <version>1.8.1</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.mozilla</groupId>
-      <artifactId>rhino-runtime</artifactId>
-      <version>1.7.15.1</version>
     </dependency>
 
 
