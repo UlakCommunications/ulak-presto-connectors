@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
 
@@ -51,7 +52,7 @@ public class QwUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(QwUtil.class);
 
-    private static Map<String, ApiClient> defaultClients = null;
+    private static final Map<String, ApiClient> defaultClients = new ConcurrentHashMap<>();
 
     public static final String DOC_COUNT = "doc_count";
     public static final String KEY = "key";
@@ -66,49 +67,31 @@ public class QwUtil {
                                              Integer writeTimeout) {
         String qwUrl = queryParameters != null ? queryParameters.getQwUrl() : null;
         if (StringUtils.isBlank(qwUrl)) {
-            logger.error("url is null : {}\n\n\nurl:{}\n\n\nindex:{}",
-                    queryParameters.getQuery(),
-                    queryParameters.getQwUrl(),
-                    queryParameters.getQwIndex());
+            if (queryParameters != null) {
+                logger.error("url is null : {}\n\n\nurl:{}\n\n\nindex:{}",
+                        queryParameters.getQuery(),
+                        queryParameters.getQwUrl(),
+                        queryParameters.getQwIndex());
+            } else {
+                logger.error("getDefaultClient called with null queryParameters");
+            }
             return null;
         }
-        ApiClient client;
-        if (defaultClients == null) {
-            defaultClients = new LinkedHashMap<>();
-        }
-        if (!defaultClients.containsKey(qwUrl)) {
-            client = Configuration.getDefaultApiClient();
-            client.setBasePath(qwUrl);
+        return defaultClients.computeIfAbsent(qwUrl, url -> {
+            ApiClient c = Configuration.getDefaultApiClient();
+            c.setBasePath(url);
 
-            Integer newTimeout = queryParameters.getConnectTimeout();
-            if (newTimeout == null) {
-                newTimeout =  connectTimeout;
-            }
-            if (newTimeout != null) {
-                client.setConnectTimeout(newTimeout*1000);
-            }
+            Integer ct = queryParameters.getConnectTimeout() != null ? queryParameters.getConnectTimeout() : connectTimeout;
+            if (ct != null) c.setConnectTimeout(ct * 1000);
 
-            newTimeout = queryParameters.getReadTimeout();
-            if (newTimeout == null) {
-                newTimeout =  readTimeout;
-            }
-            if (newTimeout != null) {
-                client.setReadTimeout(newTimeout*1000);
-            }
+            Integer rt = queryParameters.getReadTimeout() != null ? queryParameters.getReadTimeout() : readTimeout;
+            if (rt != null) c.setReadTimeout(rt * 1000);
 
-            newTimeout = queryParameters.getWriteTimeout();
-            if (newTimeout == null) {
-                newTimeout =  writeTimeout;
-            }
-            if (newTimeout != null) {
-                client.setWriteTimeout(newTimeout*1000);
-            }
+            Integer wt = queryParameters.getWriteTimeout() != null ? queryParameters.getWriteTimeout() : writeTimeout;
+            if (wt != null) c.setWriteTimeout(wt * 1000);
 
-            defaultClients.put(qwUrl, client);
-        } else {
-            client = defaultClients.get(qwUrl);
-        }
-        return client;
+            return c;
+        });
     }
 
     private QwUtil() {
@@ -117,7 +100,9 @@ public class QwUtil {
     public static List<String> getSchemas() throws ApiException {
         logger.debug("QwUtil-getSchemas");
         List<String> res = new ArrayList<>();
-        IndexesApi indexesApi = new IndexesApi(getDefaultClient(null,null,null,null));
+        ApiClient client = getDefaultClient(null, null, null, null);
+        if (client == null) return res;
+        IndexesApi indexesApi = new IndexesApi(client);
         List<VersionedIndexMetadata> indexesMetadatas = indexesApi.getIndexesMetadatas();
 
         for (VersionedIndexMetadata bucket1 : indexesMetadatas) {
@@ -129,9 +114,11 @@ public class QwUtil {
     }
 
     public static List<String> getTableNames(String schema) throws ApiException {
-        logger.debug("QwUtil-getSchemas");
+        logger.debug("QwUtil-getTableNames");
         List<String> res = new ArrayList<>();
-        IndexesApi indexesApi = new IndexesApi(getDefaultClient(null,null,null,null));
+        ApiClient client = getDefaultClient(null, null, null, null);
+        if (client == null) return res;
+        IndexesApi indexesApi = new IndexesApi(client);
         List<VersionedIndexMetadata> indexesMetadatas = indexesApi.getIndexesMetadatas();
 
         for (VersionedIndexMetadata bucket1 : indexesMetadatas) {

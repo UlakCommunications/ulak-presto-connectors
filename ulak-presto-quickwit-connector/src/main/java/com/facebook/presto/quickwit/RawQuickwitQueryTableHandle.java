@@ -183,22 +183,27 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
                 '}';
     }
 
+    @JsonProperty
     public Optional<String> getName() {
         return name;
     }
 
+    @JsonProperty
     public Optional<String> getColumns() {
         return columns;
     }
 
+    @JsonProperty
     public Optional<String> getDbtype() {
         return dbtype;
     }
 
+    @JsonProperty
     public Optional<String> getReplacefromcolumns() {
         return replacefromcolumns;
     }
 
+    @JsonProperty
     public Optional<String> getHasjs() {
         return hasjs;
     }

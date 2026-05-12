@@ -218,7 +218,7 @@ public class UlakQuickwitMetadata
         Map<SchemaTableName, List<ColumnMetadata>> columns = new HashMap<>();
         List<SchemaTableName> list = listTables(session, session.getSource());
         for (SchemaTableName tableName : list) {
-            if (tableName.getTableName().startsWith(prefix.getTable().get())) {
+            if (!prefix.getTable().isPresent() || tableName.getTableName().startsWith(prefix.getTable().get())) {
                 try {
 
                     QueryParameters qp = QueryParameters.getQueryParameters(tableName.getTableName());
