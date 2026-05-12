@@ -149,7 +149,7 @@ public class ConnectorBaseUtil {
         }
         return query;
     }
-    public static final Map<Integer, Object> inProgressLocks = new LinkedHashMap<>();
+    public static final Map<String, Object> inProgressLocks = new LinkedHashMap<>();
     public static Object inProgressLock = new Object();
 
 
@@ -169,7 +169,7 @@ public class ConnectorBaseUtil {
         }else{
             param.ex(NONE_CACHE_TTL_IN_SECONDS);
         }
-        jedis.set(getTrinoCacheString(queryParameters.getHash()),
+        jedis.set(getTrinoCacheString(queryParameters.getCacheKey()),
                 getObjectMapper().writeValueAsString(queryParameters), param);
     }
 
@@ -205,37 +205,38 @@ public class ConnectorBaseUtil {
                     String tableNameForHash = getTableNameForHash(queryParameters.getQuery());
 
                     hash = tableNameForHash.hashCode();
-
                     queryParameters.setHash(hash);
+                    queryParameters.setCacheKey(QueryParameters.sha256Hex(tableNameForHash));
                 }
             }
         }
         queryParameters.setStart(System.currentTimeMillis());
 
+        String cacheKey = queryParameters.getCacheKey();
         JedisPool pool = getJedisPool();
         try (Jedis jedis = pool != null ? pool.getResource() : null) {
-            List<UlakRow> fromCache = getCacheResultAsList(forceRefresh, jedis, hash);
+            List<UlakRow> fromCache = getCacheResultAsList(forceRefresh, jedis, cacheKey);
             if (fromCache != null) {
                 queryParameters.setRows(fromCache);
                 setCacheItem(jedis, queryParameters);
                 return fromCache;
             }
             synchronized (inProgressLock) {
-                fromCache = getCacheResultAsList(forceRefresh, jedis, hash);
+                fromCache = getCacheResultAsList(forceRefresh, jedis, cacheKey);
                 if (fromCache != null) {
                     queryParameters.setRows(fromCache);
                     setCacheItem(jedis, queryParameters);
                     return fromCache;
                 }
 
-                if (!inProgressLocks.containsKey(hash)) {
-                    inProgressLocks.put(hash, new Object());
+                if (!inProgressLocks.containsKey(cacheKey)) {
+                    inProgressLocks.put(cacheKey, new Object());
                 }
             }
             try {
-                synchronized (inProgressLocks.get(hash)) {
+                synchronized (inProgressLocks.get(cacheKey)) {
 
-                    fromCache = getCacheResultAsList(forceRefresh, jedis, hash);
+                    fromCache = getCacheResultAsList(forceRefresh, jedis, cacheKey);
                     if (fromCache != null) {
                         queryParameters.setRows(fromCache);
                         setCacheItem(jedis, queryParameters);
@@ -255,29 +256,29 @@ public class ConnectorBaseUtil {
                 }
             } finally {
                 synchronized (inProgressLock) {
-                    inProgressLocks.remove(hash);
+                    inProgressLocks.remove(cacheKey);
                 }
             }
         }
     }
 
-    public static void invalidateCache(int hash) {
+    public static void invalidateCache(String cacheKey) {
         JedisPool pool = getJedisPool();
         if (pool == null) {
             return;
         }
         try (Jedis jedis = pool.getResource()) {
             synchronized (inProgressLock) {
-                if (!inProgressLocks.containsKey(hash)) {
-                    inProgressLocks.put(hash, new Object());
+                if (!inProgressLocks.containsKey(cacheKey)) {
+                    inProgressLocks.put(cacheKey, new Object());
                 }
             }
-            synchronized (inProgressLocks.get(hash)) {
+            synchronized (inProgressLocks.get(cacheKey)) {
                 try {
-                    jedis.del(getTrinoCacheString(hash));
+                    jedis.del(getTrinoCacheString(cacheKey));
                 } finally {
                     synchronized (inProgressLock) {
-                        inProgressLocks.remove(hash);
+                        inProgressLocks.remove(cacheKey);
                     }
                 }
             }
@@ -285,8 +286,8 @@ public class ConnectorBaseUtil {
     }
     private static Iterator<UlakRow> getCacheResult(boolean forceRefresh,
                                                         Jedis jedis,
-                                                        int hash) throws JsonProcessingException {
-        List<UlakRow> resultAsList = getCacheResultAsList(forceRefresh, jedis, hash);
+                                                        String key) throws JsonProcessingException {
+        List<UlakRow> resultAsList = getCacheResultAsList(forceRefresh, jedis, key);
         if (resultAsList != null) {
             return resultAsList.iterator();
         }
@@ -295,10 +296,10 @@ public class ConnectorBaseUtil {
 
     public static List<UlakRow> getCacheResultAsList(boolean forceRefresh,
                                                          Jedis jedis,
-                                                         int hash) throws JsonProcessingException {
+                                                         String key) throws JsonProcessingException {
         if(jedis != null) {
             String json;
-            json = jedis.get(getTrinoCacheString(hash));
+            json = jedis.get(getTrinoCacheString(key));
             if(json!=null){
 //                addOneStat(hash, 1);
             }
