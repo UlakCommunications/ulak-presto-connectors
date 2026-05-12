@@ -348,10 +348,16 @@ public class QwUtil {
 
     public static List<UlakRow> parseResponse(QueryParameters queryParameters,
                                                   SearchResponseRest ret) {
+        String sv = queryParameters.getSqlVersion();
+        if ("0".equals(sv)) {
+            logger.warn("DEPRECATED: sqlversion=0 (JFlat) is deprecated. Migrate to sqlversion=0.2. See docs/adr/0003-sqlversion-deprecation.md");
+        } else if ("0.1".equals(sv)) {
+            logger.warn("DEPRECATED: sqlversion=0.1 is deprecated. Migrate to sqlversion=0.2. See docs/adr/0003-sqlversion-deprecation.md");
+        }
         Object g = ret.getAggregations();
-        if (g != null && !"0".equals(queryParameters.getSqlVersion())) {
+        if (g != null && !"0".equals(sv)) {
             List<UlakRow> results = new ArrayList<>();
-            boolean stripSuffixes = "0.2".equals(queryParameters.getSqlVersion());
+            boolean stripSuffixes = "0.2".equals(sv);
             traverseAggregations((Map<String, Object>) g, new LinkedHashMap<>(), results, stripSuffixes);
             return trimTimeEdges(results, queryParameters);
         }
