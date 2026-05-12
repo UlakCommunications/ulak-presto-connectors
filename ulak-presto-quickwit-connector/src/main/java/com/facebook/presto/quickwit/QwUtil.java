@@ -680,12 +680,14 @@ public class QwUtil {
         return PlainTableQuery.isPlainMode(tableName);
     }
 
-    /**
-     * Builds a match-all query string for a plain index name so it can be
-     * processed by the existing QueryParameters + QwUtil.select() pipeline.
-     */
+    /** Builds a match-all query string for a plain index name. */
     public static String buildPlainTableQuery(String indexName) {
         return PlainTableQuery.buildMatchAllQuery(indexName);
+    }
+
+    /** Builds a filtered query string for a plain index name. */
+    public static String buildPlainTableQuery(String indexName, String qwFilter, int maxHits) {
+        return PlainTableQuery.buildFilteredQuery(indexName, qwFilter, maxHits);
     }
 
     /**

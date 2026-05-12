@@ -82,4 +82,54 @@ class PlainTableModeTest {
         assertThat(q).contains("//qwindex=my-index-v2");
         assertThat(PlainTableQuery.isPlainMode(q)).isFalse();
     }
+
+    // -----------------------------------------------------------------------
+    // J56b — filter and limit helpers
+    // -----------------------------------------------------------------------
+
+    @Test
+    @DisplayName("buildFilteredQuery embeds the custom filter expression")
+    void buildFilteredQueryEmbedsFilter() {
+        String q = PlainTableQuery.buildFilteredQuery("metrics3", "status:ok", 500);
+        assertThat(q).contains("//qwindex=metrics3");
+        assertThat(q).contains("status:ok");
+        assertThat(q).contains("\"max_hits\":500");
+    }
+
+    @Test
+    @DisplayName("buildFilteredQuery escapes double-quotes in filter value")
+    void buildFilteredQueryEscapesQuotes() {
+        String q = PlainTableQuery.buildFilteredQuery("idx", "field:\"val\"", 100);
+        assertThat(q).contains("field:\\\"val\\\"");
+    }
+
+    @Test
+    @DisplayName("withMaxHits replaces the max_hits value in an existing query string")
+    void withMaxHitsReplaces() {
+        String original = PlainTableQuery.buildMatchAllQuery("metrics3");
+        assertThat(original).contains("\"max_hits\":1000");
+
+        String updated = PlainTableQuery.withMaxHits(original, 250);
+        assertThat(updated).contains("\"max_hits\":250");
+        assertThat(updated).doesNotContain("\"max_hits\":1000");
+    }
+
+    @Test
+    @DisplayName("withMaxHits works on a filtered query string")
+    void withMaxHitsOnFilteredQuery() {
+        String filtered = PlainTableQuery.buildFilteredQuery("idx", "status:ok", 1000);
+        String limited  = PlainTableQuery.withMaxHits(filtered, 50);
+        assertThat(limited).contains("\"max_hits\":50");
+        assertThat(limited).contains("status:ok");
+    }
+
+    @Test
+    @DisplayName("withMaxHits preserves the filter expression and directives")
+    void withMaxHitsPreservesDirectives() {
+        String q = PlainTableQuery.buildFilteredQuery("my-idx", "host:web1", 1000);
+        String limited = PlainTableQuery.withMaxHits(q, 10);
+        assertThat(limited).contains("//qwindex=my-idx");
+        assertThat(limited).contains("//sqlversion=0.2");
+        assertThat(limited).contains("host:web1");
+    }
 }

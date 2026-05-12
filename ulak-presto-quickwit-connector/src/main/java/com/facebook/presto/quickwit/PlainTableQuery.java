@@ -22,9 +22,26 @@ final class PlainTableQuery {
      * Uses sqlversion=0.2 (bare aggId column names) as the default.
      */
     static String buildMatchAllQuery(String indexName) {
+        return buildFilteredQuery(indexName, "*", 1000);
+    }
+
+    /**
+     * Builds a query string with a custom Quickwit filter expression.
+     * {@code qwFilter} is a Quickwit query string clause, e.g. {@code status:"ok"}.
+     */
+    static String buildFilteredQuery(String indexName, String qwFilter, int maxHits) {
+        String escaped = qwFilter.replace("\\", "\\\\").replace("\"", "\\\"");
         return "//qwindex=" + indexName + "\n" +
                "//dbtype=qw\n" +
                "//sqlversion=0.2\n" +
-               "{\"query\":\"*\",\"max_hits\":1000}";
+               "{\"query\":\"" + escaped + "\",\"max_hits\":" + maxHits + "}";
+    }
+
+    /**
+     * Returns a copy of {@code queryString} with the {@code "max_hits"} value replaced.
+     * Only replaces the first occurrence (there is exactly one per query string).
+     */
+    static String withMaxHits(String queryString, int maxHits) {
+        return queryString.replaceFirst("\"max_hits\"\\s*:\\s*\\d+", "\"max_hits\":" + maxHits);
     }
 }

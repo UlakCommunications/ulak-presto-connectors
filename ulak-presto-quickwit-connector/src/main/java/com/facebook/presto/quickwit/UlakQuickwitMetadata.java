@@ -20,10 +20,17 @@ import com.facebook.presto.ulak.UlakTableHandle;
 import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
 import com.google.common.collect.ImmutableList;
 import com.quickwit.javaclient.ApiException;
+import io.airlift.slice.Slice;
 import io.trino.spi.StandardErrorCode;
 import io.trino.spi.TrinoException;
 import io.trino.spi.connector.*;
 import io.trino.spi.function.table.ConnectorTableFunctionHandle;
+import io.trino.spi.predicate.Domain;
+import io.trino.spi.predicate.Range;
+import io.trino.spi.predicate.SortedRangeSet;
+import io.trino.spi.predicate.TupleDomain;
+import io.trino.spi.predicate.ValueSet;
+import io.trino.spi.type.Type;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -376,5 +383,111 @@ public class UlakQuickwitMetadata
 
     public Integer getWriteTimeout() {
         return writeTimeout;
+    }
+
+    // -----------------------------------------------------------------------
+    // J56b — filter and limit pushdown for plain table mode
+    // -----------------------------------------------------------------------
+
+    @Override
+    public Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyFilter(
+            ConnectorSession session, ConnectorTableHandle handle, Constraint constraint) {
+        if (!(handle instanceof UlakTableHandle)) return Optional.empty();
+        UlakTableHandle tableHandle = (UlakTableHandle) handle;
+        String tableName = tableHandle.getTableName();
+        if (!QwUtil.isPlainTableMode(tableName)) return Optional.empty();
+
+        TupleDomain<ColumnHandle> summary = constraint.getSummary();
+        if (summary.isAll()) return Optional.empty();
+        if (summary.isNone()) return Optional.empty();
+
+        // Convert predicates we understand; skip the rest (Trino will re-apply them)
+        TupleDomain<ColumnHandle> pushed = TupleDomain.all();
+        TupleDomain<ColumnHandle> remaining = summary;
+        String qwFilter = buildQwFilter(summary);
+        if (qwFilter == null) return Optional.empty();
+
+        pushed = summary;
+        remaining = TupleDomain.all();
+
+        String newTableName = PlainTableQuery.buildFilteredQuery(tableName, qwFilter, 1000);
+        UlakTableHandle newHandle = new UlakTableHandle(
+                tableHandle.getConnectorId(), tableHandle.getSchemaName(), newTableName);
+        return Optional.of(new ConstraintApplicationResult<>(
+                newHandle, remaining, constraint.getExpression(), false));
+    }
+
+    @Override
+    public Optional<LimitApplicationResult<ConnectorTableHandle>> applyLimit(
+            ConnectorSession session, ConnectorTableHandle handle, long limit) {
+        if (!(handle instanceof UlakTableHandle)) return Optional.empty();
+        UlakTableHandle tableHandle = (UlakTableHandle) handle;
+        String tableName = tableHandle.getTableName();
+
+        int maxHits = (int) Math.min(limit, Integer.MAX_VALUE);
+        String newTableName;
+        if (QwUtil.isPlainTableMode(tableName)) {
+            newTableName = PlainTableQuery.buildFilteredQuery(tableName, "*", maxHits);
+        } else if (tableName.contains("//") && tableName.contains("max_hits")) {
+            newTableName = PlainTableQuery.withMaxHits(tableName, maxHits);
+        } else {
+            return Optional.empty();
+        }
+
+        UlakTableHandle newHandle = new UlakTableHandle(
+                tableHandle.getConnectorId(), tableHandle.getSchemaName(), newTableName);
+        return Optional.of(new LimitApplicationResult<>(newHandle, true, false));
+    }
+
+    /**
+     * Converts a TupleDomain to a Quickwit query string (Lucene-like syntax).
+     * Returns null if any predicate cannot be expressed in Quickwit syntax.
+     * Simple equality and single-range predicates are supported.
+     */
+    private static String buildQwFilter(TupleDomain<ColumnHandle> tupleDomain) {
+        if (!tupleDomain.getDomains().isPresent()) return null;
+        Map<ColumnHandle, Domain> domains = tupleDomain.getDomains().get();
+        if (domains.isEmpty()) return null;
+
+        List<String> clauses = new ArrayList<>();
+        for (Map.Entry<ColumnHandle, Domain> entry : domains.entrySet()) {
+            UlakColumnHandle col = (UlakColumnHandle) entry.getKey();
+            String clause = domainToQwClause(col.getColumnName(), entry.getValue());
+            if (clause == null) return null; // can't push down this predicate
+            clauses.add(clause);
+        }
+        return clauses.isEmpty() ? null : String.join(" AND ", clauses);
+    }
+
+    private static String domainToQwClause(String field, Domain domain) {
+        if (domain.isAll()) return null;
+        if (domain.isNone()) return null;
+        if (domain.isSingleValue()) {
+            return field + ":" + qwLiteral(domain.getSingleValue(), domain.getType());
+        }
+        ValueSet valueSet = domain.getValues();
+        if (valueSet instanceof SortedRangeSet) {
+            List<Range> ranges = ((SortedRangeSet) valueSet).getOrderedRanges();
+            if (ranges.size() == 1) {
+                Range range = ranges.get(0);
+                if (range.isSingleValue()) {
+                    return field + ":" + qwLiteral(range.getSingleValue(), range.getType());
+                }
+                String low = range.getLowValue()
+                        .map(v -> qwLiteral(v, range.getType())).orElse("*");
+                String high = range.getHighValue()
+                        .map(v -> qwLiteral(v, range.getType())).orElse("*");
+                return field + ":[" + low + " TO " + high + "]";
+            }
+        }
+        return null; // multi-range or other complex predicate — don't push down
+    }
+
+    private static String qwLiteral(Object val, Type type) {
+        if (val instanceof Slice) {
+            String s = ((Slice) val).toStringUtf8();
+            return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+        }
+        return String.valueOf(val);
     }
 }
