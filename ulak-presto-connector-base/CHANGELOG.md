@@ -4,6 +4,39 @@ Items move here from [`TODO.md`](TODO.md) when finished. Keep entries
 concrete enough that a future reader can locate the change without
 chasing commits.
 
+## 2026-05-12 — Code review security + quality fixes (R-series) + architectural fixes (L-series)
+
+### Critical / security
+
+- **R20** — `encodeUriComponent` logged encoded secret at INFO level (`QueryParameters.java:452`). Log line removed.
+- **R21** — `trino/etc/catalog/quickwit.properties` + `tenant.properties` tracked in git (live Redis + PostgreSQL passwords). `git rm --cached`, `.gitignore` updated, `.example` files created.
+- **R22** — Credential history rewrite (`filter-repo`): `develop` branch cleaned; `master` will be cleaned via MR merge. Open until master is updated.
+
+### High-priority
+
+- **R23** — `getJedisPool()` double-checked locking without `volatile`. Fixed with `volatile`.
+- **R24** — `arrangeCase` reads `keywords` map without synchronization. Fixed.
+- **R25** — `getObjectMapper()` unsynchronized lazy-init race. Fixed with `volatile`.
+- **R26** — Blind credential substring replace could corrupt other values. Fixed.
+
+### Medium-priority
+
+- **R27** — Base32 false-positive detection corrupted plain queries (e.g. `METRICS3`). Added `//` prefix check before Base32 attempt.
+- **R28** — 32-bit `hashCode()` as Redis cache key. Replaced with SHA-256 (`QueryParameters.sha256Hex()`). `String cacheKey` field added; `ConnectorBaseUtil` uses it for all Redis key operations.
+- **R29** — Comment-strip regex passed to `StringUtils.replace` (literal). Dead code removed.
+- **R30** — `split("=")` truncated values containing `=` (e.g. `qwurl=http://host?a=b`). Fixed with `split("=", 2)`.
+- **R31** — Raw `NullPointerException` instead of `TrinoException`. Fixed.
+
+### Low-priority
+
+- **R32** — `redactIfSecret` missed URL-embedded passwords. `url` added to pattern.
+- **R33** — Logger fields not `static final` in base connector classes. Fixed.
+
+### Architectural fixes
+
+- **L14** — TVF schema "returned table does not match the node's output" fix. `RawQuickwitQueryTableHandle` carries `Optional<String> computedColumns`. `analyze()` runs one live search and freezes the column list on the handle. `applyTableFunction()`, `getTableMetadata()`, `getColumnHandles()` all read from the frozen list — no second search. Falls back to live-query path for handles without `computedColumns` (old plans, plain table mode).
+- **L15** — Rhino `Math.floor` failing under Trino plugin classloader. Two root causes fixed: (1) removed redundant `rhino-engine:1.8.1` and `rhino-runtime:1.7.15.1` deps from `pom.xml` — `rhino:1.8.1` is standalone and includes all Rhino runtime classes; duplicate older `NativeMath.class` was winning classloader race. (2) `RhinoExecutor.executeScript()` now saves/restores TCL and sets `RhinoExecutor.class.getClassLoader()` before `Context.enter()` so Rhino finds its classes inside the plugin JAR. Smoke-tested 2026-05-12 on Trino 479 container.
+
 ## 2026-04-28 — GeoIP cleanup
 
 After the repo-wide history rewrite (`git filter-repo` over all 28

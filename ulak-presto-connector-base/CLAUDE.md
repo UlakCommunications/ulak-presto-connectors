@@ -82,8 +82,8 @@ The L category was merged to `develop` via GitLab MR (merge commit
 | L10 TrinoException for transaction safety + null-body / template guards | ✓ done |
 | L11 stable TVF schema (analyze == execute) | ❌ **REVERTED** — re-attempt in **L14** |
 | L13 Rhino script swallow → ApiException rethrow | ✓ done |
-| L14 deeper TVF schema fix (3-site bind) | open |
-| L15 Rhino classloader debug under Trino plugin | open |
+| L14 deeper TVF schema fix (3-site bind) | ✓ done — `computedColumns` on handle |
+| L15 Rhino classloader debug under Trino plugin | ✓ done — `rhino-runtime` removed, TCL fix; smoke-tested 2026-05-12 |
 
 Live cluster smoke test passed: two catalogs on the same connector
 (`mayapostgres` ×3, `quickwit` ×2 in dashboards) coexist cleanly,
