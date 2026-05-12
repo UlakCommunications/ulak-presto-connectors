@@ -48,9 +48,14 @@ public class QuickwitSplitManager
             UlakSplit ulakSplit = new UlakSplit("test", searchRequest);
             ulakSplit.setTableName(searchRequest);
             splits.add(ulakSplit);
-        }else{
+        } else {
             UlakTableHandle tableHandle = (UlakTableHandle) table;
-            splits.add(new UlakSplit(tableHandle.getSchemaName(), tableHandle.getTableName()));
+            String tableName = tableHandle.getTableName();
+            // J56: plain table mode — convert bare index name to match-all query string
+            if (QwUtil.isPlainTableMode(tableName)) {
+                tableName = QwUtil.buildPlainTableQuery(tableName);
+            }
+            splits.add(new UlakSplit(tableHandle.getSchemaName(), tableName));
         }
         return new FixedSplitSource(splits);
     }

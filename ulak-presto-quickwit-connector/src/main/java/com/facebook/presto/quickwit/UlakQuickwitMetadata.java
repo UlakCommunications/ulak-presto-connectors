@@ -142,6 +142,19 @@ public class UlakQuickwitMetadata
             }
             logger.debug("getTableMetadata tableName: tableName:{}",
                     tableName);
+
+            // J56: plain table mode — schema from DocMapping, skip live query
+            if (QwUtil.isPlainTableMode(tableName)) {
+                try {
+                    list = QwUtil.getColumnsFromDocMapping(tableName, this.qwUrl, connectTimeout, readTimeout, writeTimeout);
+                } catch (ApiException e) {
+                    throw new TrinoException(StandardErrorCode.GENERIC_INTERNAL_ERROR, e);
+                }
+                String schema = (raw == null && influxdbTableHandle != null)
+                        ? influxdbTableHandle.getSchemaName() : DEFAULT_SCHEMA;
+                return new ConnectorTableMetadata(new SchemaTableName(schema, tableName), list);
+            }
+
             QueryParameters qp = QueryParameters.getQueryParameters(tableName);
 
             qp.setQwUrl(validateQwUrl(qp.getQwUrl()));
@@ -221,6 +234,16 @@ public class UlakQuickwitMetadata
     }
     public  static  List<ColumnMetadata> getColumnsInternal(String tableName, String qwUrl, String qwIndex, Integer connectTimeout, Integer readTimeout, Integer writeTimeout) throws IOException {
         logger.debug("getColumnHandles: tableName:{}", tableName);
+
+        // J56: plain table mode — schema from DocMapping, skip live query
+        if (QwUtil.isPlainTableMode(tableName)) {
+            try {
+                return QwUtil.getColumnsFromDocMapping(tableName, qwUrl, connectTimeout, readTimeout, writeTimeout);
+            } catch (ApiException e) {
+                throw new IOException("Failed to get DocMapping for index " + tableName, e);
+            }
+        }
+
         QueryParameters qp = QueryParameters.getQueryParameters(tableName);
 
         if (StringUtils.isBlank(qp.getQwUrl())) {

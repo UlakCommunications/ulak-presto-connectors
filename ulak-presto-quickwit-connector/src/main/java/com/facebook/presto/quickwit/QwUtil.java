@@ -29,11 +29,19 @@ import com.quickwit.javaclient.ApiResponse;
 import com.quickwit.javaclient.Configuration;
 import com.quickwit.javaclient.api.IndexesApi;
 import com.quickwit.javaclient.api.SearchApi;
+import com.quickwit.javaclient.models.DocMapping;
+import com.quickwit.javaclient.models.FieldMappingEntryForSerialization;
 import com.quickwit.javaclient.models.SearchRequestQueryString;
 import com.quickwit.javaclient.models.SearchResponseRest;
 import com.quickwit.javaclient.models.VersionedIndexMetadata;
 import io.trino.spi.StandardErrorCode;
 import io.trino.spi.TrinoException;
+import io.trino.spi.connector.ColumnMetadata;
+import io.trino.spi.type.BigintType;
+import io.trino.spi.type.BooleanType;
+import io.trino.spi.type.DoubleType;
+import io.trino.spi.type.Type;
+import io.trino.spi.type.VarcharType;
 import okhttp3.Call;
 import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
@@ -661,6 +669,71 @@ public class QwUtil {
             }
         }
         return toRet;
+    }
+
+    // -----------------------------------------------------------------------
+    // J56 — Plain Table Query Mode helpers
+    // -----------------------------------------------------------------------
+
+    /** Returns true when tableName is a bare index name (no //param= directives). */
+    public static boolean isPlainTableMode(String tableName) {
+        return PlainTableQuery.isPlainMode(tableName);
+    }
+
+    /**
+     * Builds a match-all query string for a plain index name so it can be
+     * processed by the existing QueryParameters + QwUtil.select() pipeline.
+     */
+    public static String buildPlainTableQuery(String indexName) {
+        return PlainTableQuery.buildMatchAllQuery(indexName);
+    }
+
+    /**
+     * Returns schema columns for a plain-mode index by reading its DocMapping
+     * from the Quickwit index API — no live search query required.
+     */
+    public static List<ColumnMetadata> getColumnsFromDocMapping(
+            String indexName, String qwUrl,
+            Integer connectTimeout, Integer readTimeout, Integer writeTimeout) throws ApiException {
+        ApiClient client = defaultClients.computeIfAbsent(qwUrl, url -> {
+            ApiClient c = Configuration.getDefaultApiClient();
+            c.setBasePath(url);
+            if (connectTimeout != null) c.setConnectTimeout(connectTimeout * 1000);
+            if (readTimeout != null) c.setReadTimeout(readTimeout * 1000);
+            if (writeTimeout != null) c.setWriteTimeout(writeTimeout * 1000);
+            return c;
+        });
+        IndexesApi indexesApi = new IndexesApi(client);
+        List<VersionedIndexMetadata> metas = indexesApi.getIndexesMetadatas();
+        for (VersionedIndexMetadata meta : metas) {
+            com.quickwit.javaclient.models.VersionedIndexConfigOneOf cfg =
+                    meta.getVersionedIndexMetadataOneOf().getIndexConfig().getVersionedIndexConfigOneOf();
+            if (!indexName.equals(cfg.getIndexId())) continue;
+            DocMapping docMapping = cfg.getDocMapping();
+            if (docMapping == null || docMapping.getFieldMappings() == null) break;
+            List<ColumnMetadata> cols = new ArrayList<>();
+            for (FieldMappingEntryForSerialization fm : docMapping.getFieldMappings()) {
+                cols.add(new ColumnMetadata(fm.getName(), fieldTypeToTrino(fm.getType())));
+            }
+            return cols;
+        }
+        logger.warn("No DocMapping found for index '{}' at {}; plain-mode schema will be empty", indexName, qwUrl);
+        return Collections.emptyList();
+    }
+
+    private static Type fieldTypeToTrino(String qwType) {
+        if (qwType == null) return VarcharType.VARCHAR;
+        switch (qwType.toLowerCase()) {
+            case "u64": case "i64": case "u32": case "i32":
+            case "u16": case "i16": case "u8":  case "i8":
+                return BigintType.BIGINT;
+            case "f64": case "f32":
+                return DoubleType.DOUBLE;
+            case "bool":
+                return BooleanType.BOOLEAN;
+            default:
+                return VarcharType.VARCHAR;
+        }
     }
 
 }
