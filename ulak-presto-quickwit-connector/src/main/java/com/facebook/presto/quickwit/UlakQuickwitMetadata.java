@@ -31,6 +31,7 @@ import io.trino.spi.predicate.SortedRangeSet;
 import io.trino.spi.predicate.TupleDomain;
 import io.trino.spi.predicate.ValueSet;
 import io.trino.spi.type.Type;
+import io.trino.spi.type.VarcharType;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +39,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.*;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.facebook.presto.quickwit.QuickwitRecordSetProvider.buildSearchRequestJson;
 import static com.facebook.presto.ulak.caching.ConnectorBaseUtil.getColumnsBase;
@@ -142,6 +145,12 @@ public class UlakQuickwitMetadata
         try {
             if (table instanceof RawQuickwitQueryTableHandle) {
                 raw = (RawQuickwitQueryTableHandle) table;
+                // L14: use frozen column list if available — avoids a second live search
+                // that could return different columns and trigger "returned table mismatch"
+                if (raw.getComputedColumns().isPresent() && !raw.getComputedColumns().get().isBlank()) {
+                    list = columnsFromCsv(raw.getComputedColumns().get());
+                    return new ConnectorTableMetadata(new SchemaTableName(DEFAULT_SCHEMA, buildSearchRequestJson(raw)), list);
+                }
                 tableName = buildSearchRequestJson(raw);
             }else {
                 influxdbTableHandle = (UlakTableHandle) table;
@@ -210,13 +219,21 @@ public class UlakQuickwitMetadata
             String tableName = null;
             if (tableHandle instanceof RawQuickwitQueryTableHandle) {
                 RawQuickwitQueryTableHandle raw = (RawQuickwitQueryTableHandle) tableHandle;
-                tableName = buildSearchRequestJson(raw);
+                // L14: use frozen column list if available
+                if (raw.getComputedColumns().isPresent() && !raw.getComputedColumns().get().isBlank()) {
+                    list = columnsFromCsv(raw.getComputedColumns().get());
+                    logger.debug("getColumnHandles: using computedColumns ({} cols)", list.size());
+                } else {
+                    tableName = buildSearchRequestJson(raw);
+                }
             }else{
                 UlakTableHandle influxdbTableHandle = (UlakTableHandle) tableHandle;
                 tableName = influxdbTableHandle.getTableName();
             }
 
-            list = getColumnsInternal(tableName, this.qwUrl, this.qwIndex,   connectTimeout,   readTimeout,   writeTimeout);
+            if (list == null) {
+                list = getColumnsInternal(tableName, this.qwUrl, this.qwIndex, connectTimeout, readTimeout, writeTimeout);
+            }
 
             logger.debug("getColumnHandles: num columns:{}", list.size());
 
@@ -366,11 +383,23 @@ public class UlakQuickwitMetadata
             return Optional.empty();
         }
         RawQuery.RawQueryFunction.RawQueryFunctionHandle rawQueryFunctionHandle = (RawQuery.RawQueryFunction.RawQueryFunctionHandle) handle;
-        ConnectorTableHandle tableHandle = rawQueryFunctionHandle.getTableHandle();
-        List<ColumnHandle> columnHandles = getColumnHandles(session, tableHandle).values().stream()
-                .sorted(Comparator.comparingInt(h -> ((UlakColumnHandle) h).getOrdinalPosition()))
-                .collect(ImmutableList.toImmutableList());
-        return Optional.of(new TableFunctionApplicationResult<>(tableHandle, columnHandles));
+        RawQuickwitQueryTableHandle rawTableHandle = (RawQuickwitQueryTableHandle) rawQueryFunctionHandle.getTableHandle();
+
+        List<ColumnHandle> columnHandles;
+        // L14: use frozen column list from analyze() to avoid a diverging second live search
+        if (rawTableHandle.getComputedColumns().isPresent() && !rawTableHandle.getComputedColumns().get().isBlank()) {
+            List<ColumnMetadata> cols = columnsFromCsv(rawTableHandle.getComputedColumns().get());
+            columnHandles = IntStream.range(0, cols.size())
+                    .mapToObj(i -> (ColumnHandle) new UlakColumnHandle(
+                            connectorId, cols.get(i).getName(), cols.get(i).getType(), i))
+                    .sorted(Comparator.comparingInt(h -> ((UlakColumnHandle) h).getOrdinalPosition()))
+                    .collect(ImmutableList.toImmutableList());
+        } else {
+            columnHandles = getColumnHandles(session, rawTableHandle).values().stream()
+                    .sorted(Comparator.comparingInt(h -> ((UlakColumnHandle) h).getOrdinalPosition()))
+                    .collect(ImmutableList.toImmutableList());
+        }
+        return Optional.of(new TableFunctionApplicationResult<>(rawTableHandle, columnHandles));
     }
 
     public Integer getConnectTimeout() {
@@ -383,6 +412,19 @@ public class UlakQuickwitMetadata
 
     public Integer getWriteTimeout() {
         return writeTimeout;
+    }
+
+    // -----------------------------------------------------------------------
+    // L14 — helper: reconstruct ColumnMetadata list from frozen CSV string
+    // -----------------------------------------------------------------------
+
+    private static List<ColumnMetadata> columnsFromCsv(String csv) {
+        AtomicInteger noDataIndex = new AtomicInteger(0);
+        return Arrays.stream(csv.split(","))
+                .map(t -> StringUtils.isBlank(t)
+                        ? new ColumnMetadata("no-data-" + noDataIndex.getAndIncrement(), VarcharType.VARCHAR)
+                        : new ColumnMetadata(t, VarcharType.VARCHAR))
+                .collect(Collectors.toList());
     }
 
     // -----------------------------------------------------------------------

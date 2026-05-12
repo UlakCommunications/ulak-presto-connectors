@@ -32,7 +32,7 @@ this file to `CHANGELOG.md` once done.
       per-catalog runtime object (or a `Map<catalogName, Runtime>`
       registry) when a customer asks for it — not a speculative cut.
 
-- [ ] **L14 [P3, 1-2d] Deeper TVF schema fix (returned-table-mismatch).**
+- [x] **L14 [P3, 1-2d] Deeper TVF schema fix (returned-table-mismatch).**
       Low priority — production rarely hits this on the live cluster
       and the symptom is just one query failing, not the connector
       melting down.

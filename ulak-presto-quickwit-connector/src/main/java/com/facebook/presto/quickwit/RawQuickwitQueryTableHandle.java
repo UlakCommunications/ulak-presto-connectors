@@ -31,6 +31,15 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
     private final Optional<String> replacefromcolumns;
     private final Optional<String> hasjs;
     private final Optional<String> sqlversion;
+    /**
+     * L14: column names frozen at {@code analyze()} time (comma-separated).
+     * When present, {@code getTableMetadata()} and {@code getColumnHandles()} use this
+     * instead of running another Quickwit search, preventing "returned table does not
+     * match the node's output" caused by diverging responses between planning calls.
+     * Absent on handles created before this fix (old serialised plans) — falls back to
+     * the live-query path.
+     */
+    private final Optional<String> computedColumns;
 
     @JsonCreator
     public RawQuickwitQueryTableHandle(
@@ -47,7 +56,8 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
             @JsonProperty("dbtype") Optional<String> dbtype,
             @JsonProperty("replacefromcolumns") Optional<String> replacefromcolumns,
             @JsonProperty("hasjs") Optional<String> hasjs,
-            @JsonProperty("sqlversion") Optional<String> sqlversion)
+            @JsonProperty("sqlversion") Optional<String> sqlversion,
+            @JsonProperty("computedColumns") Optional<String> computedColumns)
     {
         this.connectorId = Objects.requireNonNull(connectorId, "connectorId is null");
         this.index = Objects.requireNonNull(index, "index is null");
@@ -63,6 +73,7 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
         this.replacefromcolumns = replacefromcolumns;
         this.hasjs = hasjs;
         this.sqlversion = sqlversion;
+        this.computedColumns = computedColumns != null ? computedColumns : Optional.empty();
     }
 
     // ---------------- getters ----------------
@@ -121,20 +132,10 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
     public int hashCode()
     {
         return Objects.hash(
-                connectorId,
-                index,
-                query,
-                startTimestamp,
-                endTimestamp,
-                maxHits,
-                aggsJson,
-                cache,
-                name,
-                columns,
-                dbtype,
-                replacefromcolumns,
-                hasjs,
-                sqlversion);
+                connectorId, index, query,
+                startTimestamp, endTimestamp, maxHits, aggsJson,
+                cache, name, columns, dbtype, replacefromcolumns, hasjs, sqlversion,
+                computedColumns);
     }
 
     @Override
@@ -160,7 +161,8 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
                 && dbtype.equals(other.dbtype)
                 && replacefromcolumns.equals(other.replacefromcolumns)
                 && hasjs.equals(other.hasjs)
-                && sqlversion.equals(other.sqlversion);
+                && sqlversion.equals(other.sqlversion)
+                && computedColumns.equals(other.computedColumns);
     }
 
     @Override
@@ -174,12 +176,13 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
                 ", maxHits=" + maxHits +
                 ", aggsJsonPresent=" + aggsJson.isPresent() +
                 ", cache=" + cache +
-                ", name=" +name +
-                ", columns=" + columns+
-                ", dbtype=" + dbtype+
-                ", replacefromcolumns=" + replacefromcolumns+
+                ", name=" + name +
+                ", columns=" + columns +
+                ", dbtype=" + dbtype +
+                ", replacefromcolumns=" + replacefromcolumns +
                 ", hasjs=" + hasjs +
                 ", sqlversion=" + sqlversion +
+                ", computedColumnsPresent=" + computedColumns.isPresent() +
                 '}';
     }
 
@@ -211,5 +214,10 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
     @JsonProperty
     public Optional<String> getSqlversion() {
         return sqlversion;
+    }
+
+    @JsonProperty
+    public Optional<String> getComputedColumns() {
+        return computedColumns;
     }
 }

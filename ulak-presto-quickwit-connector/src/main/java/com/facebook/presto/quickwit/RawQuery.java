@@ -124,11 +124,11 @@ public class RawQuery
             String dbtype = getOptionalVarchar(arguments, "dbtype").orElse("");
             String replacefromcolumns = getOptionalVarchar(arguments, "replacefromcolumns").orElse("");
 
-            // Your own ConnectorTableHandle that stores raw-query params
-            RawQuickwitQueryTableHandle tableHandle = new RawQuickwitQueryTableHandle(
+            // Build a temporary handle to generate the search request JSON for analyze().
+            // computedColumns is absent here; it will be set after the live search below.
+            RawQuickwitQueryTableHandle tempHandle = new RawQuickwitQueryTableHandle(
                     metadata.getConnectorId(),
-                    index,
-                    query,
+                    index, query,
                     startTs.isPresent() ? Optional.of(startTs.getAsLong()) : Optional.empty(),
                     endTs.isPresent() ? Optional.of(endTs.getAsLong()) : Optional.empty(),
                     maxHits.isPresent() ? Optional.of(maxHits.getAsInt()) : Optional.empty(),
@@ -139,24 +139,49 @@ public class RawQuery
                     Optional.of(dbtype),
                     Optional.of(replacefromcolumns),
                     Optional.of(hasjs),
-                    Optional.of(sqlversion));
+                    Optional.of(sqlversion),
+                    Optional.empty()); // computedColumns — filled below
 
-            // Stable return type (recommended)
-            String tmpCls = null;
-
+            // L14: single live search at plan time; frozen column list shared by all three
+            // sites (analyze returnedType, getTableMetadata, getColumnHandles) to prevent
+            // "returned table does not match the node's output" when a second search
+            // returns different columns.
+            String tmpCls;
             try {
-                tmpCls = String.join(",", getColumnsInternal(buildSearchRequestJson(tableHandle),
+                tmpCls = String.join(",", getColumnsInternal(buildSearchRequestJson(tempHandle),
                         metadata.getQwUrl(),
                         metadata.getQwIndex(),
                         metadata.getConnectTimeout(),
                         metadata.getReadTimeout(),
-                        metadata.getWriteTimeout()).stream().map(t->t.getName()).collect(Collectors.toList()));
+                        metadata.getWriteTimeout()).stream().map(t -> t.getName()).collect(Collectors.toList()));
             } catch (IOException e) {
                 tmpCls = columns;
             }
-            AtomicInteger noDataIndex = new AtomicInteger(0);
-            Descriptor returnedType = new Descriptor(Arrays.stream(tmpCls.split(",")).map(t->new Descriptor.Field(StringUtils.isEmpty(t) || StringUtils.isBlank(t) ? "no-data-" + noDataIndex.getAndIncrement() : t, Optional.of(VARCHAR))).collect(Collectors.toList()));
 
+            // Final handle with frozen column list stashed on it
+            RawQuickwitQueryTableHandle tableHandle = new RawQuickwitQueryTableHandle(
+                    metadata.getConnectorId(),
+                    index, query,
+                    startTs.isPresent() ? Optional.of(startTs.getAsLong()) : Optional.empty(),
+                    endTs.isPresent() ? Optional.of(endTs.getAsLong()) : Optional.empty(),
+                    maxHits.isPresent() ? Optional.of(maxHits.getAsInt()) : Optional.empty(),
+                    aggsJson,
+                    Optional.of(cache),
+                    Optional.of(name),
+                    Optional.of(columns),
+                    Optional.of(dbtype),
+                    Optional.of(replacefromcolumns),
+                    Optional.of(hasjs),
+                    Optional.of(sqlversion),
+                    Optional.of(tmpCls)); // computedColumns frozen
+
+            AtomicInteger noDataIndex = new AtomicInteger(0);
+            Descriptor returnedType = new Descriptor(Arrays.stream(tmpCls.split(","))
+                    .map(t -> new Descriptor.Field(
+                            StringUtils.isEmpty(t) || StringUtils.isBlank(t)
+                                    ? "no-data-" + noDataIndex.getAndIncrement() : t,
+                            Optional.of(VARCHAR)))
+                    .collect(Collectors.toList()));
 
             RawQueryFunctionHandle handle = new RawQueryFunctionHandle(tableHandle);
 
