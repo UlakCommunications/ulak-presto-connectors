@@ -51,9 +51,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import org.mozilla.javascript.ClassShutter;
-import org.mozilla.javascript.Context;
-import org.mozilla.javascript.Scriptable;
 
 import static com.facebook.presto.ulak.QueryParameters.replaceAll;
 
@@ -210,34 +207,8 @@ public class QwUtil {
 
         return query;
     }
-    private static final int RHINO_INSTRUCTION_LIMIT = 100_000;
-
     public static String executeScript(String query) {
-        // L15: Trino's plugin classloader may not be set as the Thread Context
-        // ClassLoader (TCL). Rhino's Context.enter() uses the TCL to find its own
-        // implementation classes (including NativeMath). Without this, the system
-        // classloader is used and Rhino can't find its classes in the plugin JAR.
-        ClassLoader savedTcl = Thread.currentThread().getContextClassLoader();
-        Thread.currentThread().setContextClassLoader(QwUtil.class.getClassLoader());
-        Context cx = Context.enter();
-        try {
-            cx.setClassShutter(className -> false);
-            cx.setInstructionObserverThreshold(RHINO_INSTRUCTION_LIMIT);
-            Scriptable scope = cx.initSafeStandardObjects();
-            Object result = cx.evaluateString(scope, query, "<cmd>", 1, null);
-            if (result == null) {
-                throw new RuntimeException("Rhino script returned null (script: " + query.substring(0, Math.min(120, query.length())) + ")");
-            }
-            if (!(result instanceof String)) {
-                throw new RuntimeException("Rhino script returned " + result.getClass().getSimpleName() + " not String");
-            }
-            logger.debug(result.toString());
-            return (String) result;
-        }
-        finally {
-            Context.exit();
-            Thread.currentThread().setContextClassLoader(savedTcl);
-        }
+        return RhinoExecutor.executeScript(query);
     }
     public static List<UlakRow> executeOneQuery( QueryParameters queryParameters,
                                                      String query,
