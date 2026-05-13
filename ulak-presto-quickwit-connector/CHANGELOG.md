@@ -2,6 +2,10 @@
 
 Items move here from [`TODO.md`](TODO.md) when finished.
 
+## 2026-05-13 — Quickwit 0.8 compatibility fix
+
+- **QW8-01** — `quickwit-java-client` strict unknown-field validation removed from all 81 generated model classes. Quickwit 0.8 added `coerce`, `fast`, `indexed`, `output_format`, `stored` and other fields to `FieldMappingEntry`; the 0.7.1-generated validator threw `INTERNAL_ERROR: Failed deserialization for VersionedIndexMetadata` on any index that had these fields. Fix: lenient deserialization (only `name`/`type` are used at runtime). Commit `b9b5076` in `monitoring_temp/maya-quickwit/quickwit-java-client`.
+
 ## 2026-05-12 — Code review + architectural fixes (R-series, J-series, L-series)
 
 ### Security fixes
