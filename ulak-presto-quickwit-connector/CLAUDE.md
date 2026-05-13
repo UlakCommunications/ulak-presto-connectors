@@ -31,8 +31,19 @@ System-wide architecture doc lives in `backend/anomaly/CLAUDE.md` (cross-repo ob
 - **R02** SSRF: `validateQwUrl()` enforces catalog-level URL allowlist (`qw-allowed-urls` property)
 - **R28** Redis cache key: SHA-256 (not 32-bit hashCode)
 
+## Quickwit version compatibility
+
+Connector uses `quickwit-java-client` (generated from QW 0.7.1 spec). Cluster runs QW 0.8. Compatibility fixes live in `monitoring_temp/maya-quickwit/quickwit-java-client` (develop, commits b9b5076–fc052c4):
+- Leaf models: lenient (unknown fields allowed) — handles new QW 0.8 fields like `coerce`, `output_format`
+- `*OneOf*` discriminator classes: strict validation kept — required for oneOf schema selection
+- `VersionEnum`: `_0_8("0.8")` added to 5 Versioned*OneOf classes
+- `FastFieldOptions`: handles `{"normalizer":"raw"}` object (QW 0.8 `dynamic_mapping.fast`)
+
+**OPEN: QW8-06** — `FastFieldOptions.setActualInstance()` schema registry still missing `FastFieldOptionsOneOfEnabledWithNormalizer` → `Invalid instance type` error. Fix in next session.
+
 ## Known open items
 
+- **QW8-06** `FastFieldOptions` schema registry — see `TODO.md` top section, fix next session
 - **J46** Connector health + Grafana failover — K8s infra scope, track in `backend/anomaly`
 - **L04b** `ConnectorBaseUtil` per-catalog state — gated on customer need (two catalogs with different Redis URLs)
 - **R22** Credential history rewrite — `master` branch still has old credential blobs; will be cleaned when `develop` is merged via MR

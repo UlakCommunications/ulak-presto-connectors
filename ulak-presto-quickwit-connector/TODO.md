@@ -1,5 +1,9 @@
 # TODO — ulak-presto-quickwit-connector
 
+## QW 0.8 compatibility — in progress (2026-05-13)
+
+- [ ] **QW8-06 [P1, NEXT SESSION] `FastFieldOptions` schema registry + `setActualInstance` validation** — After QW8-05 fixed the `read()` adapter, `setActualInstance()` still validates against the old registry `{FastFieldOptionsOneOf, String}` and throws `Invalid instance type. Must be FastFieldOptionsOneOf, String` when the deserialized instance is `FastFieldOptionsOneOfEnabledWithNormalizer`. Fix: add `FastFieldOptionsOneOfEnabledWithNormalizer` to `FastFieldOptions.schemas` map and update the `validateJsonObject()` call to include the new variant. File: `monitoring_temp/maya-quickwit/quickwit-java-client/.../models/FastFieldOptions.java`. After fix: bump to `0.0.1.42-SNAPSHOT`, update connector pom, commit+push, Jenkins build, deploy.
+
 ## Architectural review action plan (2026-04-22) — Trino/Presto connector scope
 
 From the full cross-repo review in `backend/anomaly` → `TODO.md` "Architectural review & action plan" (91 items, A–R). Items below are Trino/Presto-Quickwit connector scope (category J). Master/full list: https://gitlab.ulakhaberlesme.com.tr/backend/anomaly/-/blob/master/TODO.md

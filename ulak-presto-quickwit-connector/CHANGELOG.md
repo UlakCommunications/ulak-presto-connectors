@@ -2,9 +2,15 @@
 
 Items move here from [`TODO.md`](TODO.md) when finished.
 
-## 2026-05-13 — Quickwit 0.8 compatibility fix
+## 2026-05-13 — Quickwit 0.8 compatibility (QW8 series)
 
-- **QW8-01** — `quickwit-java-client` strict unknown-field validation removed from all 81 generated model classes. Quickwit 0.8 added `coerce`, `fast`, `indexed`, `output_format`, `stored` and other fields to `FieldMappingEntry`; the 0.7.1-generated validator threw `INTERNAL_ERROR: Failed deserialization for VersionedIndexMetadata` on any index that had these fields. Fix: lenient deserialization (only `name`/`type` are used at runtime). Commit `b9b5076` in `monitoring_temp/maya-quickwit/quickwit-java-client`.
+All fixes are in `monitoring_temp/maya-quickwit/quickwit-java-client` (develop branch, commits b9b5076–fc052c4). Deployed via Jenkins builds #341–#349 to `0.0.1-develop-latest` image on yucemonitoring.
+
+- **QW8-01** — 81 leaf model classes: strict unknown-field validation removed. QW 0.8 added `coerce`, `fast`, `indexed`, `output_format`, `stored` etc. to `FieldMappingEntry`; old validator threw `Failed deserialization for VersionedIndexMetadata`. Fix: lenient deserialization for non-discriminator classes only.
+- **QW8-02** — `MergePolicyConfig` oneOf discriminator: strict validation restored for all 34 `*OneOf*` classes. Removing validation from all 81 classes (QW8-01 scope) also broke oneOf selection — all 3 `MergePolicyConfig` variants matched, expected 1. Fix: restore strict validation only for `*OneOf*` discriminator classes.
+- **QW8-03** — `VersionedSourceConfigOneOf`: added `num_pipelines` to `openapiFields`; removed `params` from `openapiRequiredFields` (ingest/ingest-cli/ingest-api sources carry no params in QW 0.8).
+- **QW8-04** — `VersionEnum` in 5 `Versioned*OneOf` classes (`VersionedIndexConfigOneOf`, `VersionedIndexConfigOneOfAllOf`, `VersionedIndexMetadataOneOf`, `VersionedSourceConfigOneOf`, `VersionedSplitMetadataOneOf`): added `_0_8("0.8")`. QW 0.8 returns `"version":"0.8"`; old enum only knew `"0.7"` → `Unexpected value '0.8'`.
+- **QW8-05** — `FastFieldOptions` read adapter rewritten. QW 0.8 `dynamic_mapping.fast` can be `{"normalizer":"raw"}` (object). Old adapter: (1) called `getAsJsonObject()` on any element — would fail on boolean/string; (2) auto-matched `String` schema for objects; (3) never tried `FastFieldOptionsOneOfEnabledWithNormalizer`. New adapter: handles primitives directly as String, tries `WithNormalizer` first for objects, removes String auto-match. **TODO (QW8-06): `FastFieldOptions` `schemas` registry and `setActualInstance` validation still reference only `FastFieldOptionsOneOf+String` — next session fix `FastFieldOptions.validateJsonObject` and schemas map.** Error seen: `Invalid instance type. Must be FastFieldOptionsOneOf, String`.
 
 ## 2026-05-12 — Code review + architectural fixes (R-series, J-series, L-series)
 
