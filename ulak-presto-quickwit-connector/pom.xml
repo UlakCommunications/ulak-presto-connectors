@@ -84,7 +84,7 @@
     <dependency>
       <groupId>org.quickwit</groupId>
       <artifactId>quickwit-java-client</artifactId>
-      <version>0.0.1.38-SNAPSHOT</version>
+      <version>0.0.1.39-SNAPSHOT</version>
     </dependency>
 
     <!-- Internal Maya fork of opendevl/json2flat. See connector-base/pom.xml. -->
