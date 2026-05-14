@@ -157,6 +157,12 @@ public class RawQuery
             } catch (IOException e) {
                 tmpCls = columns;
             }
+            // When the live search returns no rows (empty time window, no matching data)
+            // traverseAggregations/JFlat produces an empty column list.  Fall back to the
+            // declared "columns" TVF parameter so COLUMN_NOT_FOUND doesn't fire at plan time.
+            if (StringUtils.isBlank(tmpCls) && StringUtils.isNotBlank(columns)) {
+                tmpCls = columns;
+            }
 
             // Final handle with frozen column list stashed on it
             RawQuickwitQueryTableHandle tableHandle = new RawQuickwitQueryTableHandle(

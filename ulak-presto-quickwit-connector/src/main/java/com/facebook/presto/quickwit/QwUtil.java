@@ -345,7 +345,17 @@ public class QwUtil {
             List<UlakRow> results = new ArrayList<>();
             boolean stripSuffixes = "0.2".equals(sv);
             traverseAggregations((Map<String, Object>) g, new LinkedHashMap<>(), results, stripSuffixes);
-            return trimTimeEdges(results, queryParameters);
+            if (!results.isEmpty()) {
+                return trimTimeEdges(results, queryParameters);
+            }
+            // No data from traverseAggregations (empty time window / no matching docs).
+            // If //columns= is declared, fall through to parseResponseHits which produces
+            // a 1-null-row with the declared schema — prevents COLUMN_NOT_FOUND at plan time.
+            Object[] declaredCols = queryParameters.getColumns();
+            if (declaredCols == null || declaredCols.length == 0) {
+                return results; // truly empty, no fallback declared
+            }
+            // fall through to parseResponseHits below
         }
         if (g != null) {
             parseResponseAggregations(ret);
