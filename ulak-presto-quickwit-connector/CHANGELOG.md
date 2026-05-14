@@ -2,6 +2,10 @@
 
 Items move here from [`TODO.md`](TODO.md) when finished.
 
+## 2026-05-14 — J56 base32 regression fix (QW9-03)
+
+- **QW9-03** — `getTableHandle()` now decodes base32-encoded table names before storing in `UlakTableHandle`. Root cause: the Grafana Trino plugin base32-encodes query-in-table-name strings (to survive Trino's case-normalization of quoted identifiers). `QueryParameters.getQueryParameters()` always decoded base32 correctly, but J56's `isPlainMode()` check fires *before* `QueryParameters` is called — intercepting the still-encoded name, finding no `//`, and routing it to `getColumnsFromDocMapping(base32_string)`. Quickwit has no index with a base32 name → empty schema → `COLUMN_NOT_FOUND` for all columns. Fix: decode in `getTableHandle()` so the handle and all downstream code (J56 `isPlainMode()`, `QueryParameters`) see the original query string. **Pending**: replace custom base32 decoder with Guava `BaseEncoding.base32()` (same as `QueryParameters`), extract to `PlainTableQuery` for testability, and add unit tests.
+
 ## 2026-05-14 — empty-schema fallback fix (QW9)
 
 - **QW9-02** — `analyze()` (TVF form) and `parseResponse()` (table-name form) now fall back to the declared `columns` parameter when `traverseAggregations` returns no rows (empty time window / no matching data). Previously, an empty live-search result caused `analyze()` to emit an empty schema → `COLUMN_NOT_FOUND` at Trino plan time for every column the SQL referenced. Affects all `sqlversion=0.1` and `sqlversion=0.2` TVF queries whose data window can be empty at plan time.

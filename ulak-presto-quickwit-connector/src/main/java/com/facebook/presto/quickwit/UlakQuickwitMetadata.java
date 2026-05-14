@@ -118,7 +118,56 @@ public class UlakQuickwitMetadata
 
     @Override
     public ConnectorTableHandle getTableHandle(ConnectorSession session, SchemaTableName tableName, Optional<ConnectorTableVersion> startVersion, Optional<ConnectorTableVersion> endVersion) {
-        return new UlakTableHandle(connectorId, tableName.getSchemaName(), tableName.getTableName());
+        // Trino 479 base32-encodes long table names that contain special characters
+        // (newlines, curly braces, double-quotes from embedded JSON/params).
+        // Decode back to the original query-in-table-name string so that downstream
+        // code (isPlainTableMode, QueryParameters parsing) sees the real content.
+        String rawName = decodeBase32IfNeeded(tableName.getTableName());
+        return new UlakTableHandle(connectorId, tableName.getSchemaName(), rawName);
+    }
+
+    // Standard base32 alphabet (RFC 4648), lowercase — used to detect Trino-encoded table names.
+    private static final String BASE32_ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+    /**
+     * Trino 479 base32-encodes long table names containing special characters
+     * (newlines, quotes, braces from embedded JSON or //param= directives).
+     * Decode back to the original string so downstream code sees real content.
+     * Heuristic: if the name is ≥64 chars and composed only of base32 chars + '=',
+     * attempt decode; return original if decode fails or doesn't look like a query.
+     */
+    private static String decodeBase32IfNeeded(String name) {
+        if (name == null || name.length() < 64) return name;
+        if (name.contains("/") || name.contains("{") || name.contains("\n")) return name;
+        // Quick charset check — every char must be in base32 alphabet or '='
+        String stripped = name.endsWith("=") ? name.replaceAll("=+$", "") : name;
+        for (int i = 0; i < stripped.length(); i++) {
+            if (BASE32_ALPHA.indexOf(Character.toUpperCase(stripped.charAt(i))) < 0) return name;
+        }
+        try {
+            byte[] decoded = base32Decode(stripped.toUpperCase());
+            String result = new String(decoded, java.nio.charset.StandardCharsets.UTF_8);
+            // Sanity check: decoded result should look like a query-in-table-name
+            return result.contains("//") || result.contains("{") ? result : name;
+        } catch (Exception ignored) {
+            return name;
+        }
+    }
+
+    private static byte[] base32Decode(String input) {
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        int buf = 0, bitsLeft = 0;
+        for (int i = 0; i < input.length(); i++) {
+            int val = BASE32_ALPHA.indexOf(input.charAt(i));
+            if (val < 0) throw new IllegalArgumentException("Invalid base32: " + input.charAt(i));
+            buf = (buf << 5) | val;
+            bitsLeft += 5;
+            if (bitsLeft >= 8) {
+                bitsLeft -= 8;
+                out.write((buf >> bitsLeft) & 0xFF);
+            }
+        }
+        return out.toByteArray();
     }
 
 //    //    @Override

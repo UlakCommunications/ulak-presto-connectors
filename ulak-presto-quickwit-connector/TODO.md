@@ -1,5 +1,11 @@
 # TODO — ulak-presto-quickwit-connector
 
+## QW9 — COLUMN_NOT_FOUND fixes (2026-05-14)
+
+- [x] **QW9-01** `traverseAggregations`: expose `/aggId/key` alongside `aggId/key` for sqlversion=0.1. Commit `d147c18`. Deployed Jenkins #355.
+- [x] **QW9-02** `analyze()` + `parseResponse()`: fall back to declared `columns` param when `traverseAggregations` returns empty. Commit `b129765`. Deployed Jenkins #356. 0 errors confirmed.
+- [ ] **QW9-03** [P1] `getTableHandle()` base32 decode — written in `UlakQuickwitMetadata.java`, NOT YET built/deployed. Root cause: J56 `isPlainMode()` fires before `QueryParameters.getQueryParameters()` base32 decode → intercepts Grafana-plugin-encoded table names. **Pending**: (a) refactor custom decoder → Guava `BaseEncoding.base32()` (match `QueryParameters`), (b) extract to `PlainTableQuery` for testability, (c) add unit tests to `PlainTableModeTest.java`, (d) build + Jenkins deploy.
+
 ## QW 0.8 compatibility — in progress (2026-05-13)
 
 - [x] **QW8-06** `FastFieldOptions` schema registry — FIXED 2026-05-14, java-client `56224e6`, deployed Jenkins #350.
