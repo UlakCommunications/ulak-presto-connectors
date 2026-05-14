@@ -39,11 +39,11 @@ Connector uses `quickwit-java-client` (generated from QW 0.7.1 spec). Cluster ru
 - `VersionEnum`: `_0_8("0.8")` added to 5 Versioned*OneOf classes
 - `FastFieldOptions`: handles `{"normalizer":"raw"}` object (QW 0.8 `dynamic_mapping.fast`)
 
-**OPEN: QW8-06** — `FastFieldOptions.setActualInstance()` schema registry still missing `FastFieldOptionsOneOfEnabledWithNormalizer` → `Invalid instance type` error. Fix in next session.
+**QW8-06 FIXED (2026-05-14)** — Added `FastFieldOptionsOneOfEnabledWithNormalizer` to `schemas` map, `setActualInstance()`, constructor, getter, and `validateJsonObject()`. java-client `56224e6`, `0.0.1.42-SNAPSHOT`.
 
 ## Known open items
 
-- **QW8-06** `FastFieldOptions` schema registry — see `TODO.md` top section, fix next session
+- **QW8-06** FIXED — `FastFieldOptions` schema registry (2026-05-14, Jenkins #350)
 - **J46** Connector health + Grafana failover — K8s infra scope, track in `backend/anomaly`
 - **L04b** `ConnectorBaseUtil` per-catalog state — gated on customer need (two catalogs with different Redis URLs)
 - **R22** Credential history rewrite — `master` branch still has old credential blobs; will be cleaned when `develop` is merged via MR
