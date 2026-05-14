@@ -1,0 +1,1 @@
+{"results":{"top":{"status":200,"frames":[{"schema":{"refId":"top","meta":{"typeVersion":[0,0],"executedQueryString":"SELECT cast(token as int)\nFROM   maya_global_settings, string_to_table(v1, ',') token\nwhere k='top'\norder by token asc"},"fields":[{"name":"token","type":"number","typeInfo":{"frame":"int32","nullable":true}}]},"data":{"values":[[5,10]]}}]}}}

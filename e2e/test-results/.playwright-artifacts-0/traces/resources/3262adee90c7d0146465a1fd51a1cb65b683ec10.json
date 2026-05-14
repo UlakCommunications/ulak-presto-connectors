@@ -1,0 +1,1 @@
+{"from":"1778783640005","to":"1778787240005","queries":[{"refId":"top","datasource":{"type":"grafana-postgresql-datasource","uid":"a42542c2-aa19-4909-af8b-56ba48b21f0e"},"rawSql":"SELECT cast(token as int)\nFROM   maya_global_settings, string_to_table(v1, ',') token\nwhere k='top'\norder by token asc","format":"table"}]}

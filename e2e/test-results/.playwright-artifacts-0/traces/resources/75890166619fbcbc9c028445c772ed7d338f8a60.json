@@ -1,0 +1,1 @@
+{"results":{"max_name_length":{"status":200,"frames":[{"schema":{"refId":"max_name_length","meta":{"typeVersion":[0,0],"executedQueryString":"select v1  from maya_global_settings where k='max_name_length'"},"fields":[{"name":"v1","type":"string","typeInfo":{"frame":"string","nullable":true}}]},"data":{"values":[["100"]]}}]}}}

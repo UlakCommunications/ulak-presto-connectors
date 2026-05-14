@@ -61,3 +61,8 @@ kubeconfig*
 # Catalog config files contain live credentials — never commit
 trino/etc/catalog/quickwit.properties
 trino/etc/catalog/tenant.properties
+
+# e2e Playwright
+e2e/node_modules/
+e2e/dashboard-report/
+e2e/dist/

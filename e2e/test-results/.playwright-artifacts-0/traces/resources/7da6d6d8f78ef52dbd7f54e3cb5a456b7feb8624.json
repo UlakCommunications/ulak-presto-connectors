@@ -1,0 +1,3475 @@
+{
+  "kind": "DashboardWithAccessInfo",
+  "apiVersion": "dashboard.grafana.app/v1beta1",
+  "metadata": {
+    "name": "befsqajl1xon4a",
+    "namespace": "default",
+    "uid": "0GUTiFMsjOUX8aPM6VTR7RJYXLK6CmxRrlNKmaHna28X",
+    "resourceVersion": "302",
+    "generation": 302,
+    "creationTimestamp": "2025-03-14T08:28:41Z",
+    "labels": {
+      "grafana.app/deprecatedInternalID": "189"
+    },
+    "annotations": {
+      "grafana.app/createdBy": "user:de3tmis9tzjswf",
+      "grafana.app/folder": "c846486a-48ab-4e2d-9859-e8c82f14a7fc",
+      "grafana.app/updatedBy": "user:u000000001",
+      "grafana.app/updatedTimestamp": "2026-04-28T06:21:18Z"
+    }
+  },
+  "spec": {
+    "annotations": {
+      "list": [
+        {
+          "datasource": {
+            "type": "quickwit-quickwit-datasource",
+            "uid": "e43f7752-3b61-4392-a15f-5989c06e401b"
+          },
+          "enable": false,
+          "filter": {
+            "exclude": false,
+            "ids": [
+              39
+            ]
+          },
+          "hide": true,
+          "iconColor": "red",
+          "mappings": {
+            "time": {
+              "source": "field",
+              "value": "Min"
+            }
+          },
+          "name": "Hub CPU Peak",
+          "target": {
+            "alias": "",
+            "bucketAggs": [
+              {
+                "field": "span_start_timestamp_nanos",
+                "id": "3",
+                "settings": {
+                  "interval": "10s",
+                  "min_doc_count": "0",
+                  "timeZone": "utc",
+                  "trimEdges": "0"
+                },
+                "type": "date_histogram"
+              },
+              {
+                "field": "span_attributes.h",
+                "id": "2",
+                "settings": {
+                  "min_doc_count": "1",
+                  "order": "desc",
+                  "orderBy": "1",
+                  "size": "0"
+                },
+                "type": "terms"
+              },
+              {
+                "field": "span_attributes.pi",
+                "id": "4",
+                "settings": {
+                  "min_doc_count": "1",
+                  "order": "desc",
+                  "orderBy": "_term",
+                  "size": "${top}"
+                },
+                "type": "terms"
+              }
+            ],
+            "metrics": [
+              {
+                "field": "span_attributes.value",
+                "id": "1",
+                "type": "min"
+              }
+            ],
+            "query": "span_attributes.p:cpu AND span_attributes.ti:idle AND span_attributes.h:IN [${hubs:pipe}]",
+            "refId": "Anno",
+            "timeField": ""
+          }
+        },
+        {
+          "builtIn": 1,
+          "datasource": {
+            "type": "grafana",
+            "uid": "-- Grafana --"
+          },
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations \u0026 Alerts",
+          "target": {
+            "limit": 100,
+            "matchAny": false,
+            "tags": [],
+            "type": "dashboard"
+          },
+          "type": "dashboard"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "a0ad56c6-ea3d-4b0f-bed3-375e7c365743"
+          },
+          "enable": false,
+          "filter": {
+            "exclude": false,
+            "ids": [
+              20
+            ]
+          },
+          "hide": true,
+          "iconColor": "red",
+          "mappings": {
+            "id": {
+              "source": "field",
+              "value": "host"
+            },
+            "tags": {
+              "source": "field",
+              "value": "_measurement"
+            },
+            "text": {
+              "source": "field",
+              "value": "type"
+            },
+            "time": {
+              "source": "field",
+              "value": "Time"
+            },
+            "timeEnd": {
+              "source": "field",
+              "value": "Time"
+            },
+            "title": {
+              "source": "field",
+              "value": "gauge {dsname=\"value\", host=\"45433192-1414-42ef-ba0c-0b284c616797\", plugin=\"cpu\", plugin_instance=\"0\", type=\"percent\", type_instance=\"system\"}"
+            }
+          },
+          "name": "max_cpu",
+          "target": {
+            "query": "from(bucket: \"otlp_metric\")\n  |\u003e range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |\u003e filter(fn: (r) =\u003e r[\"_measurement\"] == \"cpu\")\n  |\u003e filter(fn: (r) =\u003e r[\"dsname\"] == \"gauge\")\n  //|\u003e filter(fn: (r) =\u003e r[\"host\"] == \"49392966-ba6d-40e3-aba5-9ca7c82ee0a5\")\n  //|\u003e filter(fn: (r) =\u003e r[\"interval\"] == \"5\")\n  |\u003e filter(fn: (r) =\u003e r[\"plugin\"] == \"cpu\")\n  |\u003e filter(fn: (r) =\u003e r[\"plugin_instance\"] == \"0\" or r[\"plugin_instance\"] == \"1\" or r[\"plugin_instance\"] == \"2\" or r[\"plugin_instance\"] == \"3\")\n  |\u003e filter(fn: (r) =\u003e r[\"type_instance\"] == \"system\")\n  |\u003e aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  //|\u003e group()\n  |\u003e yield(name: \"mean\")\n  |\u003e max(column: \"_value\")\n\n ",
+            "refId": "Anno"
+          }
+        },
+        {
+          "datasource": {
+            "type": "trino-datasource",
+            "uid": "fadcb0fa-3615-47bd-976d-6962c9d1e3a5"
+          },
+          "enable": true,
+          "filter": {
+            "exclude": false,
+            "ids": [
+              19
+            ]
+          },
+          "hide": false,
+          "iconColor": "blue",
+          "mappings": {
+            "id": {
+              "source": "field",
+              "value": "title"
+            },
+            "tags": {
+              "source": "field",
+              "value": "title"
+            },
+            "text": {
+              "source": "field",
+              "value": "title"
+            },
+            "time": {
+              "source": "field",
+              "value": "max_time"
+            },
+            "timeEnd": {
+              "source": "field",
+              "value": "max_time"
+            },
+            "title": {
+              "source": "field",
+              "value": "rx"
+            }
+          },
+          "name": "rx_peak",
+          "target": {
+            "format": 1,
+            "rawSQL": "--DEBUG--\nselect max_by(from_iso8601_timestamp(time),rx) max_time, max(cast(rx as int))*${unit_change_bit} rx, 'max_rx' as title\nfrom(\nselect case\n           when '${type_hub}' = 'if_packets' then 'pps'\n           when '${type_hub}' = 'if_octets' then 'bps'\n           else '' end                as Unit,\n       time,\n       (sum(tx) * ${unit_change_bit}) as tx,\n       (sum(rx) * ${unit_change_bit}) as rx\nfrom (select time,host,iface,\n             (avg(tx / duration)) as tx,\n             (avg(rx / duration)) as rx\n      from (select time,\n                   q.host,\n                   q.iface,\n                   (max_tx - min_tx) as tx,\n                   (max_rx - min_rx) as rx,\n                   duration\n            from (\n                  ${view_interface_with_all_hubs_and_type_filter:text}\n            ) as q\n            left join (\n                  ${view_tenant_host_overlay_iface:text}\n            ) as s on q.host = s.host AND s.iface like  q.iface|| '%' \n            -- AND q.iface = s.iface \n            where time is not null AND s.islanif = 'false') as r\n      group by time, r.host, r.iface) as q\ngroup by time\norder by time\n)as t\n",
+            "refId": "Anno"
+          }
+        },
+        {
+          "datasource": {
+            "type": "trino-datasource",
+            "uid": "fadcb0fa-3615-47bd-976d-6962c9d1e3a5"
+          },
+          "enable": true,
+          "filter": {
+            "exclude": false,
+            "ids": [
+              19
+            ]
+          },
+          "hide": false,
+          "iconColor": "red",
+          "mappings": {
+            "id": {
+              "source": "field",
+              "value": "title"
+            },
+            "tags": {
+              "source": "field",
+              "value": "title"
+            },
+            "text": {
+              "source": "field",
+              "value": "tx"
+            },
+            "time": {
+              "source": "field",
+              "value": "max_time"
+            },
+            "timeEnd": {
+              "source": "field",
+              "value": "max_time"
+            },
+            "title": {
+              "source": "field",
+              "value": "title"
+            }
+          },
+          "name": "tx_peak",
+          "target": {
+            "format": 1,
+            "rawSQL": "select date_add('second', 2, max_by(from_iso8601_timestamp(time),tx)) max_time, max(cast(tx as int))*${unit_change_bit} tx, 'max_tx' as title\nfrom(\nselect case\n           when '${type_hub}' = 'if_packets' then 'pps'\n           when '${type_hub}' = 'if_octets' then 'bps'\n           else '' end                as Unit,\n       time,\n       (sum(tx) * ${unit_change_bit}) as tx,\n       (sum(rx) * ${unit_change_bit}) as rx\nfrom (select time,host,iface,\n             (avg(tx / duration)) as tx,\n             (avg(rx / duration)) as rx\n      from (select time,\n                   q.host,\n                   q.iface,\n                   (max_tx - min_tx) as tx,\n                   (max_rx - min_rx) as rx,\n                   duration\n            from (\n                  ${view_interface_with_all_hubs_and_type_filter:text}\n            ) as q\n            left join (\n                  ${view_tenant_host_overlay_iface:text}\n            ) as s on q.host = s.host AND s.iface like  q.iface|| '%' \n            -- AND q.iface = s.iface \n            where time is not null AND s.islanif = 'false') as r\n      group by time, r.host, r.iface) as q\ngroup by time\norder by time\n)as t\n",
+            "refId": "Anno"
+          }
+        }
+      ]
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 0,
+    "links": [],
+    "panels": [
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "d3ff3abc-927a-4298-b0e9-64d8c5d23ff6"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 1,
+          "w": 21,
+          "x": 0,
+          "y": 0
+        },
+        "id": 94,
+        "options": {
+          "afterRender": "const currentUrl = window.location.href;\n\n// ?orgId önceki kısım\nconst urlBeforeOrgId = currentUrl.split('?orgId')[0];\n\n//?orgId önceki kısım ve \"/\" karakterinden sonrası\nconst pathAfterSlash = urlBeforeOrgId.substring(urlBeforeOrgId.lastIndexOf('/') + 1);\n\n// \"Flow\" ve \"Detail\" kısmını al\nconst pathParts = pathAfterSlash.split('-');\n\n// Başlığı oluşturan kısım\nconst formattedTitle = `${pathParts[0].charAt(0).toUpperCase() + pathParts[0].slice(1)} ${pathParts[1].charAt(0).toUpperCase() + pathParts[1].slice(1)}`;\n\n// HTML'deki başlık \nconst titleElement = document.getElementById('title');\nconst urlParams = new URLSearchParams(window.location.search);\n//const siteName = urlParams.get('var-sites');\n\nif (titleElement) {\n  // var-sites varsa, başlıkla birlikte site adını ekle\n  // if (siteName) {\n  //   titleElement.textContent = `${formattedTitle} ${siteName}`;\n  // } else { }\n    titleElement.textContent = formattedTitle;\n  \n}\n",
+          "content": "",
+          "contentPartials": [],
+          "defaultContent": "The query didn't return any results.",
+          "editor": {
+            "format": "auto",
+            "language": "html"
+          },
+          "editors": [
+            "styles",
+            "afterRender"
+          ],
+          "externalStyles": [],
+          "helpers": "",
+          "renderMode": "data",
+          "styles": "    #title{\n    font-family: Inter;\n    letter-spacing: -.168px;\n    line-height: 26px;\n    word-spacing: 0px;\n    height: 49px;\n    margin: 10px 0 -20px;\n    display: block;\n    //margin-bottom: -20px;\n    margin-top: -5px;\n    font: var(--font-title);\n    font-weight: 400;\n    font-size: 20px;\n    }",
+          "wrap": true
+        },
+        "pluginVersion": "5.6.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "d3ff3abc-927a-4298-b0e9-64d8c5d23ff6"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "select '${__var-sites}'",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "transparent": true,
+        "type": "marcusolsson-dynamictext-panel"
+      },
+      {
+        "gridPos": {
+          "h": 1,
+          "w": 3,
+          "x": 21,
+          "y": 0
+        },
+        "id": 88,
+        "libraryPanel": {
+          "name": "export_to_pdf",
+          "uid": "ee82nb2x1rz7ka"
+        },
+        "title": ""
+      },
+      {
+        "datasource": {
+          "type": "datasource",
+          "uid": "-- Mixed --"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "fixedColor": "#56A64B",
+              "mode": "fixed"
+            },
+            "fieldMinMax": false,
+            "links": [
+              {
+                "title": "",
+                "url": "/grafana/d/fe302143-3e14-4f8a-a113-f30f2ec1eba0/control-plane-site-status?orgId=1\u0026var-operational_status=ACTIVE\u0026${kiosk}"
+              }
+            ],
+            "mappings": [],
+            "noValue": "0",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "counter"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "UP"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 0,
+          "y": 1
+        },
+        "hideTimeOverride": true,
+        "id": 70,
+        "options": {
+          "colorMode": "background_solid",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "12.3.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "trino-datasource",
+              "uid": "fadcb0fa-3615-47bd-976d-6962c9d1e3a5"
+            },
+            "format": 1,
+            "rawSQL": "select count(host) as counter\nfrom(\nselect  site_name,\n        operational_status,\n        k.host\nfrom  ( \n  ${view_tenant_host_overlay_iface:text}\n) as k\nwhere site_name is not null AND lower(operational_status) = 'active'    \nGroup by site_name,operational_status,k.host\n) as k",
+            "refId": "A"
+          },
+          {
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "d3ff3abc-927a-4298-b0e9-64d8c5d23ff6"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "hide": true,
+            "rawQuery": true,
+            "rawSql": "select \n     CASE WHEN cntUp is not null    THEN cntUp  ELSE 0 END  cntUp\nfrom (\nselect \n      SUM(CASE WHEN operational_status = 'ACTIVE'   THEN 1 ELSE 0 END ) cntUp       \nfrom site\nwhere device is not null\n\n) as q;",
+            "refId": "B",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "timeFrom": "now-9999d",
+        "title": "Control Plane Up",
+        "transformations": [
+          {
+            "id": "joinByField",
+            "options": {}
+          }
+        ],
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "datasource",
+          "uid": "-- Mixed --"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "fixedColor": "red",
+              "mode": "fixed"
+            },
+            "fieldMinMax": false,
+            "links": [
+              {
+                "title": "",
+                "url": "/grafana/d/fe302143-3e14-4f8a-a113-f30f2ec1eba0/control-plane-site-status?orgId=1\u0026var-interface_status=All\u0026var-operational_status=INACTIVE\u0026${kiosk}"
+              }
+            ],
+            "mappings": [],
+            "noValue": "0",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "counter"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "DOWN"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 4,
+          "y": 1
+        },
+        "hideTimeOverride": true,
+        "id": 71,
+        "options": {
+          "colorMode": "background_solid",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "12.3.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "trino-datasource",
+              "uid": "fadcb0fa-3615-47bd-976d-6962c9d1e3a5"
+            },
+            "format": 1,
+            "hide": false,
+            "rawSQL": "select count(host) as counter\nfrom(\nselect  site_name,\n        operational_status,\n        k.host\nfrom  ( \n  ${view_tenant_host_overlay_iface:text}\n) as k\nwhere site_name is not null AND lower(operational_status) = 'inactive'  \nGroup by site_name,operational_status,k.host\n) as k",
+            "refId": "B"
+          }
+        ],
+        "timeFrom": "now-9999d",
+        "title": "Control Plane Down ",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "datasource",
+          "uid": "-- Mixed --"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "fixedColor": "yellow",
+              "mode": "fixed"
+            },
+            "fieldMinMax": false,
+            "links": [
+              {
+                "title": "Not Activated",
+                "url": "/grafana/d/fe302143-3e14-4f8a-a113-f30f2ec1eba0/control-plane-site-status?orgId=1\u0026var-interface_status=All\u0026var-operational_status=INACTIVE\u0026var-administrative_status=NOT_APPLIED\u0026${kiosk}"
+              }
+            ],
+            "mappings": [],
+            "noValue": "0",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "counter"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Not Activated"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 4,
+          "x": 8,
+          "y": 1
+        },
+        "hideTimeOverride": true,
+        "id": 72,
+        "options": {
+          "colorMode": "background_solid",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "12.3.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "trino-datasource",
+              "uid": "fadcb0fa-3615-47bd-976d-6962c9d1e3a5"
+            },
+            "format": 1,
+            "hide": false,
+            "rawSQL": "select count(host) as counter\nfrom(\nselect  site_name,\n        administrative_status,\n        k.host\nfrom  ( \n  ${view_tenant_host_overlay_iface:text}\n) as k\nwhere site_name is not null AND lower(administrative_status) = 'not_applied' \nGroup by site_name,administrative_status,k.host\n) as k",
+            "refId": "B"
+          },
+          {
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "d3ff3abc-927a-4298-b0e9-64d8c5d23ff6"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "hide": true,
+            "rawQuery": true,
+            "rawSql": "select \n    CASE WHEN cntNotApplied is not  NULL THEN cntNotApplied  ELSE 0 END  cntNotApplied\nfrom (\nselect \n        SUM(CASE WHEN administrative_status = 'NOT_APPLIED' THEN 1 ELSE 0 END ) cntNotApplied\nfrom site\nwhere device is not null\n\n) as q;",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "timeFrom": "now-9999d",
+        "title": "Not Activated(Sites)",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "d3ff3abc-927a-4298-b0e9-64d8c5d23ff6"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 1,
+          "w": 3,
+          "x": 12,
+          "y": 1
+        },
+        "id": 95,
+        "options": {
+          "afterRender": "",
+          "content": "",
+          "contentPartials": [],
+          "defaultContent": "The query didn't return any results.",
+          "editor": {
+            "format": "auto",
+            "language": "html"
+          },
+          "editors": [
+            "styles"
+          ],
+          "externalStyles": [],
+          "helpers": "",
+          "renderMode": "data",
+          "styles": "",
+          "wrap": true
+        },
+        "pluginVersion": "5.6.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "d3ff3abc-927a-4298-b0e9-64d8c5d23ff6"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "select '${__var-hub1}'",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "CPU (${hub1})",
+        "type": "marcusolsson-dynamictext-panel"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "d3ff3abc-927a-4298-b0e9-64d8c5d23ff6"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 1,
+          "w": 3,
+          "x": 15,
+          "y": 1
+        },
+        "id": 96,
+        "options": {
+          "afterRender": "",
+          "content": "",
+          "contentPartials": [],
+          "defaultContent": "The query didn't return any results.",
+          "editor": {
+            "format": "auto",
+            "language": "html"
+          },
+          "editors": [
+            "styles"
+          ],
+          "externalStyles": [],
+          "helpers": "",
+          "renderMode": "data",
+          "styles": "",
+          "wrap": true
+        },
+        "pluginVersion": "5.6.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "d3ff3abc-927a-4298-b0e9-64d8c5d23ff6"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "select '${__var-hub1}'",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "CPU (${hub2})",
+        "type": "marcusolsson-dynamictext-panel"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "d3ff3abc-927a-4298-b0e9-64d8c5d23ff6"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 1,
+          "w": 3,
+          "x": 18,
+          "y": 1
+        },
+        "id": 97,
+        "options": {
+          "afterRender": "",
+          "content": "",
+          "contentPartials": [],
+          "defaultContent": "The query didn't return any results.",
+          "editor": {
+            "format": "auto",
+            "language": "html"
+          },
+          "editors": [
+            "styles"
+          ],
+          "externalStyles": [],
+          "helpers": "",
+          "renderMode": "data",
+          "styles": "",
+          "wrap": true
+        },
+        "pluginVersion": "5.6.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "d3ff3abc-927a-4298-b0e9-64d8c5d23ff6"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "select '${__var-hub1}'",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "CPU (SDNC)",
+        "type": "marcusolsson-dynamictext-panel"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "fixedColor": "dark-orange",
+              "mode": "fixed"
+            },
+            "fieldMinMax": false,
+            "links": [
+              {
+                "title": "",
+                "url": "/grafana/d/acca225c-0227-41f1-9496-8180d2a21f43/alarms?orgId=1\u0026${kiosk}"
+              }
+            ],
+            "mappings": [],
+            "noValue": "0",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 3,
+          "x": 21,
+          "y": 1
+        },
+        "hideTimeOverride": true,
+        "id": 73,
+        "options": {
+          "colorMode": "background_solid",
+          "graphMode": "none",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "12.3.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "with current as (\n  select alarm_name as alertname,host,datasource as m_datasource,alarm_name as m_notif_plugin,plugin_instance as m_notif_plugin_instance,\n        type as m_notif_type,DATE_TRUNC('hour',(alert_time)) as updated1, 1 as count\n  from \n  (\n    ${view_alerts_pg:text}\n  )as q\n  where  (site_name_from_alert is not null AND site_name_from_alert != '')\n)\n\n\nselect updated, \n      count(*)+ (select case when DATE_TRUNC('hour',now())\u003eupdated then count(count) else 0 end  from current where  updated1\u003c=updated ) as count\nfrom( \n   select alertname,host,m_datasource,m_notif_plugin,m_notif_plugin_instance,m_notif_type, DATE_TRUNC('hour',now()) as updated,1 count \n  from current\n\n  group by alertname,host,m_datasource,m_notif_plugin,m_notif_plugin_instance,m_notif_type,updated1 \n\n)as q\ngroup by updated",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "timeFrom": "now-9999d",
+        "title": "Active Alarms",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "alarm_count": true,
+                "distinct_alert_sensor_count": true,
+                "distinct_invalid_sensor_count": true,
+                "nodata_count": true,
+                "nodata_host_count": true,
+                "resolve_count": true,
+                "resolve_host_count": true,
+                "silence_count": true,
+                "silenced_host_count": true,
+                "site_count": true
+              },
+              "includeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "alarm_host_count": "Alarms",
+                "total_alarm_on": "Active Alarm"
+              }
+            }
+          }
+        ],
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "datasource",
+          "uid": "-- Mixed --"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "fieldMinMax": false,
+            "links": [
+              {
+                "title": "Resource Utilization",
+                "url": "/grafana/d/defsvlkcamuwwe/hub-resource-utilization?orgId=1\u0026var-sites=${hub1:pipe}\u0026var-showtype=Hub\u0026${kiosk}"
+              }
+            ],
+            "mappings": [],
+            "noValue": "0",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 60
+                },
+                {
+                  "color": "red",
+                  "value": 85
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Used"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "percent"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 3,
+          "w": 3,
+          "x": 12,
+          "y": 2
+        },
+        "id": 89,
+        "options": {
+          "minVizHeight": 75,
+          "minVizWidth": 75,
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true,
+          "sizing": "auto"
+        },
+        "pluginVersion": "12.3.0",
+        "targets": [
+          {
+            "alias": "",
+            "bucketAggs": [
+              {
+                "field": "span_attributes.h",
+                "id": "4",
+                "settings": {
+                  "min_doc_count": "1",
+                  "order": "desc",
+                  "orderBy": "_term",
+                  "size": "10"
+                },
+                "type": "terms"
+              }
+            ],
+            "datasource": {
+              "type": "quickwit-quickwit-datasource",
+              "uid": "e43f7752-3b61-4392-a15f-5989c06e401b"
+            },
+            "hide": false,
+            "metrics": [
+              {
+                "field": "span_attributes.value",
+                "id": "1",
+                "type": "avg"
+              }
+            ],
+            "query": "span_attributes.p:cpu AND span_attributes.ti:idle AND span_attributes.h:IN [${hub1:pipe}]",
+            "refId": "C",
+            "timeField": ""
+          }
+        ],
+        "transformations": [
+          {
+            "id": "calculateField",
+            "options": {
+              "alias": "Used",
+              "binary": {
+                "left": "100",
+                "operator": "-",
+                "right": "Average"
+              },
+              "mode": "binary",
+              "reduce": {
+                "reducer": "sum"
+              }
+            }
+          },
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Average": true,
+                "span_attributes.h": true
+              },
+              "includeByName": {},
+              "indexByName": {},
+              "renameByName": {}
+            }
+          }
+        ],
+        "type": "gauge"
+      },
+      {
+        "datasource": {
+          "type": "datasource",
+          "uid": "-- Mixed --"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "fieldMinMax": false,
+            "links": [
+              {
+                "title": "Resource Utilization",
+                "url": "/grafana/d/defsvlkcamuwwe/hub-resource-utilization?orgId=1\u0026var-sites=${hub2:csv}\u0026var-showtype=Hub\u0026${kiosk}"
+              }
+            ],
+            "mappings": [],
+            "noValue": "0",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 60
+                },
+                {
+                  "color": "red",
+                  "value": 85
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Used"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "percent"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 3,
+          "w": 3,
+          "x": 15,
+          "y": 2
+        },
+        "id": 39,
+        "options": {
+          "minVizHeight": 75,
+          "minVizWidth": 75,
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true,
+          "sizing": "auto"
+        },
+        "pluginVersion": "12.3.0",
+        "targets": [
+          {
+            "alias": "",
+            "bucketAggs": [
+              {
+                "field": "span_attributes.h",
+                "id": "4",
+                "settings": {
+                  "min_doc_count": "1",
+                  "order": "desc",
+                  "orderBy": "_term",
+                  "size": "10"
+                },
+                "type": "terms"
+              }
+            ],
+            "datasource": {
+              "type": "quickwit-quickwit-datasource",
+              "uid": "e43f7752-3b61-4392-a15f-5989c06e401b"
+            },
+            "hide": false,
+            "metrics": [
+              {
+                "field": "span_attributes.value",
+                "id": "1",
+                "type": "avg"
+              }
+            ],
+            "query": "span_attributes.p:cpu AND span_attributes.ti:idle AND span_attributes.h:IN [${hub2:pipe}]",
+            "refId": "C",
+            "timeField": ""
+          }
+        ],
+        "transformations": [
+          {
+            "id": "calculateField",
+            "options": {
+              "alias": "Used",
+              "binary": {
+                "left": "100",
+                "operator": "-",
+                "right": "Average"
+              },
+              "mode": "binary",
+              "reduce": {
+                "reducer": "sum"
+              }
+            }
+          },
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Average": true,
+                "Average span_attributes.value": true,
+                "span_attributes.h": true
+              },
+              "includeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "100 - Average span_attributes.value": "Average"
+              }
+            }
+          }
+        ],
+        "type": "gauge"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "cedcrrprmx340a"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "decimals": 2,
+            "links": [
+              {
+                "title": "Resource Utilization",
+                "url": "/grafana/d/ff0xqzvbinpq8f/sdnc-resource-utilization?orgId=1\u0026${kiosk}"
+              }
+            ],
+            "mappings": [
+              {
+                "options": {
+                  "match": "null",
+                  "result": {
+                    "color": "rgba(50, 172, 45, 0.97)",
+                    "text": "0"
+                  }
+                },
+                "type": "special"
+              }
+            ],
+            "max": 100,
+            "min": 0,
+            "noValue": "0",
+            "thresholds": {
+              "mode": "percentage",
+              "steps": [
+                {
+                  "color": "rgba(50, 172, 45, 0.97)",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 60
+                },
+                {
+                  "color": "red",
+                  "value": 85
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 3,
+          "w": 3,
+          "x": 18,
+          "y": 2
+        },
+        "id": 6,
+        "options": {
+          "minVizHeight": 75,
+          "minVizWidth": 75,
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true,
+          "sizing": "auto"
+        },
+        "pluginVersion": "12.3.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "cedcrrprmx340a"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "cluster:node_cpu:ratio_rate5m{cluster=\"\"}*100",
+            "format": "table",
+            "instant": true,
+            "interval": "",
+            "legendFormat": "__auto",
+            "range": false,
+            "refId": "A"
+          }
+        ],
+        "type": "gauge"
+      },
+      {
+        "datasource": {
+          "type": "datasource",
+          "uid": "-- Mixed --"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "${label}",
+              "axisPlacement": "left",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 44,
+              "gradientMode": "hue",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "smooth",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "links": [],
+            "mappings": [],
+            "noValue": "-",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "RX"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "blue",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "TX"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "dark-blue",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "total"
+              },
+              "properties": [
+                {
+                  "id": "custom.hideFrom",
+                  "value": {
+                    "legend": true,
+                    "tooltip": true,
+                    "viz": true
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 11,
+          "w": 12,
+          "x": 0,
+          "y": 5
+        },
+        "id": 19,
+        "links": [
+          {
+            "title": "Byte Per Second",
+            "url": "/grafana/d/befsqajl1xon4a/main-dashboard-2?orgId=1\u0026var-type_hub=if_octets\u0026${kiosk}"
+          },
+          {
+            "title": "Packet Per Second",
+            "url": "/grafana/d/befsqajl1xon4a/main-dashboard-2?orgId=1\u0026var-type_hub=if_packets\u0026${kiosk}"
+          }
+        ],
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.3.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "trino-datasource",
+              "uid": "fadcb0fa-3615-47bd-976d-6962c9d1e3a5"
+            },
+            "format": 1,
+            "rawSQL": "select case\n           when '${type_hub}' = 'if_packets' then 'pps'\n           when '${type_hub}' = 'if_octets' then 'bps'\n           else '' end                as Unit,\n       from_iso8601_timestamp(time) time,\n       (sum(tx) * ${unit_change_bit}) as tx,\n       (sum(rx) * ${unit_change_bit}) as rx\nfrom (select time,host,iface,\n             (avg(tx / duration)) as tx,\n             (avg(rx / duration)) as rx\n      from (select time,\n                   q.host,\n                   q.iface,\n                   (max_tx - min_tx) as tx,\n                   (max_rx - min_rx) as rx,\n                   duration\n            from (\n                  ${view_interface_with_all_hubs_and_type_filter:text}\n            ) as q\n            left join (\n                  ${view_tenant_host_overlay_iface:text}\n            ) as s on q.host = s.host AND s.iface like  q.iface|| '%' \n            -- AND q.iface = s.iface \n            where time is not null AND s.islanif = 'false') as r\n      group by time, r.host, r.iface) as q\ngroup by time\norder by time",
+            "refId": "A"
+          }
+        ],
+        "title": "Data Plane Traffic",
+        "transformations": [
+          {
+            "id": "configFromData",
+            "options": {
+              "applyTo": {
+                "id": "byType",
+                "options": "number"
+              },
+              "configRefId": "A",
+              "mappings": []
+            }
+          },
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "total": true
+              },
+              "includeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "rx": "RX",
+                "tx": "TX"
+              }
+            }
+          }
+        ],
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "datasource",
+          "uid": "-- Mixed --"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "fixedColor": "green",
+              "mode": "shades"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "fillOpacity": 80,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "lineWidth": 1,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "displayName": "${__field.application_name}",
+            "mappings": [],
+            "noValue": "-",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "decbits"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "ukn"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "green",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 7,
+          "x": 12,
+          "y": 5
+        },
+        "id": 37,
+        "links": [
+          {
+            "targetParent": false,
+            "title": "Top Traffic Apps",
+            "url": "/grafana/d/dd6f43b4-d1f8-436d-85e9-4ad28b3ca448/top-traffic-apps?orgId=1\u0026${kiosk}"
+          }
+        ],
+        "options": {
+          "barRadius": 0,
+          "barWidth": 0.69,
+          "fullHighlight": false,
+          "groupWidth": 0.7,
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": false
+          },
+          "orientation": "horizontal",
+          "showValue": "auto",
+          "stacking": "none",
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          },
+          "xTickLabelRotation": 0,
+          "xTickLabelSpacing": -300
+        },
+        "pluginVersion": "12.3.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "trino-datasource",
+              "uid": "fadcb0fa-3615-47bd-976d-6962c9d1e3a5"
+            },
+            "format": 1,
+            "hide": false,
+            "rawSQL": "select distinct j.\"${type_hub:csv}\" as Total,\n        CASE WHEN d.application_name is NULL THEN 'App Not Found' ELSE  d.application_name END application_name,\n    case\n        when '${type_hub:csv}' = 'if_octets' then 'decbytes' \n        when '${type_hub:csv}' = 'if_packets' then 'prepackets'\n        else 'sishort'\n    end as Unit     \nfrom (\n     \n  select distinct  \n           cast(\"11/value\" as double) + cast(\"14/value\" as double)  if_octets ,\n          cast(\"10/value\" as double) + cast(\"13/value\" as double) if_packets,\n          \"11/4/key\" application_id\n        FROM TABLE(\n      quickwit.system.raw_query(\n      \"query\" =\u003e '*',\n      \"qwindex\" =\u003e'flows3',\n      \"columns\" =\u003e '11/value,14/value,10/value,13/value,11/4/key',\n      \"replacefromcolumns\" =\u003e '/3/buckets/4/buckets/',\n      \"hasjs\" =\u003e 'true',\n      \"start_timestamp\" =\u003e '${__from:date:seconds}',\n      \"end_timestamp\" =\u003e '${__to:date:seconds}',\n      \"aggs\" =\u003e '[\n                    histogram(id=3, field=span_start_timestamp_nanos, interval=${retention_period_in_hours:csv}h),\n                    terms(id=4, field=span_attributes.n, size=${top:csv}, min=1, order=id:10:desc),\n                    sum(id=10, field=span_attributes.u),\n                    sum(id=11, field=span_attributes.t),\n                    sum(id=13, field=span_attributes.ab),\n                    sum(id=14, field=span_attributes.ac),\n                    count(id=12, field=span_attributes.u)\n                  ]'\n      )) as i\n      where \"11/value\"  is not null\n  -- select  distinct  cast(\"/value\" as double) + cast(\"4/value\" as double)  if_octets ,\n  --         cast(\"1/value\" as double) + cast(\"3/value\" as double) if_packets,\n  --         \"/4/key\" application_id\n  --       from quickwit.metrics4.\"\n  --         //cache=false\n  --         //name=Dataplane Status\n  --         //columns=/value,/4/key\n  --         //dbtype=qw\n  --         //qwindex=flows3\n  --         //replacefromcolumns=/3/buckets/4/buckets/1\n  --         //hasjs=true\n  --         //from=${__from:date:seconds}\n  --         //to=${__to:date:seconds}\n  --         {\n  --         \"\"aggs\"\": {\n  --             \"\"3\"\": {\n  --               \"\"aggs\"\": {\n  --                 \"\"4\"\": {\n  --                   \"\"aggs\"\": {\n  --                     \"\"1\"\": {\n  --                       \"\"sum\"\": {\n  --                         \"\"field\"\": \"\"span_attributes.u\"\"\n  --                       }\n  --                     },\n  --                     \"\"11\"\": {\n  --                       \"\"sum\"\": {\n  --                         \"\"field\"\": \"\"span_attributes.t\"\"\n  --                       }\n  --                     },\n  --                      \"\"13\"\": {\n  --                       \"\"sum\"\": {\n  --                         \"\"field\"\": \"\"span_attributes.ab\"\"\n  --                       }\n  --                     },\n  --                     \"\"14\"\": {\n  --                       \"\"sum\"\": {\n  --                         \"\"field\"\": \"\"span_attributes.ac\"\"\n  --                       }\n  --                     },\n  --                     \"\"12\"\": {\n  --                       \"\"value_count\"\": {\n  --                         \"\"field\"\": \"\"span_attributes.u\"\"\n  --                       }\n  --                     }\n  --                   },\n  --                   \"\"terms\"\": {\n  --                     \"\"field\"\": \"\"span_attributes.n\"\",\n  --                     \"\"size\"\": ${top:csv},\n  --                     \"\"order\"\": {\n  --                       \"\"1\"\": \"\"desc\"\"\n  --                     },\n  --                     \"\"min_doc_count\"\": 1\n  --                   }\n  --                 }\n  --               },\n  --               \"\"date_histogram\"\": {\n  --                 \"\"field\"\": \"\"span_start_timestamp_nanos\"\",\n  --                 \"\"fixed_interval\"\": \"\"${retention_period_in_hours:csv}h\"\",\n  --                 \"\"min_doc_count\"\": 1\n  --               }\n  --             }\n  --           },\n  --         \"\"query\"\": \"\"*\"\",\n  --         \"\"max_hits\"\": 0,\n  --         \"\"start_timestamp\"\": ${__from:date:seconds},\n  --         \"\"end_timestamp\"\": ${__to:date:seconds}\n  --       }\n  --         \" as i\n) as j\nLEFT JOIN (\n    SELECT \n        json_extract_scalar(app_elem, '$.id')  AS application_id,\n        json_extract_scalar(app_elem, '$.name') AS application_name\n    FROM tenant.public.temp_obj t\n    CROSS JOIN UNNEST(CAST(json_extract(t.object_value, '$.application') AS ARRAY(JSON))) AS t_unnested(app_elem)\n    WHERE t.obj_type = 'APPLICATION'\n) d ON j.application_id = d.application_id  \norder by  1 desc\nlimit ${top:csv}",
+            "refId": "B"
+          }
+        ],
+        "title": "Top Applications ",
+        "transformations": [
+          {
+            "disabled": true,
+            "id": "configFromData",
+            "options": {
+              "configRefId": "B",
+              "mappings": [
+                {
+                  "fieldName": "Unit",
+                  "handlerKey": "unit"
+                }
+              ]
+            }
+          },
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Unit": true
+              },
+              "includeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "application_name": "Application Name"
+              }
+            }
+          }
+        ],
+        "type": "barchart"
+      },
+      {
+        "datasource": {
+          "type": "datasource",
+          "uid": "-- Mixed --"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "fixedColor": "#0c02b9",
+              "mode": "fixed"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "fillOpacity": 80,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "lineWidth": 1,
+              "scaleDistribution": {
+                "linearThreshold": 2,
+                "type": "linear"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "noValue": "0",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "#0c02b9",
+                  "value": 0
+                }
+              ]
+            },
+            "unit": "decbytes"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "span_attributes.i"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "#0c02b9",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 5,
+          "x": 19,
+          "y": 5
+        },
+        "id": 36,
+        "links": [
+          {
+            "title": "Details",
+            "url": "/grafana/d/b9578196-1d94-450c-b074-1633d2688324/top-traffic-protocols?orgId=1\u0026NULL\u0026${kiosk}"
+          }
+        ],
+        "options": {
+          "barRadius": 0,
+          "barWidth": 0.69,
+          "colorByField": "a",
+          "fullHighlight": false,
+          "groupWidth": 0.84,
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "right",
+            "showLegend": false
+          },
+          "orientation": "horizontal",
+          "showValue": "auto",
+          "stacking": "none",
+          "text": {},
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          },
+          "xTickLabelMaxLength": 1,
+          "xTickLabelRotation": 0,
+          "xTickLabelSpacing": 300
+        },
+        "pluginVersion": "12.3.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "trino-datasource",
+              "uid": "fadcb0fa-3615-47bd-976d-6962c9d1e3a5"
+            },
+            "format": 1,
+            "hide": false,
+            "rawSQL": "select   host as full_name, \n        case \n          when '${type_hub:csv}' = 'if_octets' then 'decbytes' \n          when '${type_hub:csv}' = 'if_packets' then 'prepackets' \n          else  'sishort' end as Unit, \n        sum(\"${type_hub:csv}\")  as total\n        \nfrom ( \n\n  select  distinct  \"4/6/key_as_string\" as time,\n          \"4/5/key\" as \"host\" , \n          cast(\"3/value\" as double) + cast(\"66/value\" as double) if_packets, \n          cast(\"4/value\" as double) + cast(\"7/value\" as double) if_octets\n  FROM TABLE(\n      quickwit.system.raw_query(\n      \"query\" =\u003e '*',\n      \"qwindex\" =\u003e'flows3',\n      \"columns\" =\u003e '4/6/key_as_string,4/5/key,3/value,66/value,4/value,7/value',\n      \"replacefromcolumns\" =\u003e '/6/buckets/5/buckets/9/buckets/',\n      \"hasjs\" =\u003e 'true',\n      \"start_timestamp\" =\u003e '${__from:date:seconds}',\n      \"end_timestamp\" =\u003e '${__to:date:seconds}',\n      \"aggs\" =\u003e '[\n            histogram(field=span_start_timestamp_nanos, interval=${retention_period_in_hours:csv}h, min=1, id=6),\n\n            terms(field=span_attributes.i, size=${top:csv}, order=id:1:desc, min=1, id=5),\n\n            min(field=span_attributes.t, id=1),\n\n            terms(field=span_attributes.i, size=9999, order=id:3:desc, min=1, id=9),\n\n            sum(field=span_attributes.t, id=3),\n            sum(field=span_attributes.u, id=4),\n            sum(field=span_attributes.ab, id=66),\n            sum(field=span_attributes.ac, id=7),\n            count(field=span_attributes.u, id=55)\n          ]'\n      )) as i\n      where \"4/6/key_as_string\"  is not null\n\n\n  -- select  distinct  \"4/6/key_as_string\" as time,\n  --         \"4/5/key\" as \"host\" , \n  --         cast(\"3/value\" as double) + cast(\"6/value\" as double) if_packets, \n  --         cast(\"4/value\" as double) + cast(\"7/value\" as double) if_octets\n  -- from quickwit.otlp_metric.\" \n  --   //ttl=150\n  --   //refresh=75\n  --   //cache=false\n  --   //eagercache=false\n  --   //name=Hub Network Throughput (${top})\n  --   //columns=4/5/key,4/6/key_as_string,_value,3/value,4/value\n  --   //replacefromcolumns=/6/buckets/5/buckets/9/buckets/\n  --   //dbtype=qw\n  --   //qwindex=flows3\n  --   //from=${__from:date:seconds}\n  --   //to=${__to:date:seconds}\n    \n  --   {\n  --     \"\"aggs\"\": {\n  --       \"\"6\"\": {\n  --         \"\"aggs\"\": {\n  --           \"\"5\"\": {\n  --             \"\"aggs\"\": {\n  --               \"\"1\"\": {\n  --                 \"\"min\"\": {\n  --                   \"\"field\"\": \"\"span_attributes.t\"\"\n  --                 }\n  --               },\n  --               \"\"9\"\": {\n  --                 \"\"aggs\"\": {\n  --                   \"\"3\"\": {\n  --                     \"\"sum\"\": {\n  --                       \"\"field\"\": \"\"span_attributes.t\"\"\n  --                     }\n  --                   },\n  --                   \"\"4\"\": {\n  --                     \"\"sum\"\": {\n  --                       \"\"field\"\": \"\"span_attributes.u\"\"\n  --                     }\n  --                   },\n  --                   \"\"6\"\": {\n  --                     \"\"sum\"\": {\n  --                       \"\"field\"\": \"\"span_attributes.ab\"\"\n  --                     }\n  --                   },\n  --                   \"\"7\"\": {\n  --                     \"\"sum\"\": {\n  --                       \"\"field\"\": \"\"span_attributes.ac\"\"\n  --                     }\n  --                   },\n  --                   \"\"5\"\": {\n  --                     \"\"value_count\"\": {\n  --                       \"\"field\"\": \"\"span_attributes.u\"\"\n  --                     }\n  --                   }\n  --                 },\n  --                 \"\"terms\"\": {\n  --                   \"\"field\"\": \"\"span_attributes.i\"\",\n  --                   \"\"size\"\": 9999,\n  --                   \"\"order\"\": {\n  --                     \"\"3\"\": \"\"desc\"\"\n  --                   },\n  --                   \"\"min_doc_count\"\": 1\n  --                 }\n  --               }\n  --             },\n  --             \"\"terms\"\": {\n  --               \"\"field\"\": \"\"span_attributes.i\"\",\n  --               \"\"size\"\": ${top:csv},\n  --               \"\"order\"\": {\n  --                 \"\"1\"\": \"\"desc\"\"\n  --               },\n  --               \"\"min_doc_count\"\": 1\n  --             }\n  --           }\n  --         },\n  --         \"\"date_histogram\"\": {\n  --           \"\"field\"\": \"\"span_start_timestamp_nanos\"\",\n  --           \"\"fixed_interval\"\": \"\"${retention_period_in_hours:csv}h\"\",\n  --           \"\"min_doc_count\"\": 1\n  --         }\n  --       }\n  --     },\n  --     \"\"query\"\": \"\"\"\",\n  --     \"\"max_hits\"\": 0,\n  --     \"\"start_timestamp\"\": ${__from:date:seconds},\n  --     \"\"end_timestamp\"\": ${__to:date:seconds}\n  -- }\n  \n  --   \" as i \n) as r \ngroup by host\norder by total desc\nlimit 5",
+            "refId": "B"
+          }
+        ],
+        "title": "Top Sources by Total Traffic",
+        "transformations": [
+          {
+            "id": "configFromData",
+            "options": {
+              "configRefId": "B",
+              "mappings": []
+            }
+          },
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Unit": true,
+                "a": true,
+                "t": true
+              },
+              "includeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "Sum": "Total",
+                "a": "",
+                "full_name": "Source IP",
+                "span_attributes.i": "Source IP",
+                "total": "Total"
+              }
+            }
+          }
+        ],
+        "type": "barchart"
+      },
+      {
+        "datasource": {
+          "type": "datasource",
+          "uid": "-- Mixed --"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "fixedColor": "blue",
+              "mode": "fixed"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "fillOpacity": 80,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "lineWidth": 1,
+              "scaleDistribution": {
+                "linearThreshold": 2,
+                "type": "linear"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": true,
+            "links": [],
+            "mappings": [],
+            "noValue": "0",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "bps"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 5,
+          "w": 7,
+          "x": 12,
+          "y": 11
+        },
+        "id": 38,
+        "links": [
+          {
+            "title": "Top Traffic Protocols",
+            "url": "/grafana/d/b9578196-1d94-450c-b074-1633d2688324/top-traffic-protocols?orgId=1\u0026refresh=1m\u0026${kiosk}"
+          }
+        ],
+        "options": {
+          "barRadius": 0,
+          "barWidth": 0.69,
+          "fullHighlight": false,
+          "groupWidth": 0.68,
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "right",
+            "showLegend": false
+          },
+          "orientation": "horizontal",
+          "showValue": "auto",
+          "stacking": "none",
+          "text": {},
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "desc"
+          },
+          "xTickLabelMaxLength": 15,
+          "xTickLabelRotation": 0,
+          "xTickLabelSpacing": 300
+        },
+        "pluginVersion": "12.3.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "trino-datasource",
+              "uid": "fadcb0fa-3615-47bd-976d-6962c9d1e3a5"
+            },
+            "format": 1,
+            "rawSQL": "select   substr(s.name, 1, ${max_name_length:csv}) as name, s.name as full_name,  \n         case \n          when '${type_hub:csv}' = 'if_octets' then 'decbytes' \n          when '${type_hub:csv}' = 'if_packets' then 'prepackets' \n          else  'sishort' end as Unit,\n          sum(j.\"${type_hub:csv}\") as Total \n        \nfrom ( \n\n   select  distinct \"4/6/key_as_string\" as time,\n          \"4/5/key\" as \"host\" , \n          cast(\"3/value\" as double) + cast(\"66/value\" as double) if_packets, \n          cast(\"4/value\" as double) +  cast(\"7/value\" as double) if_octets\n  FROM TABLE(\n      quickwit.system.raw_query(\n      \"query\" =\u003e '*',\n      \"qwindex\" =\u003e'flows3',\n      \"columns\" =\u003e '4/6/key_as_string,4/5/key,3/value,66/value,4/value,7/value',\n      \"replacefromcolumns\" =\u003e '/6/buckets/5/buckets/9/buckets/',\n      \"hasjs\" =\u003e 'true',\n      \"start_timestamp\" =\u003e '${__from:date:seconds}',\n      \"end_timestamp\" =\u003e '${__to:date:seconds}',\n      \"aggs\" =\u003e '[\n                  histogram(field=span_start_timestamp_nanos, interval=${retention_period_in_hours:csv}h, min=1, id=6),\n\n                  terms(field=span_attributes.v, size=5, order=id:1:desc, min=1, id=5),\n\n                  min(field=span_attributes.t, id=1),\n\n                  terms(field=span_attributes.v, size=9999, order=id:3:desc, min=1, id=9),\n\n                  sum(field=span_attributes.t, id=3),\n                  sum(field=span_attributes.u, id=4),\n                  sum(field=span_attributes.ab, id=66),\n                  sum(field=span_attributes.ac, id=7),\n                  count(field=span_attributes.u, id=55)\n                ]'\n      )) as i\n      where \"4/6/key_as_string\"  is not null\n\n  -- select  distinct \"4/6/key_as_string\" as time,\n  --         \"4/5/key\" as \"host\" , \n  --         cast(\"3/value\" as double) + cast(\"6/value\" as double) if_packets, \n  --         cast(\"4/value\" as double) +  cast(\"7/value\" as double) if_octets\n  -- from quickwit.otlp_metric.\" \n  --   //ttl=150\n  --   //refresh=75\n  --   //cache=false\n  --   //eagercache=false\n  --   //name=Hub Network Throughput (${top})\n  --   //columns=4/5/key,4/6/key_as_string,_value,3/value,4/value\n  --   //replacefromcolumns=/6/buckets/5/buckets/9/buckets/\n  --   //dbtype=qw\n  --   //qwindex=flows3\n  --   //from=${__from:date:seconds}\n  --   //to=${__to:date:seconds}\n    \n  --   {\n  --     \"\"aggs\"\": {\n  --       \"\"6\"\": {\n  --         \"\"aggs\"\": {\n  --           \"\"5\"\": {\n  --             \"\"aggs\"\": {\n  --               \"\"1\"\": {\n  --                 \"\"min\"\": {\n  --                   \"\"field\"\": \"\"span_attributes.t\"\"\n  --                 }\n  --               },\n  --               \"\"9\"\": {\n  --                 \"\"aggs\"\": {\n  --                   \"\"3\"\": {\n  --                     \"\"sum\"\": {\n  --                       \"\"field\"\": \"\"span_attributes.t\"\"\n  --                     }\n  --                   },\n  --                   \"\"4\"\": {\n  --                     \"\"sum\"\": {\n  --                       \"\"field\"\": \"\"span_attributes.u\"\"\n  --                     }\n  --                   },\n  --                   \"\"6\"\": {\n  --                     \"\"sum\"\": {\n  --                       \"\"field\"\": \"\"span_attributes.ab\"\"\n  --                     }\n  --                   },\n  --                    \"\"7\"\": {\n  --                     \"\"sum\"\": {\n  --                       \"\"field\"\": \"\"span_attributes.ac\"\"\n  --                   }\n  --                 },\n  --                   \"\"5\"\": {\n  --                     \"\"value_count\"\": {\n  --                       \"\"field\"\": \"\"span_attributes.u\"\"\n  --                   }\n  --                 }\n  --                 },\n  --                 \"\"terms\"\": {\n  --                   \"\"field\"\": \"\"span_attributes.v\"\",\n  --                   \"\"size\"\": 9999,\n  --                   \"\"order\"\": {\n  --                     \"\"3\"\": \"\"desc\"\"\n  --                   },\n  --                   \"\"min_doc_count\"\": 1\n  --                 }\n  --               }\n  --             },\n  --             \"\"terms\"\": {\n  --               \"\"field\"\": \"\"span_attributes.v\"\",\n  --               \"\"size\"\": 5,\n  --               \"\"order\"\": {\n  --                 \"\"1\"\": \"\"desc\"\"\n  --               },\n  --               \"\"min_doc_count\"\": 1\n  --             }\n  --           }\n  --         },\n  --         \"\"date_histogram\"\": {\n  --           \"\"field\"\": \"\"span_start_timestamp_nanos\"\",\n  --           \"\"fixed_interval\"\": \"\"${retention_period_in_hours:csv}h\"\",\n  --           \"\"min_doc_count\"\": 1\n  --         }\n  --       }\n  --     },\n  --     \"\"query\"\": \"\"\"\",\n  --     \"\"max_hits\"\": 0,\n  --     \"\"start_timestamp\"\": ${__from:date:seconds},\n  --     \"\"end_timestamp\"\": ${__to:date:seconds}\n  -- }\n  \n  --   \" as i \n) as j\nleft join tenant.public.site s on cast(s.id as varchar) = j.host \nwhere s.name is not null  AND s.device is not null\ngroup by s.name\norder by total desc\nlimit ${top:csv}",
+            "refId": "A"
+          }
+        ],
+        "title": "Top Sites by Traffic",
+        "transformations": [
+          {
+            "id": "configFromData",
+            "options": {
+              "configRefId": "A",
+              "mappings": []
+            }
+          },
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "/3/buckets/1/doc_count A": true,
+                "/3/buckets/1/key A": true,
+                "/3/buckets/1/sum_other_doc_count A": true,
+                "/3/buckets/4/doc_count A": true,
+                "/3/buckets/4/key A": true,
+                "/3/buckets/4/sum_other_doc_count A": true,
+                "Unit": true,
+                "_time A": true,
+                "_value A": true,
+                "_value1 A": false,
+                "administrative_status": true,
+                "constant": true,
+                "constant\\site_name": false,
+                "full_name": true,
+                "host": true,
+                "iface": true,
+                "is_configured": true,
+                "ishub_value": true,
+                "islanif": true,
+                "jn": true,
+                "operational_status": true,
+                "result A": true,
+                "site_name": false,
+                "t": true,
+                "t A": true,
+                "table A": true,
+                "total A": false,
+                "type": true
+              },
+              "includeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "Average span_attributes.rx": "RX",
+                "Average span_attributes.tx": "TX",
+                "Sum span_attributes.rx": "RX",
+                "Sum span_attributes.tx": "TX",
+                "constant\\site_name": "",
+                "full_name": "Full Name",
+                "name": "Name"
+              }
+            }
+          }
+        ],
+        "type": "barchart"
+      },
+      {
+        "datasource": {
+          "type": "datasource",
+          "uid": "-- Mixed --"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "fixedColor": "orange",
+              "mode": "shades"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "fillOpacity": 80,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "lineWidth": 1,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "displayName": "${__field.ip}",
+            "mappings": [],
+            "noValue": "0",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "#f2bdb1",
+                  "value": 0
+                },
+                {
+                  "color": "#eb9c8b",
+                  "value": 0
+                }
+              ]
+            },
+            "unit": "decbytes"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "_field"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "purple",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 5,
+          "w": 5,
+          "x": 19,
+          "y": 11
+        },
+        "id": 78,
+        "links": [
+          {
+            "title": "Details",
+            "url": "/grafana/d/b9578196-1d94-450c-b074-1633d2688324/top-traffic-protocols?orgId=1\u0026${kiosk}"
+          }
+        ],
+        "options": {
+          "barRadius": 0,
+          "barWidth": 0.69,
+          "fullHighlight": false,
+          "groupWidth": 0.7,
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": false
+          },
+          "orientation": "horizontal",
+          "showValue": "auto",
+          "stacking": "none",
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          },
+          "xTickLabelMaxLength": 0.000001,
+          "xTickLabelRotation": 0,
+          "xTickLabelSpacing": 300
+        },
+        "pluginVersion": "12.3.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "trino-datasource",
+              "uid": "fadcb0fa-3615-47bd-976d-6962c9d1e3a5"
+            },
+            "format": 1,
+            "rawSQL": "select distinct j.\"${type_hub:csv}\" as Total,\n          destination,\n         case \n          when '${type_hub:csv}' = 'if_octets' then 'decbytes' \n          when '${type_hub:csv}' = 'if_packets' then 'prepackets' \n          else  'sishort' end as Unit\nfrom (\n\n  select  distinct cast(\"/value\" as double) + cast(\"4/value\" as double)  if_octets ,\n          cast(\"1/value\" as double) + cast(\"3/value\" as double) if_packets,\n          \"/4/key\" destination\n        \n  FROM TABLE(\n      quickwit.system.raw_query(\n      \"query\" =\u003e '*',\n      \"qwindex\" =\u003e'flows3',\n      \"columns\" =\u003e '/value,1/value,4/value,3/value,/4/key',\n      \"replacefromcolumns\" =\u003e '/3/buckets/4/buckets/1',\n      \"hasjs\" =\u003e 'true',\n      \"start_timestamp\" =\u003e '${__from:date:seconds}',\n      \"end_timestamp\" =\u003e '${__to:date:seconds}',\n      \"aggs\" =\u003e '[\n                  histogram(field=span_start_timestamp_nanos, interval=${retention_period_in_hours:csv}h, min=1, id=3),\n\n                  terms(field=span_attributes.j, size=${top:csv}, order=id:1:desc, min=1, id=4),\n            \n                  sum(field=span_attributes.u, id=1),\n                  sum(field=span_attributes.t, id=11),\n                  sum(field=span_attributes.ab, id=13),\n                  sum(field=span_attributes.ac, id=14),\n                  count(field=span_attributes.u, id=12)\n                ]'\n      )) as i\n      where \"1/value\"  is not null\n  -- select  distinct cast(\"/value\" as double) + cast(\"4/value\" as double)  if_octets ,\n  --         cast(\"1/value\" as double) + cast(\"3/value\" as double) if_packets,\n  --         \"/4/key\" destination\n  --       from quickwit.metrics4.\"\n  --         //cache=false\n  --         //name=Dataplane Status\n  --         //columns=/value,/4/key\n  --         //dbtype=qw\n  --         //qwindex=flows3\n  --         //replacefromcolumns=/3/buckets/4/buckets/1\n  --         //hasjs=true\n  --         //from=${__from:date:seconds}\n  --         //to=${__to:date:seconds}\n  --         {\n  --         \"\"aggs\"\": {\n  --             \"\"3\"\": {\n  --               \"\"aggs\"\": {\n  --                 \"\"4\"\": {\n  --                   \"\"aggs\"\": {\n  --                     \"\"1\"\": {\n  --                       \"\"sum\"\": {\n  --                         \"\"field\"\": \"\"span_attributes.u\"\"\n  --                       }\n  --                     },\n  --                     \"\"11\"\": {\n  --                       \"\"sum\"\": {\n  --                         \"\"field\"\": \"\"span_attributes.t\"\"\n  --                       }\n  --                     },\n  --                     \"\"13\"\": {\n  --                       \"\"sum\"\": {\n  --                         \"\"field\"\": \"\"span_attributes.ab\"\"\n  --                     }\n  --                   },\n  --                     \"\"14\"\": {\n  --                       \"\"sum\"\": {\n  --                         \"\"field\"\": \"\"span_attributes.ac\"\"\n  --                       }\n  --                   },\n  --                     \"\"12\"\": {\n  --                       \"\"value_count\"\": {\n  --                         \"\"field\"\": \"\"span_attributes.u\"\"\n  --                       }\n  --                     }\n  --                   },\n  --                   \"\"terms\"\": {\n  --                     \"\"field\"\": \"\"span_attributes.j\"\",\n  --                     \"\"size\"\": ${top:csv},\n  --                     \"\"order\"\": {\n  --                       \"\"1\"\": \"\"desc\"\"\n  --                     },\n  --                     \"\"min_doc_count\"\": 1\n  --                   }\n  --                 }\n  --               },\n  --               \"\"date_histogram\"\": {\n  --                 \"\"field\"\": \"\"span_start_timestamp_nanos\"\",\n  --                 \"\"fixed_interval\"\": \"\"${retention_period_in_hours:csv}h\"\",\n  --                 \"\"min_doc_count\"\": 1\n  --               }\n  --             }\n  --           },\n  --         \"\"query\"\": \"\"*\"\",\n  --         \"\"max_hits\"\": 0,\n  --         \"\"start_timestamp\"\": ${__from:date:seconds},\n  --         \"\"end_timestamp\"\": ${__to:date:seconds}\n  --       }\n  --         \" as i\n) as j \norder by  1 desc\nlimit ${top:csv}",
+            "refId": "A"
+          }
+        ],
+        "title": "Top Destinations",
+        "transformations": [
+          {
+            "id": "configFromData",
+            "options": {
+              "configRefId": "A",
+              "mappings": []
+            }
+          },
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Unit": true,
+                "a": false,
+                "span_attributes.j": false
+              },
+              "includeByName": {},
+              "indexByName": {
+                "Sum": 1,
+                "a": 2,
+                "span_attributes.j": 0
+              },
+              "renameByName": {
+                "Sum": "sum",
+                "a": "",
+                "destination": "Destination IP",
+                "span_attributes.j": "ip"
+              }
+            }
+          }
+        ],
+        "type": "barchart"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "cedcrrprmx340a"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "fixedColor": "orange",
+              "mode": "fixed"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "bps",
+              "axisPlacement": "left",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 44,
+              "gradientMode": "hue",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "smooth",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "links": [
+              {
+                "title": "${__data.fields[\"site_name\"]}",
+                "url": "/grafana/d/d5612f97-641d-47e0-9310-30a967fe514e/network-throughput?orgId=1\u0026var-sites=${__data.fields[\"site_name\"]}\u0026var-showtype=Hub\u0026kiosk=light"
+              }
+            ],
+            "mappings": [],
+            "noValue": "-",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                }
+              ]
+            },
+            "unit": "binbps"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "RX"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "dark-yellow",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "TX"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "yellow",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "total"
+              },
+              "properties": [
+                {
+                  "id": "custom.hideFrom",
+                  "value": {
+                    "legend": true,
+                    "tooltip": true,
+                    "viz": true
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "RX"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "bps"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "TX"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "bps"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "RX Packets"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "light-green",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "TX Packets"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "light-green",
+                    "mode": "fixed"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 11,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        },
+        "id": 93,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.3.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "cedcrrprmx340a"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "sum(irate(container_network_receive_bytes_total{cluster=\"\",namespace=~\"${controller_ns}|${monitoring_ns}\", interface=~\"wg_mng\"}[5m])) by (time) * ${unit_change_bit}",
+            "format": "table",
+            "hide": false,
+            "instant": false,
+            "interval": "2m",
+            "legendFormat": "rx",
+            "range": true,
+            "refId": "A"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "cedcrrprmx340a"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "sum(irate(container_network_transmit_bytes_total{cluster=\"\",namespace=~\"${controller_ns}|${monitoring_ns}\", interface=~\"wg_mng\"}[5m])) by (time) * ${unit_change_bit}",
+            "format": "table",
+            "hide": false,
+            "instant": false,
+            "interval": "2m",
+            "legendFormat": "tx",
+            "range": true,
+            "refId": "B"
+          }
+        ],
+        "title": "Control Plane Traffic",
+        "transformations": [
+          {
+            "id": "calculateField",
+            "options": {
+              "alias": "rx1",
+              "binary": {
+                "left": {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "Value #A"
+                  }
+                },
+                "operator": "*",
+                "right": {
+                  "fixed": "8"
+                }
+              },
+              "mode": "binary",
+              "reduce": {
+                "reducer": "sum"
+              }
+            }
+          },
+          {
+            "id": "calculateField",
+            "options": {
+              "alias": "tx1",
+              "binary": {
+                "left": {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "Value #B"
+                  }
+                },
+                "operator": "*",
+                "right": {
+                  "fixed": "8"
+                }
+              },
+              "mode": "binary",
+              "reduce": {
+                "reducer": "sum"
+              }
+            }
+          },
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Value #A": true,
+                "Value #B": true,
+                "Value #C": true,
+                "Value #D": true,
+                "rx": true,
+                "tx": true
+              },
+              "includeByName": {},
+              "indexByName": {
+                "Time": 0,
+                "Value #A": 1,
+                "Value #B": 2,
+                "rx1": 4,
+                "tx1": 3
+              },
+              "renameByName": {
+                "Value #C": "RX Packets",
+                "Value #D": "TX Packets",
+                "rx1": "RX",
+                "tx1": "TX"
+              }
+            }
+          }
+        ],
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "trino-datasource",
+          "uid": "fadcb0fa-3615-47bd-976d-6962c9d1e3a5"
+        },
+        "description": "",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "links": [
+              {
+                "targetBlank": false,
+                "targetParent": false,
+                "targetTop": true,
+                "title": "${__data.fields[\"site_name\"]}",
+                "url": "https://${maya_ui_url:csv}/maya-ui/sites/deviceConfig?id=${__data.fields[\"host\"]}"
+              }
+            ],
+            "mappings": [
+              {
+                "options": {
+                  "..8..": {
+                    "index": 2,
+                    "text": "8. Bölge Müdürlüğü"
+                  },
+                  "0": {
+                    "index": 0,
+                    "text": "up"
+                  },
+                  "1": {
+                    "index": 1,
+                    "text": "down"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "noValue": "-",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "bolge"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Bölge"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "operational_status"
+              },
+              "properties": [
+                {
+                  "id": "mappings",
+                  "value": [
+                    {
+                      "options": {
+                        "ACTIVE": {
+                          "color": "green",
+                          "index": 0
+                        },
+                        "INACTIVE": {
+                          "color": "red",
+                          "index": 1
+                        }
+                      },
+                      "type": "value"
+                    },
+                    {
+                      "options": {
+                        "match": "empty",
+                        "result": {
+                          "color": "yellow",
+                          "index": 2
+                        }
+                      },
+                      "type": "special"
+                    },
+                    {
+                      "options": {
+                        "match": "null+nan",
+                        "result": {
+                          "color": "yellow",
+                          "index": 3
+                        }
+                      },
+                      "type": "special"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "site_name"
+              },
+              "properties": [
+                {
+                  "id": "filterable",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "uptime"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "s"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 11,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        },
+        "id": 91,
+        "links": [
+          {
+            "targetBlank": true,
+            "title": "Site Status Map",
+            "url": "/grafana/d/d38b9357-bd34-4ce7-a5c1-31d0fab83f76/site-status-map?orgId=1\u0026refresh=1m\u0026${kiosk}"
+          },
+          {
+            "targetBlank": false,
+            "targetParent": false,
+            "targetTop": false,
+            "title": "Device Config",
+            "url": "https://${maya_ui_url:csv}/maya-ui/sites/deviceConfig?id=${__data.fields[\"host\"]}\u0026${kiosk}\n"
+          }
+        ],
+        "maxDataPoints": 1,
+        "options": {
+          "basemap": {
+            "config": {
+              "url": "https://10.20.4.165/offline-map/{z}/{x}/{y}.png"
+            },
+            "type": "xyz"
+          },
+          "controls": {
+            "mouseWheelZoom": true,
+            "showAttribution": true,
+            "showDebug": false,
+            "showLayercontrol": true,
+            "showScale": true,
+            "showZoom": true
+          },
+          "layers": [
+            {
+              "config": {
+                "cluster": true,
+                "clusterDistance": 45,
+                "clusterMinDistance": 0,
+                "clusterValue": "size",
+                "color": {
+                  "field": "operational_status",
+                  "fixed": "dark-green"
+                },
+                "enableGradient": false,
+                "enableShadow": false,
+                "fillOpacity": 0,
+                "iconSize": 9,
+                "pinShape": "marker",
+                "shape": "circle",
+                "showLegend": false,
+                "showPin": false,
+                "size": {
+                  "fixed": 1,
+                  "max": 15,
+                  "min": 2
+                }
+              },
+              "displayProperties": [
+                "site_name",
+                "control_plane_status",
+                "wan_ip",
+                "lan_ip",
+                "uptime",
+                "maya_os_version",
+                "template_version"
+              ],
+              "location": {
+                "latitude": "latitude",
+                "longitude": "longitude",
+                "mode": "coords"
+              },
+              "query": "A",
+              "type": "markers"
+            }
+          ],
+          "view": {
+            "id": "coords",
+            "lat": 40.189675,
+            "lon": 33.942945,
+            "shared": false,
+            "zoom": 6.29
+          }
+        },
+        "pluginVersion": "1.4.5",
+        "targets": [
+          {
+            "datasource": {
+              "type": "trino-datasource",
+              "uid": "fadcb0fa-3615-47bd-976d-6962c9d1e3a5"
+            },
+            "format": 1,
+            "rawSQL": "select  s.host,\n    trim(\n        both ' '\n        from concat(\n            case\n                when floor(max_by(uptime, l.last_check) / 86400) \u003e= 1\n                    then format(\n                        '%d days ',\n                        cast(floor(max_by(uptime, l.last_check) / 86400) as integer)\n                    )\n                else ''\n            end,\n            case\n                when floor((max_by(uptime, l.last_check) % 86400) / 3600) \u003e= 1\n                    then format(\n                        '%d hours',\n                        cast(floor((max_by(uptime, l.last_check) % 86400) / 3600) as integer)\n                    )\n                else ''\n            end\n        )\n    ) as uptime,\n    operational_status,\n\t\t--t.ishub_value, \n\t\t--true is_configured\n    vlan.lan_ip,\n    listagg(case when islanif = 'false' then  ip_address else null end, ' - ') WITHIN GROUP (ORDER BY case when islanif = 'false' then  ip_address else null end)  as wan_ip,\n\t\tcase when operational_status = 'ACTIVE' then 'Up' else 'Down' end as control_plane_status,\n\t\tsite_name,template_version,maya_os_version,\n\t\tadministrative_status,  \n\t\tcase when cast(latitude  as double) is null then 0 else  cast(latitude  as double) end +  (random() / 10000) latitude, \n\t\tcase when cast(longitude  as double) is null then 0 else  cast(longitude  as double) end +  (random() / 10000) longitude \nfrom  (\n  ${view_tenant_host_overlay_iface:text}\n)   as s\nleft join (\n        SELECT\n            id,\n            array_join(flatten(array_agg(CAST(lan_ip AS array(varchar)))),' , ' ) AS lan_ip\n        FROM tenant.public.site\n        WHERE lan_ip IS NOT NULL\n        GROUP BY id,lan_ip\n) as vlan on cast(vlan.id as varchar) = s.host\nleft join ( ${view_uptime:text}  )as l on s.host = l.host\nwhere  s.host is not null AND uptime is not null\n--and host != '' and (  '${sites:csv}' = '-' or regexp_count(host  , '${sites:regex}')\u003e0)\ngroup by s.host,site_name,operational_status,administrative_status,latitude,longitude,template_version,maya_os_version,vlan.lan_ip\norder by s.host",
+            "refId": "A"
+          }
+        ],
+        "title": "Site Map",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "administrative_status": true,
+                "host": false,
+                "latitude": false,
+                "longitude": false
+              },
+              "includeByName": {},
+              "indexByName": {
+                "administrative_status": 5,
+                "control_plane_status": 1,
+                "host": 2,
+                "lan_ip": 4,
+                "latitude": 9,
+                "longitude": 10,
+                "maya_os_version": 7,
+                "site_name": 0,
+                "template_version": 8,
+                "uptime": 6,
+                "wan_ip": 3
+              },
+              "renameByName": {
+                "control_plane_status": "Control Plane Status ",
+                "lan_ip": "Lan IP",
+                "latitude": "Latitude",
+                "longitude": "Longitude",
+                "maya_os_version": "MayaOS Version",
+                "operational_status": "Control Plane Status",
+                "site_name": "Site Name",
+                "template_version": "Template Version",
+                "uptime": "Uptime",
+                "wan_ip": "WAN IP"
+              }
+            }
+          }
+        ],
+        "type": "orchestracities-map-panel"
+      }
+    ],
+    "preload": false,
+    "refresh": "5s",
+    "schemaVersion": 42,
+    "tags": [],
+    "templating": {
+      "list": [
+        {
+          "current": {
+            "text": "bps",
+            "value": "bps"
+          },
+          "hide": 2,
+          "includeAll": false,
+          "label": "Type",
+          "name": "type",
+          "options": [
+            {
+              "selected": true,
+              "text": "Bytes",
+              "value": "bps"
+            },
+            {
+              "selected": false,
+              "text": "Packets",
+              "value": "pps"
+            }
+          ],
+          "query": "Bytes : bps,Packets : pps ",
+          "type": "custom"
+        },
+        {
+          "current": {
+            "text": "if_octets",
+            "value": "if_octets"
+          },
+          "includeAll": false,
+          "label": "Type",
+          "name": "type_hub",
+          "options": [
+            {
+              "selected": true,
+              "text": "Bits",
+              "value": "if_octets"
+            },
+            {
+              "selected": false,
+              "text": "Packets",
+              "value": "if_packets"
+            }
+          ],
+          "query": "Bits : if_octets,Packets : if_packets",
+          "type": "custom"
+        },
+        {
+          "current": {
+            "text": "if_octets",
+            "value": "if_octets"
+          },
+          "hide": 2,
+          "includeAll": false,
+          "name": "typeq",
+          "options": [
+            {
+              "selected": true,
+              "text": "Bits",
+              "value": "if_octets"
+            },
+            {
+              "selected": false,
+              "text": "Packets",
+              "value": "if_packets"
+            },
+            {
+              "selected": false,
+              "text": "Discard",
+              "value": "if_dropped"
+            }
+          ],
+          "query": "Bits : if_octets,Packets : if_packets,Discard : if_dropped",
+          "type": "custom"
+        },
+        {
+          "current": {
+            "text": "8",
+            "value": "8"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+          },
+          "definition": "select (case when '${typeq:csv}' = 'if_octets' then 8 else 1 end) as Unit",
+          "hide": 2,
+          "includeAll": false,
+          "name": "unit_change_bit",
+          "options": [],
+          "query": "select (case when '${typeq:csv}' = 'if_octets' then 8 else 1 end) as Unit",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "grafana-hub",
+            "value": "617a09a9-a174-4111-9457-6991e305a29e"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "d3ff3abc-927a-4298-b0e9-64d8c5d23ff6"
+          },
+          "definition": "select name ||'/'|| id\nfrom  (\n    ${view_hubs:csv}\n)as h",
+          "hide": 2,
+          "includeAll": false,
+          "name": "hubs",
+          "options": [],
+          "query": "select name ||'/'|| id\nfrom  (\n    ${view_hubs:csv}\n)as h",
+          "refresh": 2,
+          "regex": "(?\u003ctext\u003e.*)/(?\u003cvalue\u003e[{]?[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}[}]?)$",
+          "sort": 1,
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "grafana-hub",
+            "value": "617a09a9-a174-4111-9457-6991e305a29e"
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "d3ff3abc-927a-4298-b0e9-64d8c5d23ff6"
+          },
+          "definition": "select name || '/' || id \nfrom (\n    select name, id, ROW_NUMBER() over () as hub_index\n    from (${view_hubs:csv}) AS h\n) as indexed_hubs\nwhere hub_index = 1;\n",
+          "hide": 2,
+          "includeAll": false,
+          "name": "hub1",
+          "options": [],
+          "query": "select name || '/' || id \nfrom (\n    select name, id, ROW_NUMBER() over () as hub_index\n    from (${view_hubs:csv}) AS h\n) as indexed_hubs\nwhere hub_index = 1;\n",
+          "refresh": 2,
+          "regex": "(?\u003ctext\u003e.*)/(?\u003cvalue\u003e[{]?[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}[}]?)$",
+          "sort": 1,
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "grafana-hub",
+            "value": "grafana-hub"
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "d3ff3abc-927a-4298-b0e9-64d8c5d23ff6"
+          },
+          "definition": "select name\nfrom (\n    select name, id, ROW_NUMBER() over () as hub_index\n    from (${view_hubs:csv}) AS h\n) as indexed_hubs\nwhere hub_index = 1;\n",
+          "hide": 2,
+          "includeAll": false,
+          "name": "hub1_text",
+          "options": [],
+          "query": "select name\nfrom (\n    select name, id, ROW_NUMBER() over () as hub_index\n    from (${view_hubs:csv}) AS h\n) as indexed_hubs\nwhere hub_index = 1;\n",
+          "refresh": 2,
+          "regex": "",
+          "sort": 1,
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "d3ff3abc-927a-4298-b0e9-64d8c5d23ff6"
+          },
+          "definition": "select name || '/' || id \nfrom (\n    select name, id, ROW_NUMBER() over () as hub_index\n     from (${view_hubs:text}) as h\n) as indexed_hubs\nwhere hub_index = 2;\n",
+          "hide": 2,
+          "includeAll": false,
+          "name": "hub2",
+          "options": [],
+          "query": "select name || '/' || id \nfrom (\n    select name, id, ROW_NUMBER() over () as hub_index\n     from (${view_hubs:text}) as h\n) as indexed_hubs\nwhere hub_index = 2;\n",
+          "refresh": 2,
+          "regex": "(?\u003ctext\u003e.*)/(?\u003cvalue\u003e[{]?[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}[}]?)$",
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "617a09a9-a174-4111-9457-6991e305a29e",
+            "value": "617a09a9-a174-4111-9457-6991e305a29e"
+          },
+          "datasource": {
+            "type": "postgres",
+            "uid": "d3ff3abc-927a-4298-b0e9-64d8c5d23ff6"
+          },
+          "definition": "select  string_agg(cast(id as text), '|' ORDER BY id DESC)\n\nfrom  (\n    ${view_hubs:csv}\n)as h",
+          "hide": 2,
+          "includeAll": false,
+          "name": "all_hubs",
+          "options": [],
+          "query": "select  string_agg(cast(id as text), '|' ORDER BY id DESC)\n\nfrom  (\n    ${view_hubs:csv}\n)as h",
+          "refresh": 2,
+          "regex": "",
+          "sort": 1,
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "bps",
+            "value": "bps"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "d3ff3abc-927a-4298-b0e9-64d8c5d23ff6"
+          },
+          "definition": "select (case when '${type_hub:csv}' = 'if_octets' then 'bps' else 'pps' end) as Label",
+          "hide": 2,
+          "includeAll": false,
+          "name": "label",
+          "options": [],
+          "query": "select (case when '${type_hub:csv}' = 'if_octets' then 'bps' else 'pps' end) as Label",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "select\n\ti.*,\n\tdevice.maya_os_version\nfrom\n\tmaya_tenant.otlp_metric.\"\n    --ttl=150\n    --refresh=20\n    --cache=false\n    --name=Data Plane Status Sites And Overlays\n    --columns=host,site_name,type,iface,operational_status,administrative_status,is_configured\n    --dbtype=pg\n\tselect\n\t\ts.id host,\n\t\ts.created_at,\n\t\ts.updated_at,\n\t\t'?' mac_addres,\n\t\ts.name site_name,\n\t\tstvs.type,\n\t\tsplit_part(coalesce(osr.interface_name,trim( both  '\"\"' from cast(stvs.name as text) )), '.', 1) as iface_with_split,\n        coalesce(osr.interface_name,trim( both  '\"\"' from cast(stvs.name as text) )) as iface,\n\t\tosr.overlay_name  as overlay_name,\n\t\ttrim( both  '\"\"' from cast(stvs.name as text) )  as overlay_iface_name,\n\t\tcoalesce(osr.public_ip,stvs.ip_address) ip_address,\n\t\tcoalesce(cast(stvs.bandwidth as integer),10485760) bandwidth,\n\t\ts.id || '-'||  trim( both  '\"\"' from cast(stvs.name as text) ) as jn,\n\t\tcoalesce( coalesce((s.location-\u003e\u003e'latitude')::float,(parent_site.location-\u003e\u003e'latitude')::float ), 0) AS latitude,\n\t\tcoalesce( coalesce((s.location-\u003e\u003e'longitude')::float,(parent_site.location-\u003e\u003e'longitude')::float ), 0) AS longitude,\n\t\ts.operational_status,\n\t\ts.administrative_status,\n\t\t'?' as location_group,\n\t\tosr.carrier_type as carrier,\n\t\tcase when osr.role = 'HUB' then 'true' else 'false' end ishub_value,\n\t\tstvs.islanif,\n\t\tstvs.protect as is_mng_iface,\n\t\ttrue is_configured,\n\t\ttemplate_name,\n\t\ttrim( both  '\"\"' from cast(stvs.template_version as text) ) template_version,\n        trim( both  '\"\"' from cast(s.device::jsonb-\u003e'id' as text) ) device_id,\n        trim( both  '\"\"' from cast(s.device::jsonb-\u003e'modelId' as text) ) model_id\n\tfrom site s\n\tleft join (\n\t\tselect *\n\t\tfrom(\n\t\t\tSelect site_id,\n\t\t\t   template_version_id,\n\t\t\t   tv.site_config_data::jsonb-\u003e'template'-\u003e\u003e'name' template_name,\n\t\t\t   tv.site_config_data::jsonb-\u003e'version' template_version,\n\t\t\t   trim(both '\"\"' from (e-\u003e'name')::text )   as name,\n\t\t\t   trim(both '\"\"' from (e-\u003e'ethernet'-\u003e'address')[0]::text ) as ip_address,\n\t\t\t   trim(both '\"\"' from (e-\u003e'ethernet'-\u003e'bandwidth')[0]::text ) as bandwidth,\n\t\t\t   'ethernet' as type,\n--\t\t\t   o-\u003e'name'-\u003e'ishub' AS ishub_value,\n--\t\t\t   trim(both '\"\"' from (o-\u003e'namename')::text )  AS overlay_name,\n--\t\t\t   trim(both '\"\"' from (o-\u003e'name'-\u003e'wanif')::text )  AS overlay_iface_name,\n\t\t\t   e-\u003e'ethernet'-\u003e'islanif' AS islanif,\n\t\t\t   e-\u003e'ethernet'-\u003e'protect' AS protect\n\t\t\tFROM site_temp_version_state tv,\n\t\t\t\t jsonb_array_elements(tv.site_config_data::jsonb-\u003e'interfaces'-\u003e'ethernet'  ) e\n--\t\t\t\t jsonb_array_elements(tv.site_config_data::jsonb-\u003e'overlay'-\u003e'name') o\n\t\t\twhere (tv.site_config_data::jsonb-\u003e'interfaces'-\u003e'ethernet')::text != 'null'\n--\t\t\t\t\tand e-\u003e'name' = o-\u003e'name'-\u003e'wanif'\n \n\t\t\tunion\n \n\t\t\tSelect site_id,\n\t\t\t   template_version_id,\n\t\t\t   tv.site_config_data::jsonb-\u003e'template'-\u003e\u003e'name' template_name,\n\t\t\t   tv.site_config_data::jsonb-\u003e'version' template_version,\n\t\t\t   trim(both '\"\"' from (e-\u003e'name')::text )   as name,\n\t\t\t   trim(both '\"\"' from (e-\u003e'wwan'-\u003e'address')[0]::text ) as ip_address,\n\t\t\t   trim(both '\"\"' from (e-\u003e'wwan'-\u003e'bandwidth')[0]::text ) as bandwidth,\n\t\t\t   'wwan' as type,\n--\t\t\t   o-\u003e'name'-\u003e'ishub' AS ishub_value\n--\t\t\t   trim(both '\"\"' from (o-\u003e'namename')::text )  AS overlay_name,\n--\t\t\t   trim(both '\"\"' from (o-\u003e'name'-\u003e'wanif')::text )  AS overlay_iface_name,\n\t\t\t   e-\u003e'wwan'-\u003e'islanif' AS islanif,\n\t\t\t   e-\u003e'ethernet'-\u003e'protect' AS protect\n\t\t\tFROM site_temp_version_state tv,\n\t\t\t\t jsonb_array_elements(tv.site_config_data::jsonb-\u003e'interfaces'-\u003e'wwan'  ) e\n--\t\t\t\t jsonb_array_elements(tv.site_config_data::jsonb-\u003e'overlay'-\u003e'name') o\n\t\t\twhere tv.site_config_data::jsonb-\u003e'interfaces'-\u003e'wwan'::text !='null'\n\t\t\t\t\tand tv.site_config_data::jsonb-\u003e'overlay'::text !='null'\n--\t\t\t\t\tand e-\u003e'name' = o-\u003e'name'-\u003e'wanif'\n \n\t\t\tunion\n \n\t\t\tSelect site_id,\n\t\t\t   template_version_id,\n\t\t\t   tv.site_config_data::jsonb-\u003e'template'-\u003e\u003e'name' template_name,\n\t\t\t   tv.site_config_data::jsonb-\u003e'version' template_version,\n\t\t\t   trim(both '\"\"' from (e-\u003e'name')::text )   as name,\n\t\t\t   trim(both '\"\"' from (e-\u003e'bonding'-\u003e'address')[0]::text ) as ip_address,\n\t\t\t   trim(both '\"\"' from (e-\u003e'bonding'-\u003e'bandwidth')[0]::text ) as bandwidth,\n\t\t\t   'bonding' as type,\n--\t\t\t   o-\u003e'name'-\u003e'ishub' AS ishub_value\n--\t\t\t   trim(both '\"\"' from (o-\u003e'namename')::text )  AS overlay_name,\n--\t\t\t   trim(both '\"\"' from (o-\u003e'name'-\u003e'wanif')::text )  AS overlay_iface_name,\n\t\t\t   e-\u003e'bonding'-\u003e'islanif' AS islanif,\n\t\t\t   e-\u003e'ethernet'-\u003e'protect' AS protect\n\t\t\tFROM site_temp_version_state tv,\n\t\t\t\t jsonb_array_elements(tv.site_config_data::jsonb-\u003e'interfaces'-\u003e'bonding'  ) e\n--\t\t\t\t jsonb_array_elements(tv.site_config_data::jsonb-\u003e'overlay'-\u003e'name') o\n\t\t\twhere tv.site_config_data::jsonb-\u003e'interfaces'-\u003e'bonding' ::text !='null'\n\t\t\t\t\tand tv.site_config_data::jsonb-\u003e'overlay'::text !='null'\n--\t\t\t\t\tand e-\u003e'name' = o-\u003e'name'-\u003e'wanif'\n \n\t\t) as i1\n\t)as stvs   on  stvs.site_id = s.id\n\t\t\t\t\t-- and stvs.template_version_id = s.template_version_id\n\tleft join overlay_site_relation osr on  osr.site_id = s.id and osr.template_version_id = stvs.template_version_id\n        and  stvs.name  =  split_part(coalesce(osr.interface_name,trim( both  '\"\"' from cast(stvs.name as text) )), '.', 1) \n\tleft join site parent_site on  parent_site.id = s.parent_id\n    where s.device is not null\n\torder by s.id\n \n    \" as i\n\tleft join envanter.public.device device on i.device_id = cast(device.id as varchar)",
+            "value": "select\n\ti.*,\n\tdevice.maya_os_version\nfrom\n\tmaya_tenant.otlp_metric.\"\n    --ttl=150\n    --refresh=20\n    --cache=false\n    --name=Data Plane Status Sites And Overlays\n    --columns=host,site_name,type,iface,operational_status,administrative_status,is_configured\n    --dbtype=pg\n\tselect\n\t\ts.id host,\n\t\ts.created_at,\n\t\ts.updated_at,\n\t\t'?' mac_addres,\n\t\ts.name site_name,\n\t\tstvs.type,\n\t\tsplit_part(coalesce(osr.interface_name,trim( both  '\"\"' from cast(stvs.name as text) )), '.', 1) as iface_with_split,\n        coalesce(osr.interface_name,trim( both  '\"\"' from cast(stvs.name as text) )) as iface,\n\t\tosr.overlay_name  as overlay_name,\n\t\ttrim( both  '\"\"' from cast(stvs.name as text) )  as overlay_iface_name,\n\t\tcoalesce(osr.public_ip,stvs.ip_address) ip_address,\n\t\tcoalesce(cast(stvs.bandwidth as integer),10485760) bandwidth,\n\t\ts.id || '-'||  trim( both  '\"\"' from cast(stvs.name as text) ) as jn,\n\t\tcoalesce( coalesce((s.location-\u003e\u003e'latitude')::float,(parent_site.location-\u003e\u003e'latitude')::float ), 0) AS latitude,\n\t\tcoalesce( coalesce((s.location-\u003e\u003e'longitude')::float,(parent_site.location-\u003e\u003e'longitude')::float ), 0) AS longitude,\n\t\ts.operational_status,\n\t\ts.administrative_status,\n\t\t'?' as location_group,\n\t\tosr.carrier_type as carrier,\n\t\tcase when osr.role = 'HUB' then 'true' else 'false' end ishub_value,\n\t\tstvs.islanif,\n\t\tstvs.protect as is_mng_iface,\n\t\ttrue is_configured,\n\t\ttemplate_name,\n\t\ttrim( both  '\"\"' from cast(stvs.template_version as text) ) template_version,\n        trim( both  '\"\"' from cast(s.device::jsonb-\u003e'id' as text) ) device_id,\n        trim( both  '\"\"' from cast(s.device::jsonb-\u003e'modelId' as text) ) model_id\n\tfrom site s\n\tleft join (\n\t\tselect *\n\t\tfrom(\n\t\t\tSelect site_id,\n\t\t\t   template_version_id,\n\t\t\t   tv.site_config_data::jsonb-\u003e'template'-\u003e\u003e'name' template_name,\n\t\t\t   tv.site_config_data::jsonb-\u003e'version' template_version,\n\t\t\t   trim(both '\"\"' from (e-\u003e'name')::text )   as name,\n\t\t\t   trim(both '\"\"' from (e-\u003e'ethernet'-\u003e'address')[0]::text ) as ip_address,\n\t\t\t   trim(both '\"\"' from (e-\u003e'ethernet'-\u003e'bandwidth')[0]::text ) as bandwidth,\n\t\t\t   'ethernet' as type,\n--\t\t\t   o-\u003e'name'-\u003e'ishub' AS ishub_value,\n--\t\t\t   trim(both '\"\"' from (o-\u003e'namename')::text )  AS overlay_name,\n--\t\t\t   trim(both '\"\"' from (o-\u003e'name'-\u003e'wanif')::text )  AS overlay_iface_name,\n\t\t\t   e-\u003e'ethernet'-\u003e'islanif' AS islanif,\n\t\t\t   e-\u003e'ethernet'-\u003e'protect' AS protect\n\t\t\tFROM site_temp_version_state tv,\n\t\t\t\t jsonb_array_elements(tv.site_config_data::jsonb-\u003e'interfaces'-\u003e'ethernet'  ) e\n--\t\t\t\t jsonb_array_elements(tv.site_config_data::jsonb-\u003e'overlay'-\u003e'name') o\n\t\t\twhere (tv.site_config_data::jsonb-\u003e'interfaces'-\u003e'ethernet')::text != 'null'\n--\t\t\t\t\tand e-\u003e'name' = o-\u003e'name'-\u003e'wanif'\n \n\t\t\tunion\n \n\t\t\tSelect site_id,\n\t\t\t   template_version_id,\n\t\t\t   tv.site_config_data::jsonb-\u003e'template'-\u003e\u003e'name' template_name,\n\t\t\t   tv.site_config_data::jsonb-\u003e'version' template_version,\n\t\t\t   trim(both '\"\"' from (e-\u003e'name')::text )   as name,\n\t\t\t   trim(both '\"\"' from (e-\u003e'wwan'-\u003e'address')[0]::text ) as ip_address,\n\t\t\t   trim(both '\"\"' from (e-\u003e'wwan'-\u003e'bandwidth')[0]::text ) as bandwidth,\n\t\t\t   'wwan' as type,\n--\t\t\t   o-\u003e'name'-\u003e'ishub' AS ishub_value\n--\t\t\t   trim(both '\"\"' from (o-\u003e'namename')::text )  AS overlay_name,\n--\t\t\t   trim(both '\"\"' from (o-\u003e'name'-\u003e'wanif')::text )  AS overlay_iface_name,\n\t\t\t   e-\u003e'wwan'-\u003e'islanif' AS islanif,\n\t\t\t   e-\u003e'ethernet'-\u003e'protect' AS protect\n\t\t\tFROM site_temp_version_state tv,\n\t\t\t\t jsonb_array_elements(tv.site_config_data::jsonb-\u003e'interfaces'-\u003e'wwan'  ) e\n--\t\t\t\t jsonb_array_elements(tv.site_config_data::jsonb-\u003e'overlay'-\u003e'name') o\n\t\t\twhere tv.site_config_data::jsonb-\u003e'interfaces'-\u003e'wwan'::text !='null'\n\t\t\t\t\tand tv.site_config_data::jsonb-\u003e'overlay'::text !='null'\n--\t\t\t\t\tand e-\u003e'name' = o-\u003e'name'-\u003e'wanif'\n \n\t\t\tunion\n \n\t\t\tSelect site_id,\n\t\t\t   template_version_id,\n\t\t\t   tv.site_config_data::jsonb-\u003e'template'-\u003e\u003e'name' template_name,\n\t\t\t   tv.site_config_data::jsonb-\u003e'version' template_version,\n\t\t\t   trim(both '\"\"' from (e-\u003e'name')::text )   as name,\n\t\t\t   trim(both '\"\"' from (e-\u003e'bonding'-\u003e'address')[0]::text ) as ip_address,\n\t\t\t   trim(both '\"\"' from (e-\u003e'bonding'-\u003e'bandwidth')[0]::text ) as bandwidth,\n\t\t\t   'bonding' as type,\n--\t\t\t   o-\u003e'name'-\u003e'ishub' AS ishub_value\n--\t\t\t   trim(both '\"\"' from (o-\u003e'namename')::text )  AS overlay_name,\n--\t\t\t   trim(both '\"\"' from (o-\u003e'name'-\u003e'wanif')::text )  AS overlay_iface_name,\n\t\t\t   e-\u003e'bonding'-\u003e'islanif' AS islanif,\n\t\t\t   e-\u003e'ethernet'-\u003e'protect' AS protect\n\t\t\tFROM site_temp_version_state tv,\n\t\t\t\t jsonb_array_elements(tv.site_config_data::jsonb-\u003e'interfaces'-\u003e'bonding'  ) e\n--\t\t\t\t jsonb_array_elements(tv.site_config_data::jsonb-\u003e'overlay'-\u003e'name') o\n\t\t\twhere tv.site_config_data::jsonb-\u003e'interfaces'-\u003e'bonding' ::text !='null'\n\t\t\t\t\tand tv.site_config_data::jsonb-\u003e'overlay'::text !='null'\n--\t\t\t\t\tand e-\u003e'name' = o-\u003e'name'-\u003e'wanif'\n \n\t\t) as i1\n\t)as stvs   on  stvs.site_id = s.id\n\t\t\t\t\t-- and stvs.template_version_id = s.template_version_id\n\tleft join overlay_site_relation osr on  osr.site_id = s.id and osr.template_version_id = stvs.template_version_id\n        and  stvs.name  =  split_part(coalesce(osr.interface_name,trim( both  '\"\"' from cast(stvs.name as text) )), '.', 1) \n\tleft join site parent_site on  parent_site.id = s.parent_id\n    where s.device is not null\n\torder by s.id\n \n    \" as i\n\tleft join envanter.public.device device on i.device_id = cast(device.id as varchar)"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+          },
+          "definition": "select v1  from maya_global_settings where k='view_tenant_host_overlay_iface'",
+          "hide": 2,
+          "includeAll": false,
+          "name": "view_tenant_host_overlay_iface",
+          "options": [],
+          "query": "select v1  from maya_global_settings where k='view_tenant_host_overlay_iface'",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "select id || '-' || name as f, \n\t\t\t name, id,\n\t\t\t cast(id as varchar) as   \"span_attributes.h\", cast(id as varchar) as  host, operational_status,\n\t\t\t administrative_status , \n\t\t\t(location-\u003e\u003e'latitude')::float + (random()/10000)  AS latitude, \n\t\t\t(location-\u003e\u003e'longitude')::float  + (random()/10000) AS longitude\nfrom site s \nwhere device is not null \norder by name",
+            "value": "select id || '-' || name as f, \n\t\t\t name, id,\n\t\t\t cast(id as varchar) as   \"span_attributes.h\", cast(id as varchar) as  host, operational_status,\n\t\t\t administrative_status , \n\t\t\t(location-\u003e\u003e'latitude')::float + (random()/10000)  AS latitude, \n\t\t\t(location-\u003e\u003e'longitude')::float  + (random()/10000) AS longitude\nfrom site s \nwhere device is not null \norder by name"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+          },
+          "definition": "select v1  from maya_global_settings where k='view_all_sites'",
+          "hide": 2,
+          "includeAll": false,
+          "name": "view_all_sites",
+          "options": [],
+          "query": "select v1  from maya_global_settings where k='view_all_sites'",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "\n\tselect * \n\tfrom site s\n\twhere device is not null and exists (\n\t\n\t\tselect * \n\t\tfrom (\n\t\t\t\tselect  jsonb_array_elements(overlay-\u003e'name')-\u003e'name'-\u003e'ishub' AS ishub_value ,id\n\t\t\t\tFROM template_version\n\t\t) as hubs \n\t\twhere hubs.id =  s.template_version_id and  hubs.ishub_value = 'true' \n\t)",
+            "value": "\n\tselect * \n\tfrom site s\n\twhere device is not null and exists (\n\t\n\t\tselect * \n\t\tfrom (\n\t\t\t\tselect  jsonb_array_elements(overlay-\u003e'name')-\u003e'name'-\u003e'ishub' AS ishub_value ,id\n\t\t\t\tFROM template_version\n\t\t) as hubs \n\t\twhere hubs.id =  s.template_version_id and  hubs.ishub_value = 'true' \n\t)"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+          },
+          "definition": "select v1  from maya_global_settings where k='view_hubs'",
+          "hide": 2,
+          "includeAll": false,
+          "name": "view_hubs",
+          "options": [],
+          "query": "select v1  from maya_global_settings where k='view_hubs'",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "select distinct  host, max_by(uptime,max_date) uptime, max(max_date) last_check\n           from (select \"/2/key\"                 host,\n                        cast(\"/value\" as double) uptime,\n                        cast(\"1/value\" as double) max_date\n                 from quickwit.metrics4.\"\n          //ttl=150\n          //refresh=75\n          //cache=false\n          //name=updatime\n          //columns=host,uptime\n          //dbtype=qw\n          //qwindex=metrics3\n          //replacefromcolumns=/3/buckets/2/buckets/4/buckets/5/buckets/1\n          //hasjs=false\n          //from=1774613164\n          //to=1774616764\n\n          {\n          \"\"aggs\"\": {\n            \"\"3\"\": {\n              \"\"aggs\"\": {\n                \"\"2\"\": {\n                  \"\"aggs\"\": {\n                    \"\"4\"\": {\n                      \"\"aggs\"\": {\n                        \"\"5\"\": {\n                          \"\"aggs\"\": {\n                            \"\"1\"\": {\n                              \"\"max\"\": {\n                                \"\"field\"\": \"\"span_attributes.value\"\"\n                              }\n                            },\n                            \"\"11\"\": {\n                              \"\"max\"\": {\n                                \"\"field\"\": \"\"span_start_timestamp_nanos\"\"\n                              }\n                            }\n                          },\n                          \"\"terms\"\": {\n                            \"\"field\"\": \"\"span_attributes.t\"\",\n                            \"\"size\"\":9999,\n                            \"\"order\"\": {\n                              \"\"11\"\": \"\"desc\"\"\n                            },\n                            \"\"min_doc_count\"\": 1\n                          }\n                        }\n                      },\n                      \"\"terms\"\": {\n                        \"\"field\"\": \"\"span_attributes.p\"\",\n                        \"\"size\"\":9999,\n                        \"\"order\"\": {\n                          \"\"_key\"\": \"\"desc\"\"\n                        },\n                        \"\"min_doc_count\"\": 1\n                      }\n                    }\n                  },\n                  \"\"terms\"\": {\n                    \"\"field\"\": \"\"span_attributes.h\"\",\n                    \"\"size\"\":9999,\n                    \"\"order\"\": {\n                      \"\"_key\"\": \"\"desc\"\"\n                    },\n                    \"\"min_doc_count\"\": 1\n                  }\n                }\n              },\n              \"\"date_histogram\"\": {\n                \"\"field\"\": \"\"span_start_timestamp_nanos\"\",\n                \"\"fixed_interval\"\": \"\"1d\"\",\n                \"\"min_doc_count\"\": 1\n              }\n            }\n          },\n          \"\"query\"\": \"\"span_attributes.p:uptime\"\",\n          \"\"max_hits\"\": 0,\n          \"\"start_timestamp\"\": 1774613164,\n          \"\"end_timestamp\"\": 1774616764\n        }\n\n          \" as i) as j\n           group by host",
+            "value": "select distinct  host, max_by(uptime,max_date) uptime, max(max_date) last_check\n           from (select \"/2/key\"                 host,\n                        cast(\"/value\" as double) uptime,\n                        cast(\"1/value\" as double) max_date\n                 from quickwit.metrics4.\"\n          //ttl=150\n          //refresh=75\n          //cache=false\n          //name=updatime\n          //columns=host,uptime\n          //dbtype=qw\n          //qwindex=metrics3\n          //replacefromcolumns=/3/buckets/2/buckets/4/buckets/5/buckets/1\n          //hasjs=false\n          //from=1774613164\n          //to=1774616764\n\n          {\n          \"\"aggs\"\": {\n            \"\"3\"\": {\n              \"\"aggs\"\": {\n                \"\"2\"\": {\n                  \"\"aggs\"\": {\n                    \"\"4\"\": {\n                      \"\"aggs\"\": {\n                        \"\"5\"\": {\n                          \"\"aggs\"\": {\n                            \"\"1\"\": {\n                              \"\"max\"\": {\n                                \"\"field\"\": \"\"span_attributes.value\"\"\n                              }\n                            },\n                            \"\"11\"\": {\n                              \"\"max\"\": {\n                                \"\"field\"\": \"\"span_start_timestamp_nanos\"\"\n                              }\n                            }\n                          },\n                          \"\"terms\"\": {\n                            \"\"field\"\": \"\"span_attributes.t\"\",\n                            \"\"size\"\":9999,\n                            \"\"order\"\": {\n                              \"\"11\"\": \"\"desc\"\"\n                            },\n                            \"\"min_doc_count\"\": 1\n                          }\n                        }\n                      },\n                      \"\"terms\"\": {\n                        \"\"field\"\": \"\"span_attributes.p\"\",\n                        \"\"size\"\":9999,\n                        \"\"order\"\": {\n                          \"\"_key\"\": \"\"desc\"\"\n                        },\n                        \"\"min_doc_count\"\": 1\n                      }\n                    }\n                  },\n                  \"\"terms\"\": {\n                    \"\"field\"\": \"\"span_attributes.h\"\",\n                    \"\"size\"\":9999,\n                    \"\"order\"\": {\n                      \"\"_key\"\": \"\"desc\"\"\n                    },\n                    \"\"min_doc_count\"\": 1\n                  }\n                }\n              },\n              \"\"date_histogram\"\": {\n                \"\"field\"\": \"\"span_start_timestamp_nanos\"\",\n                \"\"fixed_interval\"\": \"\"1d\"\",\n                \"\"min_doc_count\"\": 1\n              }\n            }\n          },\n          \"\"query\"\": \"\"span_attributes.p:uptime\"\",\n          \"\"max_hits\"\": 0,\n          \"\"start_timestamp\"\": 1774613164,\n          \"\"end_timestamp\"\": 1774616764\n        }\n\n          \" as i) as j\n           group by host"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+          },
+          "definition": "select replace(replace(v1, '$'||'{__from:date:seconds}', '${__from:date:seconds}'), '$'||'{__to:date:seconds}', '${__to:date:seconds}') from maya_global_settings where k='view_uptime'",
+          "hide": 2,
+          "includeAll": false,
+          "name": "view_uptime",
+          "options": [],
+          "query": "select replace(replace(v1, '$'||'{__from:date:seconds}', '${__from:date:seconds}'), '$'||'{__to:date:seconds}', '${__to:date:seconds}') from maya_global_settings where k='view_uptime'",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "allValue": "-",
+          "current": {
+            "text": "All",
+            "value": [
+              "$__all"
+            ]
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "d3ff3abc-927a-4298-b0e9-64d8c5d23ff6"
+          },
+          "definition": "${view_all_sites:csv}",
+          "hide": 2,
+          "includeAll": true,
+          "label": "Sites",
+          "multi": true,
+          "name": "sites",
+          "options": [],
+          "query": "${view_all_sites:csv}",
+          "refresh": 2,
+          "regex": "(?\u003cvalue\u003e[{]?[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}[}]?)-(?\u003ctext\u003e.*)$",
+          "sort": 1,
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "yucemonitoring",
+            "value": "yucemonitoring"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+          },
+          "definition": "select v1  from maya_global_settings where k='controller_ns'",
+          "hide": 2,
+          "includeAll": false,
+          "name": "controller_ns",
+          "options": [],
+          "query": "select v1  from maya_global_settings where k='controller_ns'",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "yucemonitoring",
+            "value": "yucemonitoring"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+          },
+          "definition": "select v1  from maya_global_settings where k='monitoring_ns'",
+          "hide": 2,
+          "includeAll": false,
+          "name": "monitoring_ns",
+          "options": [],
+          "query": "select v1  from maya_global_settings where k='monitoring_ns'",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "100",
+            "value": "100"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+          },
+          "definition": "select v1  from maya_global_settings where k='max_name_length'",
+          "hide": 2,
+          "includeAll": false,
+          "name": "max_name_length",
+          "options": [],
+          "query": "select v1  from maya_global_settings where k='max_name_length'",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "5",
+            "value": "5"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+          },
+          "definition": "SELECT cast(token as int)\nFROM   maya_global_settings, string_to_table(v1, ',') token\nwhere k='top'\norder by token asc",
+          "hide": 2,
+          "includeAll": false,
+          "label": "Top",
+          "name": "top",
+          "options": [],
+          "query": "SELECT cast(token as int)\nFROM   maya_global_settings, string_to_table(v1, ',') token\nwhere k='top'\norder by token asc",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "select   distinct \"/4/6/key_as_string\" as                                                  time,\n                         \"/4/5/key\"           as                                                  host,\n                         \"/2/51/key\"                                                              iface,\n                         \"/2/61/key\"                                                              if_type,\n                         cast(\"/2/value\" as double)                                               min_tx,\n                         cast(\"/21/value\" as double)                                              max_tx,\n                         cast(\"/3/value\" as double)                                               min_rx,\n                         cast(\"/4/value\" as double)                                               max_rx, \n                         case when (cast(\"/41/value\" as double) - cast(\"/42/value\" as double)) / 1000000000 = 0 then 600 \n         \t\t\t\t\t  else  (cast(\"/41/value\" as double) - cast(\"/42/value\" as double)) / 1000000000 end duration\n                  from quickwit.otlp_metric.\"\n                        //ttl=172800\n                        //refresh=10\n                        //cache=false\n                        //eagercache=false\n                        //name=Hub Network Throughput (${top})\n                        //columns=host,_time,_value\n                        //dbtype=qw\n                        //qwindex=metrics3\n                        //replacefromcolumns=/6/buckets/5/buckets/51/buckets/61/buckets\n                        //from=1774613164\n                        //to=1774616764\n                        //timefield=/4/6/key\n                        //hasjs=true\n                        {\n                          \"\"aggs\"\": {\n                              \"\"6\"\": {\n                                \"\"aggs\"\": {\n                                  \"\"5\"\": {\n                                    \"\"aggs\"\": {\n                                      \"\"51\"\": {\n                                        \"\"aggs\"\": {\n                                          \"\"61\"\": {\n                                            \"\"aggs\"\": {\n                                              \"\"2\"\": {\n                                                \"\"min\"\": {\n                                                  \"\"field\"\": \"\"span_attributes.tx\"\"\n                                                }\n                                              },\n                                              \"\"21\"\": {\n                                                \"\"max\"\": {\n                                                  \"\"field\"\": \"\"span_attributes.tx\"\"\n                                                }\n                                              },\n                                              \"\"3\"\": {\n                                                \"\"min\"\": {\n                                                  \"\"field\"\": \"\"span_attributes.rx\"\"\n                                                }\n                                              },\n                                              \"\"4\"\": {\n                                                \"\"max\"\": {\n                                                  \"\"field\"\": \"\"span_attributes.rx\"\"\n                                                }\n                                              },\n                                              \"\"41\"\": {\n                                                \"\"max\"\": {\n                                                  \"\"field\"\": \"\"span_start_timestamp_nanos\"\"\n                                                }\n                                              },\n                                              \"\"42\"\": {\n                                                \"\"min\"\": {\n                                                  \"\"field\"\": \"\"span_start_timestamp_nanos\"\"\n                                                }\n                                              }\n                                            },\n                                            \"\"terms\"\": {\n                                              \"\"field\"\": \"\"span_attributes.t\"\",\n                                              \"\"size\"\": 9999,\n                                              \"\"order\"\": {\n                                                \"\"_key\"\": \"\"desc\"\"\n                                              },\n                                              \"\"min_doc_count\"\": 1\n                                            }\n                                          }\n                                        },\n                                        \"\"terms\"\": {\n                                          \"\"field\"\": \"\"span_attributes.pi\"\",\n                                          \"\"size\"\": 9999,\n                                          \"\"order\"\": {\n                                            \"\"_key\"\": \"\"desc\"\"\n                                          },\n                                          \"\"min_doc_count\"\": 1\n                                        }\n                                      }\n                                    },\n                                    \"\"terms\"\": {\n                                      \"\"field\"\": \"\"span_attributes.h\"\",\n                                      \"\"size\"\": 9999,\n                                      \"\"order\"\": {\n                                        \"\"_key\"\": \"\"desc\"\"\n                                      },\n                                      \"\"min_doc_count\"\": 1\n                                    }\n                                  }\n                                },\n                                \"\"date_histogram\"\": {\n                                  \"\"field\"\": \"\"span_start_timestamp_nanos\"\",\n                                  \"\"fixed_interval\"\": \"\"600s\"\",\n                                  \"\"min_doc_count\"\": 1\n                                }\n                              }\n                            },\n                          \"\"query\"\": \"\"span_attributes.p:interface AND  span_attributes.h:IN [617a09a9-a174-4111-9457-6991e305a29e] AND span_attributes.t:IN [if_octets] AND (span_attributes.pi:bond* OR span_attributes.pi:eth* OR span_attributes.pi:wwan*) \"\",\n                          \"\"max_hits\"\": 0,\n                          \"\"start_timestamp\"\": Math.ceil(1774613164/600)*600,\n                          \"\"end_timestamp\"\": Math.floor(1774616764/600)*600\n                      }\n                        \" as i",
+            "value": "select   distinct \"/4/6/key_as_string\" as                                                  time,\n                         \"/4/5/key\"           as                                                  host,\n                         \"/2/51/key\"                                                              iface,\n                         \"/2/61/key\"                                                              if_type,\n                         cast(\"/2/value\" as double)                                               min_tx,\n                         cast(\"/21/value\" as double)                                              max_tx,\n                         cast(\"/3/value\" as double)                                               min_rx,\n                         cast(\"/4/value\" as double)                                               max_rx, \n                         case when (cast(\"/41/value\" as double) - cast(\"/42/value\" as double)) / 1000000000 = 0 then 600 \n         \t\t\t\t\t  else  (cast(\"/41/value\" as double) - cast(\"/42/value\" as double)) / 1000000000 end duration\n                  from quickwit.otlp_metric.\"\n                        //ttl=172800\n                        //refresh=10\n                        //cache=false\n                        //eagercache=false\n                        //name=Hub Network Throughput (${top})\n                        //columns=host,_time,_value\n                        //dbtype=qw\n                        //qwindex=metrics3\n                        //replacefromcolumns=/6/buckets/5/buckets/51/buckets/61/buckets\n                        //from=1774613164\n                        //to=1774616764\n                        //timefield=/4/6/key\n                        //hasjs=true\n                        {\n                          \"\"aggs\"\": {\n                              \"\"6\"\": {\n                                \"\"aggs\"\": {\n                                  \"\"5\"\": {\n                                    \"\"aggs\"\": {\n                                      \"\"51\"\": {\n                                        \"\"aggs\"\": {\n                                          \"\"61\"\": {\n                                            \"\"aggs\"\": {\n                                              \"\"2\"\": {\n                                                \"\"min\"\": {\n                                                  \"\"field\"\": \"\"span_attributes.tx\"\"\n                                                }\n                                              },\n                                              \"\"21\"\": {\n                                                \"\"max\"\": {\n                                                  \"\"field\"\": \"\"span_attributes.tx\"\"\n                                                }\n                                              },\n                                              \"\"3\"\": {\n                                                \"\"min\"\": {\n                                                  \"\"field\"\": \"\"span_attributes.rx\"\"\n                                                }\n                                              },\n                                              \"\"4\"\": {\n                                                \"\"max\"\": {\n                                                  \"\"field\"\": \"\"span_attributes.rx\"\"\n                                                }\n                                              },\n                                              \"\"41\"\": {\n                                                \"\"max\"\": {\n                                                  \"\"field\"\": \"\"span_start_timestamp_nanos\"\"\n                                                }\n                                              },\n                                              \"\"42\"\": {\n                                                \"\"min\"\": {\n                                                  \"\"field\"\": \"\"span_start_timestamp_nanos\"\"\n                                                }\n                                              }\n                                            },\n                                            \"\"terms\"\": {\n                                              \"\"field\"\": \"\"span_attributes.t\"\",\n                                              \"\"size\"\": 9999,\n                                              \"\"order\"\": {\n                                                \"\"_key\"\": \"\"desc\"\"\n                                              },\n                                              \"\"min_doc_count\"\": 1\n                                            }\n                                          }\n                                        },\n                                        \"\"terms\"\": {\n                                          \"\"field\"\": \"\"span_attributes.pi\"\",\n                                          \"\"size\"\": 9999,\n                                          \"\"order\"\": {\n                                            \"\"_key\"\": \"\"desc\"\"\n                                          },\n                                          \"\"min_doc_count\"\": 1\n                                        }\n                                      }\n                                    },\n                                    \"\"terms\"\": {\n                                      \"\"field\"\": \"\"span_attributes.h\"\",\n                                      \"\"size\"\": 9999,\n                                      \"\"order\"\": {\n                                        \"\"_key\"\": \"\"desc\"\"\n                                      },\n                                      \"\"min_doc_count\"\": 1\n                                    }\n                                  }\n                                },\n                                \"\"date_histogram\"\": {\n                                  \"\"field\"\": \"\"span_start_timestamp_nanos\"\",\n                                  \"\"fixed_interval\"\": \"\"600s\"\",\n                                  \"\"min_doc_count\"\": 1\n                                }\n                              }\n                            },\n                          \"\"query\"\": \"\"span_attributes.p:interface AND  span_attributes.h:IN [617a09a9-a174-4111-9457-6991e305a29e] AND span_attributes.t:IN [if_octets] AND (span_attributes.pi:bond* OR span_attributes.pi:eth* OR span_attributes.pi:wwan*) \"\",\n                          \"\"max_hits\"\": 0,\n                          \"\"start_timestamp\"\": Math.ceil(1774613164/600)*600,\n                          \"\"end_timestamp\"\": Math.floor(1774616764/600)*600\n                      }\n                        \" as i"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+          },
+          "definition": "select replace(\n\t\t\treplace(\n\t\t\t\treplace(\n\t\t\t\t\treplace(\n\t\t\t\t\t\treplace( \n\t\t\t\t\t\t\treplace(v1, \n\t\t\t\t\t\t\t\t'span_attributes.p:interface', \n\t\t\t\t\t\t\t\t'span_attributes.p:interface AND  span_attributes.h:IN [${all_hubs:pipe}] AND span_attributes.t:IN [${type_hub:pipe}]'), \n\t\t\t\t\t\t'$'||'{resolution_in_seconds:csv}', '${resolution_in_seconds:csv}'), \n\t\t\t\t\t'$'||'{retention_period_in_hours:csv}', '${retention_period_in_hours:csv}'),  \n\t\t\t\t'$'||'{unit_change_bit:csv}', '${unit_change_bit:csv}'), \n\t\t\t'$'||'{__from:date:seconds}', '${__from:date:seconds}'), \n\t\t'$'||'{__to:date:seconds}', '${__to:date:seconds}') \nfrom maya_global_settings where k='view_interface'",
+          "hide": 2,
+          "includeAll": false,
+          "name": "view_interface_with_all_hubs_and_type_filter",
+          "options": [],
+          "query": "select replace(\n\t\t\treplace(\n\t\t\t\treplace(\n\t\t\t\t\treplace(\n\t\t\t\t\t\treplace( \n\t\t\t\t\t\t\treplace(v1, \n\t\t\t\t\t\t\t\t'span_attributes.p:interface', \n\t\t\t\t\t\t\t\t'span_attributes.p:interface AND  span_attributes.h:IN [${all_hubs:pipe}] AND span_attributes.t:IN [${type_hub:pipe}]'), \n\t\t\t\t\t\t'$'||'{resolution_in_seconds:csv}', '${resolution_in_seconds:csv}'), \n\t\t\t\t\t'$'||'{retention_period_in_hours:csv}', '${retention_period_in_hours:csv}'),  \n\t\t\t\t'$'||'{unit_change_bit:csv}', '${unit_change_bit:csv}'), \n\t\t\t'$'||'{__from:date:seconds}', '${__from:date:seconds}'), \n\t\t'$'||'{__to:date:seconds}', '${__to:date:seconds}') \nfrom maya_global_settings where k='view_interface'",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "WITH labels AS (\n  SELECT\n    ai.rule_uid,\n    ai.current_state,\n    ai.labels_hash,\n    max(CASE WHEN e-\u003e\u003e0='grafana_folder'           THEN e-\u003e\u003e1 END) AS sensor,\n    max(CASE WHEN e-\u003e\u003e0='host'                    THEN e-\u003e\u003e1 END) AS host,\n    max(CASE WHEN e-\u003e\u003e0='m_notif_plugin'          THEN e-\u003e\u003e1 END) AS alarm_name,\n    max(CASE WHEN e-\u003e\u003e0='m_notif_plugin_instance' THEN e-\u003e\u003e1 END) AS plugin_instance,\n    max(CASE WHEN e-\u003e\u003e0='m_notif_type'            THEN e-\u003e\u003e1 END) AS type,\n    max(CASE WHEN e-\u003e\u003e0='m_notif_type_instance'   THEN e-\u003e\u003e1 END) AS type_instance,\n    max(CASE WHEN e-\u003e\u003e0='m_datasource'            THEN e-\u003e\u003e1 END) AS datasource,\n    max(CASE WHEN e-\u003e\u003e0='m_currentvalue'          THEN e-\u003e\u003e1 END) AS currentvalue,\n    max(CASE WHEN e-\u003e\u003e0='max_date_num'            THEN e-\u003e\u003e1 END) AS max_date_num,\n    max(CASE WHEN e-\u003e\u003e0='status'                  THEN e-\u003e\u003e1 END) AS last_status,\n    max(CASE WHEN e-\u003e\u003e0='notification_a'          THEN e-\u003e\u003e1 END) AS notification_description,\n    max(CASE WHEN e-\u003e\u003e0='site_name_a'             THEN e-\u003e\u003e1 END) AS site_name_from_alert,\n    max(CASE WHEN e-\u003e\u003e0='m_overlay'               THEN e-\u003e\u003e1 END) AS m_overlay,\n    max(CASE WHEN e-\u003e\u003e0='m_iface'                 THEN e-\u003e\u003e1 END) AS m_iface,\n    max(CASE WHEN e-\u003e\u003e0='m_notif_plugin'          THEN e-\u003e\u003e1 END) AS atmp3_v  -- same as alarm_name for your CASE usage\n  FROM alert_instance ai\n  CROSS JOIN LATERAL jsonb_array_elements(ai.labels::jsonb) AS e\n  WHERE lower(ai.current_state) NOT IN ('pending','normal')\n  GROUP BY ai.rule_uid, ai.current_state, ai.labels_hash\n),\nactive_silenced AS (\n  SELECT DISTINCT trim(both '\"' from a.value::text) AS silenced_hash\n  FROM maya_silence ms\n  CROSS JOIN LATERAL jsonb_array_elements(ms.silenced_alerts::jsonb) a\n  WHERE lower(ms.status::jsonb -\u003e\u003e 'state') = 'active'\n),\nlast_anno AS (\n  SELECT DISTINCT ON (a.alert_id)\n    a.alert_id,\n    lower(a.prev_state) AS prev_state,\n    lower(a.new_state)  AS new_state\n  FROM annotation a\n  ORDER BY a.alert_id, a.id DESC\n)\nSELECT\n  CASE\n    WHEN lower(l.last_status) = 'failure' THEN 'Alerting'\n    WHEN lower(l.last_status) = 'warning' THEN 'Warning'\n    ELSE l.current_state\n  END AS evaluate_status,\n  l.last_status,\n  ar.title,\n  l.sensor,\n  l.host,\n  coalesce(l.alarm_name, ar.title) AS alarm_name,\n  l.plugin_instance,\n  l.type,\n  l.type_instance,\n  l.datasource,\n  l.currentvalue,\n  l.notification_description,\n  l.site_name_from_alert,\n  l.m_overlay,\n  l.m_iface,\n  -- keep your alarm_description CASE, replace atmp3.v -\u003e l.atmp3_v, atmp7.v -\u003e l.datasource\n  case when coalesce(atmp3_v,ar.title)='operational_status' then 'Control Plane Down'\n                               when  coalesce(atmp3_v,ar.title)='maya_temperature' then 'System Interval Temperature'\n                               when coalesce(atmp3_v,ar.title)= 'metric_absence'  then 'Monitoring agent down'\n                               when coalesce(atmp3_v,ar.title)= 'sdnc_node_cpu'  then 'SDNC Node Cpu High'\n                               when coalesce(atmp3_v,ar.title)= 'sdnc_node_ram'  then 'SDNC Node Memory High'\n                               when coalesce(atmp3_v,ar.title)= 'sdnc_node_disk'  then 'SDNC Node Disk High'\n                               when  coalesce(atmp3_v,ar.title)='maya_ifstatus' then 'Interface Down'\n                               when  coalesce(atmp3_v,ar.title)='maya_bfd' then 'Data Plane Down'\n                               when  coalesce(atmp3_v,ar.title)='df' then 'High Disk Usage'\n                               when  coalesce(atmp3_v,ar.title)='cpu' then 'CPU Utilization Exceeded'\n                               when  coalesce(atmp3_v,ar.title)='alert_licence' then 'Alert Licence'\n                               when  coalesce(atmp3_v,ar.title)='memory' then 'RAM Utilization Exceeded'\n                               when  coalesce(atmp3_v,ar.title)='maya_probe' and l.datasource='avg_delay' then 'Delay'\n                               when  coalesce(atmp3_v,ar.title)='maya_probe' and l.datasource='jitter' then 'Jitter'\n                               when  coalesce(atmp3_v,ar.title)='maya_probe' and l.datasource='loss_percentage' then 'Packet Loss'\n                               when  coalesce(atmp3_v,ar.title)='maya_system_services' then 'Service Down'\n                               when  coalesce(atmp3_v,ar.title)='maya_dhcp_relay' then 'DHCP Server Unreachable'\n                               when  coalesce(atmp3_v,ar.title)='maya_dhcp' then 'DHCP Lease Pool Exhaustion'\n                               when  coalesce(atmp3_v,ar.title)='maya_bgp' then 'BGP Peer Down'\n                               when  coalesce(atmp3_v,ar.title)='ntp_out_of_sync' then 'NTP Out of Sync'\n                               else coalesce(atmp3_v,ar.title) end alarm_description,\n  trim(both '\"' from (ar.annotations::jsonb-\u003e'alarm_id')::text) AS alarm_id,\n  to_timestamp(ai.last_eval_time) AS time,\n  to_timestamp(coalesce((l.max_date_num::double precision)/1e9, ai.current_state_since::double precision)) AS alert_time,\n  round(extract(epoch from (now() - to_timestamp(coalesce((l.max_date_num::double precision)/1e9, ai.current_state_since::double precision))))/3600, 0) AS alert_time_since,\n  CASE WHEN s.silenced_hash IS NULL THEN 0 ELSE 1 END AS silenced,\n  CASE WHEN la.prev_state='alerting' AND la.new_state='normal' THEN 1 ELSE NULL END AS resolve_count,\n  CASE WHEN lower(l.current_state)='alerting' THEN 1 ELSE 0 END AS alarm_count,\n  CASE WHEN lower(l.current_state)='nodata'   THEN 1 ELSE 0 END AS nodata_count\nFROM labels l\nJOIN alert_instance ai\n  ON ai.rule_uid = l.rule_uid AND ai.labels_hash = l.labels_hash\nLEFT JOIN alert_rule ar ON ai.rule_uid = ar.uid\nLEFT JOIN active_silenced s ON s.silenced_hash = l.labels_hash\nLEFT JOIN last_anno la ON la.alert_id = ar.id\nWHERE s.silenced_hash IS NULL\n",
+            "value": "WITH labels AS (\n  SELECT\n    ai.rule_uid,\n    ai.current_state,\n    ai.labels_hash,\n    max(CASE WHEN e-\u003e\u003e0='grafana_folder'           THEN e-\u003e\u003e1 END) AS sensor,\n    max(CASE WHEN e-\u003e\u003e0='host'                    THEN e-\u003e\u003e1 END) AS host,\n    max(CASE WHEN e-\u003e\u003e0='m_notif_plugin'          THEN e-\u003e\u003e1 END) AS alarm_name,\n    max(CASE WHEN e-\u003e\u003e0='m_notif_plugin_instance' THEN e-\u003e\u003e1 END) AS plugin_instance,\n    max(CASE WHEN e-\u003e\u003e0='m_notif_type'            THEN e-\u003e\u003e1 END) AS type,\n    max(CASE WHEN e-\u003e\u003e0='m_notif_type_instance'   THEN e-\u003e\u003e1 END) AS type_instance,\n    max(CASE WHEN e-\u003e\u003e0='m_datasource'            THEN e-\u003e\u003e1 END) AS datasource,\n    max(CASE WHEN e-\u003e\u003e0='m_currentvalue'          THEN e-\u003e\u003e1 END) AS currentvalue,\n    max(CASE WHEN e-\u003e\u003e0='max_date_num'            THEN e-\u003e\u003e1 END) AS max_date_num,\n    max(CASE WHEN e-\u003e\u003e0='status'                  THEN e-\u003e\u003e1 END) AS last_status,\n    max(CASE WHEN e-\u003e\u003e0='notification_a'          THEN e-\u003e\u003e1 END) AS notification_description,\n    max(CASE WHEN e-\u003e\u003e0='site_name_a'             THEN e-\u003e\u003e1 END) AS site_name_from_alert,\n    max(CASE WHEN e-\u003e\u003e0='m_overlay'               THEN e-\u003e\u003e1 END) AS m_overlay,\n    max(CASE WHEN e-\u003e\u003e0='m_iface'                 THEN e-\u003e\u003e1 END) AS m_iface,\n    max(CASE WHEN e-\u003e\u003e0='m_notif_plugin'          THEN e-\u003e\u003e1 END) AS atmp3_v  -- same as alarm_name for your CASE usage\n  FROM alert_instance ai\n  CROSS JOIN LATERAL jsonb_array_elements(ai.labels::jsonb) AS e\n  WHERE lower(ai.current_state) NOT IN ('pending','normal')\n  GROUP BY ai.rule_uid, ai.current_state, ai.labels_hash\n),\nactive_silenced AS (\n  SELECT DISTINCT trim(both '\"' from a.value::text) AS silenced_hash\n  FROM maya_silence ms\n  CROSS JOIN LATERAL jsonb_array_elements(ms.silenced_alerts::jsonb) a\n  WHERE lower(ms.status::jsonb -\u003e\u003e 'state') = 'active'\n),\nlast_anno AS (\n  SELECT DISTINCT ON (a.alert_id)\n    a.alert_id,\n    lower(a.prev_state) AS prev_state,\n    lower(a.new_state)  AS new_state\n  FROM annotation a\n  ORDER BY a.alert_id, a.id DESC\n)\nSELECT\n  CASE\n    WHEN lower(l.last_status) = 'failure' THEN 'Alerting'\n    WHEN lower(l.last_status) = 'warning' THEN 'Warning'\n    ELSE l.current_state\n  END AS evaluate_status,\n  l.last_status,\n  ar.title,\n  l.sensor,\n  l.host,\n  coalesce(l.alarm_name, ar.title) AS alarm_name,\n  l.plugin_instance,\n  l.type,\n  l.type_instance,\n  l.datasource,\n  l.currentvalue,\n  l.notification_description,\n  l.site_name_from_alert,\n  l.m_overlay,\n  l.m_iface,\n  -- keep your alarm_description CASE, replace atmp3.v -\u003e l.atmp3_v, atmp7.v -\u003e l.datasource\n  case when coalesce(atmp3_v,ar.title)='operational_status' then 'Control Plane Down'\n                               when  coalesce(atmp3_v,ar.title)='maya_temperature' then 'System Interval Temperature'\n                               when coalesce(atmp3_v,ar.title)= 'metric_absence'  then 'Monitoring agent down'\n                               when coalesce(atmp3_v,ar.title)= 'sdnc_node_cpu'  then 'SDNC Node Cpu High'\n                               when coalesce(atmp3_v,ar.title)= 'sdnc_node_ram'  then 'SDNC Node Memory High'\n                               when coalesce(atmp3_v,ar.title)= 'sdnc_node_disk'  then 'SDNC Node Disk High'\n                               when  coalesce(atmp3_v,ar.title)='maya_ifstatus' then 'Interface Down'\n                               when  coalesce(atmp3_v,ar.title)='maya_bfd' then 'Data Plane Down'\n                               when  coalesce(atmp3_v,ar.title)='df' then 'High Disk Usage'\n                               when  coalesce(atmp3_v,ar.title)='cpu' then 'CPU Utilization Exceeded'\n                               when  coalesce(atmp3_v,ar.title)='alert_licence' then 'Alert Licence'\n                               when  coalesce(atmp3_v,ar.title)='memory' then 'RAM Utilization Exceeded'\n                               when  coalesce(atmp3_v,ar.title)='maya_probe' and l.datasource='avg_delay' then 'Delay'\n                               when  coalesce(atmp3_v,ar.title)='maya_probe' and l.datasource='jitter' then 'Jitter'\n                               when  coalesce(atmp3_v,ar.title)='maya_probe' and l.datasource='loss_percentage' then 'Packet Loss'\n                               when  coalesce(atmp3_v,ar.title)='maya_system_services' then 'Service Down'\n                               when  coalesce(atmp3_v,ar.title)='maya_dhcp_relay' then 'DHCP Server Unreachable'\n                               when  coalesce(atmp3_v,ar.title)='maya_dhcp' then 'DHCP Lease Pool Exhaustion'\n                               when  coalesce(atmp3_v,ar.title)='maya_bgp' then 'BGP Peer Down'\n                               when  coalesce(atmp3_v,ar.title)='ntp_out_of_sync' then 'NTP Out of Sync'\n                               else coalesce(atmp3_v,ar.title) end alarm_description,\n  trim(both '\"' from (ar.annotations::jsonb-\u003e'alarm_id')::text) AS alarm_id,\n  to_timestamp(ai.last_eval_time) AS time,\n  to_timestamp(coalesce((l.max_date_num::double precision)/1e9, ai.current_state_since::double precision)) AS alert_time,\n  round(extract(epoch from (now() - to_timestamp(coalesce((l.max_date_num::double precision)/1e9, ai.current_state_since::double precision))))/3600, 0) AS alert_time_since,\n  CASE WHEN s.silenced_hash IS NULL THEN 0 ELSE 1 END AS silenced,\n  CASE WHEN la.prev_state='alerting' AND la.new_state='normal' THEN 1 ELSE NULL END AS resolve_count,\n  CASE WHEN lower(l.current_state)='alerting' THEN 1 ELSE 0 END AS alarm_count,\n  CASE WHEN lower(l.current_state)='nodata'   THEN 1 ELSE 0 END AS nodata_count\nFROM labels l\nJOIN alert_instance ai\n  ON ai.rule_uid = l.rule_uid AND ai.labels_hash = l.labels_hash\nLEFT JOIN alert_rule ar ON ai.rule_uid = ar.uid\nLEFT JOIN active_silenced s ON s.silenced_hash = l.labels_hash\nLEFT JOIN last_anno la ON la.alert_id = ar.id\nWHERE s.silenced_hash IS NULL\n"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+          },
+          "definition": "select replace(\n \t\t\treplace(\n \t\t\t\treplace(\n \t\t\t\t   replace(\n \t\t\t\t   replace(\n \t\t\t\t   replace(\n \t\t\t\t\treplace(v1,\n  \t\t\t\t\t\t\t'$'||'{top:csv}',\n  \t\t\t\t\t\t\t'${top:csv}'),\n  \t\t\t\t\t'-- \twhere (',\n  \t\t\t\t\t'where ('),\n  \t\t\t\t   '$'||'{alert_state:csv}',\n  \t\t\t\t   '${alert_state:csv}'),\n  \t\t\t\t   '$'||'{alert_state:regex}',\n  \t\t\t\t   '${alert_state:regex}'),\n  \t\t\t\t'$'||'{sites:regex}',\n  \t\t\t\t'${sites:regex}'),\n  \t\t\t\t'$'||'{sites:csv}',\n  \t\t\t\t'${sites:csv}'),\n  \t\t\t'$'||'{disabled:csv}', \n                        '${disabled:csv}')  \nfrom maya_global_settings where k='view_alerts_pg'",
+          "hide": 2,
+          "includeAll": false,
+          "name": "view_alerts_pg",
+          "options": [],
+          "query": "select replace(\n \t\t\treplace(\n \t\t\t\treplace(\n \t\t\t\t   replace(\n \t\t\t\t   replace(\n \t\t\t\t   replace(\n \t\t\t\t\treplace(v1,\n  \t\t\t\t\t\t\t'$'||'{top:csv}',\n  \t\t\t\t\t\t\t'${top:csv}'),\n  \t\t\t\t\t'-- \twhere (',\n  \t\t\t\t\t'where ('),\n  \t\t\t\t   '$'||'{alert_state:csv}',\n  \t\t\t\t   '${alert_state:csv}'),\n  \t\t\t\t   '$'||'{alert_state:regex}',\n  \t\t\t\t   '${alert_state:regex}'),\n  \t\t\t\t'$'||'{sites:regex}',\n  \t\t\t\t'${sites:regex}'),\n  \t\t\t\t'$'||'{sites:csv}',\n  \t\t\t\t'${sites:csv}'),\n  \t\t\t'$'||'{disabled:csv}', \n                        '${disabled:csv}')  \nfrom maya_global_settings where k='view_alerts_pg'",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": [
+              "ACTIVE"
+            ],
+            "value": [
+              "ACTIVE"
+            ]
+          },
+          "hide": 2,
+          "includeAll": true,
+          "multi": true,
+          "name": "operational_status",
+          "options": [
+            {
+              "selected": true,
+              "text": "ACTIVE",
+              "value": "ACTIVE"
+            },
+            {
+              "selected": false,
+              "text": "INACTIVE",
+              "value": "INACTIVE"
+            },
+            {
+              "selected": false,
+              "text": "PARTIALLY_ACTIVE",
+              "value": "PARTIALLY_ACTIVE"
+            }
+          ],
+          "query": "ACTIVE,INACTIVE,PARTIALLY_ACTIVE",
+          "type": "custom"
+        },
+        {
+          "current": {
+            "text": "$__all",
+            "value": "$__all"
+          },
+          "hide": 2,
+          "includeAll": true,
+          "multi": true,
+          "name": "administrative_status",
+          "options": [
+            {
+              "selected": false,
+              "text": "APPLIED",
+              "value": "APPLIED"
+            },
+            {
+              "selected": false,
+              "text": "NOT ASSIGNED",
+              "value": "NOT_ASSIGNED"
+            },
+            {
+              "selected": false,
+              "text": "IN PROGRESS",
+              "value": "IN_PROGRESS"
+            },
+            {
+              "selected": false,
+              "text": "PARTIALLY COMPLETE",
+              "value": "PARTIALLY_COMPLETE"
+            },
+            {
+              "selected": false,
+              "text": "ERROR",
+              "value": "ERROR"
+            },
+            {
+              "selected": false,
+              "text": "NOT APPLIED",
+              "value": "NOT_APPLIED"
+            }
+          ],
+          "query": "APPLIED : APPLIED, NOT ASSIGNED : NOT_ASSIGNED,IN PROGRESS : IN_PROGRESS,PARTIALLY COMPLETE : PARTIALLY_COMPLETE,ERROR : ERROR,NOT APPLIED : NOT_APPLIED",
+          "type": "custom"
+        },
+        {
+          "current": {
+            "text": "144",
+            "value": "144"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+          },
+          "definition": "select v1  from maya_global_settings where k='retention_period_in_hours'",
+          "hide": 2,
+          "includeAll": false,
+          "name": "retention_period_in_hours",
+          "options": [],
+          "query": "select v1  from maya_global_settings where k='retention_period_in_hours'",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "600",
+            "value": "600"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+          },
+          "definition": "select v1  from maya_global_settings where k='resolution_in_seconds'",
+          "hide": 2,
+          "includeAll": false,
+          "name": "resolution_in_seconds",
+          "options": [],
+          "query": "select (${__to:date:seconds} - ${__from:date:seconds})/6",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "ADVANCED_ANALYTIC,ADVANCED_ANALYTIC,ADVANCED_ANALYTIC,ADVANCED_ANALYTIC",
+            "value": "ADVANCED_ANALYTIC,ADVANCED_ANALYTIC,ADVANCED_ANALYTIC,ADVANCED_ANALYTIC"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+          },
+          "definition": "select v1  from maya_global_settings where k='licence_type'",
+          "hide": 2,
+          "includeAll": false,
+          "name": "licence_type",
+          "options": [],
+          "query": "select v1  from maya_global_settings where k='licence_type'",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "10.20.4.53:31340",
+            "value": "10.20.4.53:31340"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+          },
+          "definition": "select v1  from maya_global_settings where k='superset_url'",
+          "hide": 2,
+          "includeAll": false,
+          "name": "superset_url",
+          "options": [],
+          "query": "select v1  from maya_global_settings where k='superset_url'",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "10.20.4.165",
+            "value": "10.20.4.165"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+          },
+          "definition": "select v1  from maya_global_settings where k='maya_ui_url'",
+          "hide": 2,
+          "includeAll": false,
+          "name": "maya_ui_url",
+          "options": [],
+          "query": "select v1  from maya_global_settings where k='maya_ui_url'",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {
+            "text": "kiosk=light",
+            "value": "kiosk=light"
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "a42542c2-aa19-4909-af8b-56ba48b21f0e"
+          },
+          "definition": "select v1  from maya_global_settings where k='kiosk'",
+          "hide": 2,
+          "includeAll": false,
+          "name": "kiosk",
+          "options": [],
+          "query": "select v1  from maya_global_settings where k='kiosk'",
+          "refresh": 2,
+          "regex": "",
+          "type": "query"
+        }
+      ]
+    },
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "",
+    "title": "Main Dashboard 2",
+    "weekStart": ""
+  },
+  "status": {},
+  "access": {
+    "slug": "main-dashboard-2",
+    "url": "/grafana/d/befsqajl1xon4a/main-dashboard-2",
+    "canSave": true,
+    "canEdit": true,
+    "canAdmin": true,
+    "canStar": true,
+    "canDelete": true,
+    "annotationsPermissions": {
+      "dashboard": {
+        "canAdd": true,
+        "canEdit": true,
+        "canDelete": true
+      },
+      "organization": {
+        "canAdd": true,
+        "canEdit": true,
+        "canDelete": true
+      }
+    }
+  }
+}

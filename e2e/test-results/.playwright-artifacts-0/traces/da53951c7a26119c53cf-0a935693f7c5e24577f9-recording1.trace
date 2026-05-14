@@ -1,0 +1,20 @@
+{"version":8,"type":"context-options","origin":"library","browserName":"","playwrightVersion":"1.60.0","options":{},"platform":"linux","wallTime":1778787242059,"monotonicTime":6873.302,"sdkLanguage":"javascript","contextId":"request-context@b14fe4c3fb162e96e248c9718597b498","title":"dashboards.test.ts:173 › crawl all Grafana dashboards"}
+{"type":"before","callId":"call@28","startTime":6879.282,"class":"APIRequestContext","method":"fetch","params":{"url":"https://10.20.4.165/grafana/api/search","params":[{"name":"type","value":"dash-db"},{"name":"limit","value":"2000"}],"method":"GET","headers":[{"name":"Authorization","value":"Basic YWRtaW46YWRtaW4x"}],"timeout":0},"stepId":"pw:api@41"}
+{"type":"log","callId":"call@28","time":6951.134,"message":"→ GET https://10.20.4.165/grafana/api/search?type=dash-db&limit=2000"}
+{"type":"log","callId":"call@28","time":6951.186,"message":"  user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Safari/537.36"}
+{"type":"log","callId":"call@28","time":6951.202,"message":"  accept: */*"}
+{"type":"log","callId":"call@28","time":6951.213,"message":"  accept-encoding: gzip,deflate,br"}
+{"type":"log","callId":"call@28","time":6951.225,"message":"  Authorization: Basic YWRtaW46YWRtaW4x"}
+{"type":"log","callId":"call@28","time":7023.89,"message":"← 200 OK"}
+{"type":"log","callId":"call@28","time":7023.924,"message":"  transfer-encoding: chunked"}
+{"type":"log","callId":"call@28","time":7023.934,"message":"  vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers"}
+{"type":"log","callId":"call@28","time":7023.943,"message":"  x-ratelimit-remaining: -1"}
+{"type":"log","callId":"call@28","time":7023.965,"message":"  x-ratelimit-requested-tokens: 1"}
+{"type":"log","callId":"call@28","time":7023.973,"message":"  x-ratelimit-burst-capacity: 50"}
+{"type":"log","callId":"call@28","time":7023.98,"message":"  x-ratelimit-replenish-rate: 5"}
+{"type":"log","callId":"call@28","time":7023.987,"message":"  cache-control: no-store"}
+{"type":"log","callId":"call@28","time":7023.995,"message":"  content-type: application/json"}
+{"type":"log","callId":"call@28","time":7024.002,"message":"  x-content-type-options: nosniff"}
+{"type":"log","callId":"call@28","time":7024.009,"message":"  x-xss-protection: 1; mode=block"}
+{"type":"log","callId":"call@28","time":7024.016,"message":"  date: Thu, 14 May 2026 19:34:02 GMT"}
+{"type":"after","callId":"call@28","endTime":7045.062,"result":{"response":{"url":"https://10.20.4.165/grafana/api/search?type=dash-db&limit=2000","status":200,"statusText":"OK","headers":[{"name":"transfer-encoding","value":"chunked"},{"name":"Vary","value":"Origin"},{"name":"Vary","value":"Access-Control-Request-Method"},{"name":"Vary","value":"Access-Control-Request-Headers"},{"name":"X-RateLimit-Remaining","value":"-1"},{"name":"X-RateLimit-Requested-Tokens","value":"1"},{"name":"X-RateLimit-Burst-Capacity","value":"50"},{"name":"X-RateLimit-Replenish-Rate","value":"5"},{"name":"Cache-Control","value":"no-store"},{"name":"Content-Type","value":"application/json"},{"name":"X-Content-Type-Options","value":"nosniff"},{"name":"X-Xss-Protection","value":"1; mode=block"},{"name":"Date","value":"Thu, 14 May 2026 19:34:02 GMT"}],"body":"<Buffer>","fetchUid":"dd8fdc32a690d1e8e25597f422559269"}}}

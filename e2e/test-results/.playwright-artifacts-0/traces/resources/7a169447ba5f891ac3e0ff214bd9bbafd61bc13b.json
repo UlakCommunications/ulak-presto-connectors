@@ -1,0 +1,1 @@
+{"results":{"label":{"status":200,"frames":[{"schema":{"refId":"label","meta":{"typeVersion":[0,0],"executedQueryString":"select (case when 'if_octets' = 'if_octets' then 'bps' else 'pps' end) as Label"},"fields":[{"name":"label","type":"string","typeInfo":{"frame":"string","nullable":true}}]},"data":{"values":[["bps"]]}}]}}}

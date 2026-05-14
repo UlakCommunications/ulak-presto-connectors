@@ -1,0 +1,1 @@
+{"results":{"superset_url":{"status":200,"frames":[{"schema":{"refId":"superset_url","meta":{"typeVersion":[0,0],"executedQueryString":"select v1  from maya_global_settings where k='superset_url'"},"fields":[{"name":"v1","type":"string","typeInfo":{"frame":"string","nullable":true}}]},"data":{"values":[["10.20.4.53:31340"]]}}]}}}

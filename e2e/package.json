@@ -1,0 +1,14 @@
+{
+  "name": "ulak-presto-e2e",
+  "version": "1.0.0",
+  "description": "Grafana dashboard E2E crawler — detects panel errors across all dashboards",
+  "scripts": {
+    "crawl": "npx playwright test --config playwright.config.ts",
+    "crawl:report": "npx playwright show-report dashboard-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@types/node": "^25.8.0",
+    "typescript": "^6.0.3"
+  }
+}
