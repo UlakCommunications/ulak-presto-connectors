@@ -90,7 +90,7 @@
     <dependency>
       <groupId>org.quickwit</groupId>
       <artifactId>quickwit-java-client</artifactId>
-      <version>0.0.1.42-SNAPSHOT</version>
+      <version>0.0.1.43-SNAPSHOT</version>
       <!-- Internal Maya fork; see ulak-presto-quickwit-connector/pom.xml. -->
     </dependency>
 
