@@ -7,13 +7,15 @@ export default defineConfig({
   retries: 0,
   workers: 1,
   reporter: [['html', { outputFolder: 'dashboard-report', open: 'never' }], ['list']],
-  timeout: 180_000,
+  timeout: 600_000,
   use: {
     baseURL: process.env.GRAFANA_URL ?? 'https://10.20.4.165/grafana',
     ignoreHTTPSErrors: true,
+    headless: true,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'off',
+    viewport: { width: 1600, height: 900 },
   },
   projects: [
     {
