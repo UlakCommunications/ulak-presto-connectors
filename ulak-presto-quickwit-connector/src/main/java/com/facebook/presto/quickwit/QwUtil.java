@@ -598,7 +598,12 @@ public class QwUtil {
                 String k = (String) headers[j];
                 String toReplace =queryParameters.getReplaceFromColumns();
                 if(StringUtils.isNotBlank(toReplace)){
-                    k=StringUtils.replace((String) k, toReplace,"");
+                    // QW 0.8 compat: json2flat inserts numeric array indices after each
+                    // "buckets" key (e.g. /6/buckets/0/5/buckets/0/a).
+                    // Normalize them away before applying replacefromcolumns so that
+                    // patterns like "/6/buckets/5/buckets/9/buckets/a" still match.
+                    String normalized = k.replaceAll("/buckets/\\d+", "/buckets");
+                    k = StringUtils.replace(normalized, toReplace, "");
                 }
                 String slashedKey = k.startsWith("/") ? k : "/" + k;
                 if (k.startsWith("/")) k = k.substring(1);
