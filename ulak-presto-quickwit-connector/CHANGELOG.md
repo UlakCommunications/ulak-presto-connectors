@@ -2,6 +2,10 @@
 
 Items move here from [`TODO.md`](TODO.md) when finished.
 
+## 2026-05-14 — sqlversion=0.1 column alias fix (QW9)
+
+- **QW9-01** — `traverseAggregations` now exposes both `aggId/key` and `/aggId/key` column forms for `sqlversion=0.1` queries (same dual-form that L09 added for the JFlat path). Fixes `COLUMN_NOT_FOUND` errors on dashboards whose SQL selects `"/aggId/key"` (leading slash) while the connector was only emitting `"aggId/key"`. Same dual-form added for `aggId/value` and `aggId/key_as_string`. `sqlversion=0.2` (bare names) unaffected — `stripSuffixes=true` path unchanged. Integration test S2 updated to assert `/1/key` is also present.
+
 ## 2026-05-13 — Quickwit 0.8 compatibility (QW8 series)
 
 All fixes are in `monitoring_temp/maya-quickwit/quickwit-java-client` (develop branch, commits b9b5076–fc052c4). Deployed via Jenkins builds #341–#349 to `0.0.1-develop-latest` image on yucemonitoring.

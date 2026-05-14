@@ -375,6 +375,8 @@ public class QwUtil {
                     // v0.2: bare aggId; v0.1: aggId/value
                     String colName = stripSuffixes ? entry.getKey() : entry.getKey() + "/" + VALUE;
                     currentRow.put(colName, String.valueOf(value));
+                    // expose "/aggId/value" alongside "aggId/value" so dashboards using either form work
+                    if (!stripSuffixes) currentRow.put("/" + colName, String.valueOf(value));
                 }
             }
         }
@@ -406,10 +408,16 @@ public class QwUtil {
                 if (key instanceof Number) {
                     // Store as plain integer string, not scientific notation (e.g. "1773792000000" not "1.773792E12")
                     rowForBucket.put(keyCol, String.valueOf(((Number) key).longValue()));
+                    // expose "/aggId/key" alongside "aggId/key" for dashboard compatibility
+                    if (!stripSuffixes) rowForBucket.put("/" + keyCol, String.valueOf(((Number) key).longValue()));
                 } else if (key != null) {
                     rowForBucket.put(keyCol, String.valueOf(key));
+                    if (!stripSuffixes) rowForBucket.put("/" + keyCol, String.valueOf(key));
                 }
-                if (keyAsString != null) rowForBucket.put(keyStrCol, String.valueOf(keyAsString));
+                if (keyAsString != null) {
+                    rowForBucket.put(keyStrCol, String.valueOf(keyAsString));
+                    if (!stripSuffixes) rowForBucket.put("/" + keyStrCol, String.valueOf(keyAsString));
+                }
 
                 // collect sub-aggregation maps (skip primitive metadata: key, key_as_string, doc_count, etc.)
                 Map<String, Object> subAggs = new LinkedHashMap<>();

@@ -102,8 +102,9 @@ class QuickwitIntegrationTest {
         assertThat(rows).isNotNull();
         if (!rows.isEmpty()) {
             assertThat(rows.get(0).getColumnMap())
-                    .as("sqlversion=0.1 must use 'aggId/key' column names")
-                    .containsKey("1/key");
+                    .as("sqlversion=0.1 must expose both 'aggId/key' and '/aggId/key' column forms")
+                    .containsKey("1/key")
+                    .containsKey("/1/key");
         }
     }
 
