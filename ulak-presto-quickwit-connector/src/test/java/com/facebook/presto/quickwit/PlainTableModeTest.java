@@ -1,17 +1,20 @@
 package com.facebook.presto.quickwit;
 
+import com.google.common.io.BaseEncoding;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * J56 — Plain Table Query Mode unit tests.
+ * J56 + QW9-03 — Plain Table Query Mode unit tests.
  *
  * Calls PlainTableQuery directly (not QwUtil) to avoid loading trino-spi-479
  * (compiled for Java 25) on a Java 24 test JVM.
  */
-@DisplayName("J56 — Plain Table Query Mode")
+@DisplayName("J56 + QW9-03 — Plain Table Query Mode + base32 decode")
 class PlainTableModeTest {
 
     // -----------------------------------------------------------------------
@@ -131,5 +134,96 @@ class PlainTableModeTest {
         assertThat(limited).contains("//qwindex=my-idx");
         assertThat(limited).contains("//sqlversion=0.2");
         assertThat(limited).contains("host:web1");
+    }
+
+    // -----------------------------------------------------------------------
+    // QW9-03 — decodeIfBase32Encoded (Grafana plugin base32 regression fix)
+    // -----------------------------------------------------------------------
+
+    /** Simulate what hi-base32 (Grafana plugin) produces for a query string. */
+    private static String hiBase32Encode(String plain) {
+        // hi-base32 uses RFC 4648: uppercase A-Z 2-7 with = padding → always length%8==0
+        return BaseEncoding.base32().encode(plain.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    @DisplayName("QW9-03: encoded query-in-table-name is decoded back to original")
+    void encodedQueryIsDecoded() {
+        String original = "\n    //ttl=172800\n    //columns=/buckets/2/a/key\n    {\"query\":\"*\"}";
+        String encoded  = hiBase32Encode(original);
+
+        assertThat(encoded).doesNotContain("//");
+        assertThat(encoded.length() % 8).isZero();
+
+        String decoded = PlainTableQuery.decodeIfBase32Encoded(encoded);
+        assertThat(decoded).isEqualTo(original);
+    }
+
+    @Test
+    @DisplayName("QW9-03: decoded name is NOT plain mode (contains //)")
+    void decodedNameIsNotPlainMode() {
+        String original = "\n    //ttl=172800\n    //columns=/buckets/2/a/key\n    {\"query\":\"*\"}";
+        String encoded  = hiBase32Encode(original);
+
+        String decoded = PlainTableQuery.decodeIfBase32Encoded(encoded);
+        assertThat(PlainTableQuery.isPlainMode(decoded))
+                .as("decoded query contains // so must not be flagged as plain mode")
+                .isFalse();
+    }
+
+    @Test
+    @DisplayName("QW9-03: already-decoded name with // is returned unchanged")
+    void alreadyDecodedNameReturnedUnchanged() {
+        String query = "//qwindex=otlp_metric\n{\"query\":\"*\"}";
+        assertThat(PlainTableQuery.decodeIfBase32Encoded(query)).isEqualTo(query);
+    }
+
+    @Test
+    @DisplayName("QW9-03: bare index name (not base32 query) is returned unchanged")
+    void bareIndexNameReturnedUnchanged() {
+        assertThat(PlainTableQuery.decodeIfBase32Encoded("metrics3")).isEqualTo("metrics3");
+        assertThat(PlainTableQuery.decodeIfBase32Encoded("my-index")).isEqualTo("my-index");
+    }
+
+    @Test
+    @DisplayName("QW9-03: null and empty are returned unchanged")
+    void nullAndEmptyReturnedUnchanged() {
+        assertThat(PlainTableQuery.decodeIfBase32Encoded(null)).isNull();
+        assertThat(PlainTableQuery.decodeIfBase32Encoded("")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("QW9-03: string whose length is not multiple of 8 is not decoded")
+    void nonMultipleOf8NotDecoded() {
+        // 7 chars: length%8 != 0 → skip decode even if chars look like base32
+        String s = "ABCDEFG";
+        assertThat(PlainTableQuery.decodeIfBase32Encoded(s)).isEqualTo(s);
+    }
+
+    @Test
+    @DisplayName("QW9-03: decoded bytes that don't contain // or { are not substituted")
+    void decodedGarbageNotSubstituted() {
+        // Encode a plain word that happens to be valid base32 length but decodes to no-// content
+        String plain = "HELLO!!!";  // 8 chars, but canDecode will fail on '!'
+        assertThat(PlainTableQuery.decodeIfBase32Encoded(plain)).isEqualTo(plain);
+    }
+
+    @Test
+    @DisplayName("QW9-03: real view_interface_with_site_filter payload round-trips correctly")
+    void viewInterfaceWithSiteFilterPayloadRoundTrips() {
+        // Representative subset of the actual Postgres setting value
+        String original =
+            "\n    //ttl=172800\n" +
+            "    //refresh=10\n" +
+            "    //cache=false\n" +
+            "    //name=Host Interface\n" +
+            "    //sqlversion=0\n" +
+            "    //columns=/buckets/2/a/key,/buckets/2/6/key_as_string\n" +
+            "    {\"query\":\"*\",\"max_hits\":0}";
+        String encoded = hiBase32Encode(original);
+
+        assertThat(PlainTableQuery.decodeIfBase32Encoded(encoded)).isEqualTo(original);
+        assertThat(PlainTableQuery.isPlainMode(
+                PlainTableQuery.decodeIfBase32Encoded(encoded))).isFalse();
     }
 }

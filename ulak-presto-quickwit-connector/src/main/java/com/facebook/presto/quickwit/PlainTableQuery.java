@@ -1,5 +1,9 @@
 package com.facebook.presto.quickwit;
 
+import com.google.common.io.BaseEncoding;
+
+import java.nio.charset.StandardCharsets;
+
 /**
  * J56 — plain-table-mode string utilities.
  *
@@ -10,6 +14,36 @@ package com.facebook.presto.quickwit;
 final class PlainTableQuery {
 
     private PlainTableQuery() {}
+
+    /**
+     * Decodes a Grafana-plugin-encoded table name back to the original query string.
+     *
+     * The Grafana Trino plugin (datasource.ts encodeQuickwitQuery) base32-encodes the
+     * content of double-quoted table names to survive Trino's identifier case-normalization.
+     * It uses hi-base32 (RFC 4648, uppercase A-Z + 2-7, padded to multiples of 8 chars).
+     * QueryParameters.getQueryParameters() decoded these correctly until J56 added the
+     * isPlainMode() check before QueryParameters was called (QW9-03 regression fix).
+     *
+     * Conditions (same as QueryParameters.getQueryParameters()):
+     *   - length % 8 == 0  (hi-base32 always pads to multiples of 8)
+     *   - no "//", "\n", or " " in the encoded string
+     *   - Guava canDecode() on uppercased input
+     *   - decoded result contains "//" or "{" (sanity: it should look like a query)
+     */
+    static String decodeIfBase32Encoded(String tableName) {
+        if (tableName == null || tableName.isEmpty()) return tableName;
+        if (tableName.contains("//") || tableName.contains("\n") || tableName.contains(" ")) return tableName;
+        if (tableName.length() % 8 != 0) return tableName;
+        try {
+            String upper = tableName.toUpperCase();
+            if (!BaseEncoding.base32().canDecode(upper)) return tableName;
+            byte[] decoded = BaseEncoding.base32().decode(upper);
+            String result = new String(decoded, StandardCharsets.UTF_8);
+            return (result.contains("//") || result.contains("{")) ? result : tableName;
+        } catch (Exception ignored) {
+            return tableName;
+        }
+    }
 
     /** Returns true when tableName is a bare index name (no //param= directives). */
     static boolean isPlainMode(String tableName) {
