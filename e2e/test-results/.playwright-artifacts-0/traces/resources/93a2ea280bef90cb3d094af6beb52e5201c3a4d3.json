@@ -1,1 +1,0 @@
-{"results":{"resolution_in_seconds":{"status":200,"frames":[{"schema":{"refId":"resolution_in_seconds","meta":{"typeVersion":[0,0],"executedQueryString":"select (1778787240 - 1778783640)/6"},"fields":[{"name":"?column?","type":"number","typeInfo":{"frame":"int32","nullable":true}}]},"data":{"values":[[600]]}}]}}}

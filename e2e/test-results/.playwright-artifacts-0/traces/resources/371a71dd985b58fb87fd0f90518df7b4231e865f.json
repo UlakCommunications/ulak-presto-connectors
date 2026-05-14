@@ -1,1 +1,0 @@
-{"from":"1778783640005","to":"1778787240005","queries":[{"refId":"unit_change_bit","datasource":{"type":"grafana-postgresql-datasource","uid":"a42542c2-aa19-4909-af8b-56ba48b21f0e"},"rawSql":"select (case when 'if_octets' = 'if_octets' then 8 else 1 end) as Unit","format":"table"}]}

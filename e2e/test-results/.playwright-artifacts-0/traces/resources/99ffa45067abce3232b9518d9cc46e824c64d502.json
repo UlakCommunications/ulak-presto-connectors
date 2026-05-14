@@ -1,1 +1,0 @@
-{"from":"1778783640005","to":"1778787240005","queries":[{"refId":"maya_ui_url","datasource":{"type":"grafana-postgresql-datasource","uid":"a42542c2-aa19-4909-af8b-56ba48b21f0e"},"rawSql":"select v1  from maya_global_settings where k='maya_ui_url'","format":"table"}]}

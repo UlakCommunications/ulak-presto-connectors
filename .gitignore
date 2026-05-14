@@ -66,3 +66,4 @@ trino/etc/catalog/tenant.properties
 e2e/node_modules/
 e2e/dashboard-report/
 e2e/dist/
+e2e/test-results/

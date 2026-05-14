@@ -1,1 +1,0 @@
-{"results":{"retention_period_in_hours":{"status":200,"frames":[{"schema":{"refId":"retention_period_in_hours","meta":{"typeVersion":[0,0],"executedQueryString":"select v1  from maya_global_settings where k='retention_period_in_hours'"},"fields":[{"name":"v1","type":"string","typeInfo":{"frame":"string","nullable":true}}]},"data":{"values":[["144"]]}}]}}}

@@ -1,1 +1,0 @@
-{"results":{"unit_change_bit":{"status":200,"frames":[{"schema":{"refId":"unit_change_bit","meta":{"typeVersion":[0,0],"executedQueryString":"select (case when 'if_octets' = 'if_octets' then 8 else 1 end) as Unit"},"fields":[{"name":"unit","type":"number","typeInfo":{"frame":"int32","nullable":true}}]},"data":{"values":[[8]]}}]}}}
