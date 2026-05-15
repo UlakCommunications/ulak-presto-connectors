@@ -9,7 +9,7 @@ export default defineConfig({
   reporter: [['html', { outputFolder: 'dashboard-report', open: 'never' }], ['list']],
   timeout: 600_000,
   use: {
-    baseURL: process.env.GRAFANA_URL ?? 'https://10.20.4.165/grafana',
+    baseURL: process.env.GRAFANA_URL ?? '',
     ignoreHTTPSErrors: true,
     headless: true,
     trace: 'retain-on-failure',

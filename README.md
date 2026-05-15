@@ -397,7 +397,7 @@ order by _value desc
     number_of_worker_threads=5
     run_in_coordinator_only=true
     worker_index_to_run_in=1 
-    qw-connection-url=http://10.20.4.53:32215
+    qw-connection-url=http://<quickwit-host>:<port>
     qw-index=metrics3 
 ````
 

@@ -5,8 +5,8 @@
  *
  * Çalıştır:
  *   cd e2e
- *   GRAFANA_URL=https://10.20.4.165/grafana \
- *   GRAFANA_USER=admin GRAFANA_PASS=admin1 \
+ *   GRAFANA_URL=https://<grafana-host>/grafana \
+ *   GRAFANA_USER=admin GRAFANA_PASS=<password> \
  *   node crawl.js
  */
 
@@ -15,9 +15,12 @@ const https  = require('https');
 const fs     = require('fs');
 const path   = require('path');
 
-const BASE_URL = (process.env.GRAFANA_URL ?? 'https://10.20.4.165/grafana').replace(/\/$/, '');
+const BASE_URL = (process.env.GRAFANA_URL ?? '').replace(/\/$/, '');
 const GF_USER  = process.env.GRAFANA_USER ?? 'admin';
-const GF_PASS  = process.env.GRAFANA_PASS ?? 'admin1';
+const GF_PASS  = process.env.GRAFANA_PASS ?? '';
+
+if (!BASE_URL) { console.error('GRAFANA_URL env var required'); process.exit(1); }
+if (!GF_PASS)  { console.error('GRAFANA_PASS env var required'); process.exit(1); }
 
 const SCREENSHOT_DIR = path.join(__dirname, 'screenshots');
 const ERRORS_FILE    = path.join(__dirname, 'errors.json');

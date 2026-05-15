@@ -8,8 +8,8 @@
  *
  * Çalıştır:
  *   cd e2e
- *   GRAFANA_URL=https://10.20.4.165/grafana \
- *   GRAFANA_USER=admin GRAFANA_PASS=admin1 \
+ *   GRAFANA_URL=https://<grafana-host>/grafana \
+ *   GRAFANA_USER=admin GRAFANA_PASS=<password> \
  *   npm run crawl
  */
 
@@ -21,9 +21,9 @@ import * as path from 'path';
 // Config
 // ---------------------------------------------------------------------------
 
-const BASE_URL   = (process.env.GRAFANA_URL ?? 'https://10.20.4.165/grafana').replace(/\/$/, '');
+const BASE_URL   = (process.env.GRAFANA_URL ?? '').replace(/\/$/, '');
 const GF_USER    = process.env.GRAFANA_USER  ?? 'admin';
-const GF_PASS    = process.env.GRAFANA_PASS  ?? 'admin1';
+const GF_PASS    = process.env.GRAFANA_PASS  ?? '';
 const WAIT_MS    = Number(process.env.PANEL_WAIT_MS ?? 20_000);
 const TIME_RANGE = 'from=now-1h&to=now&refresh=';
 
