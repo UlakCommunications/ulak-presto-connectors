@@ -13,8 +13,8 @@ Redis is optional; required only when query caching (`//cache=true`) is used.
 ## Quick Start — Docker
 
 ```bash
-docker pull ghcr.io/ulakcommunications/trino-quickwit:479
-docker run -p 8080:8080 ghcr.io/ulakcommunications/trino-quickwit:479
+docker pull ghcr.io/ulakcommunications/trino:479
+docker run -p 8080:8080 ghcr.io/ulakcommunications/trino:479
 ```
 
 ## Connectors
@@ -35,14 +35,14 @@ mvn clean package -DskipTests
 mvn clean package -DskipTests
 docker build \
   --build-arg TRINO_BASE=trinodb/trino:479 \
-  -t ghcr.io/ulakcommunications/trino-quickwit:479 \
-  -t ghcr.io/ulakcommunications/trino-quickwit:latest \
+  -t ghcr.io/ulakcommunications/trino:479 \
+  -t ghcr.io/ulakcommunications/trino:latest \
   .
 
 # Push to GitHub Container Registry
 echo $GITHUB_TOKEN | docker login ghcr.io -u <github-username> --password-stdin
-docker push ghcr.io/ulakcommunications/trino-quickwit:479
-docker push ghcr.io/ulakcommunications/trino-quickwit:latest
+docker push ghcr.io/ulakcommunications/trino:479
+docker push ghcr.io/ulakcommunications/trino:latest
 ```
 
 # Sample Queries
