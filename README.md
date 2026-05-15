@@ -1,38 +1,48 @@
 # ulak-presto-connectors
 
-This repository contains three presto connectors;
+[![GitHub Container Registry](https://img.shields.io/badge/ghcr.io-ulakcommunications%2Ftrino--quickwit-blue)](https://github.com/UlakCommunications/ulak-presto-connectors/pkgs/container/trino-quickwit)
 
-* InfluxDB connector : Developed from [presto-influxdb-connector](https://github.com/Chasingdreams6/presto-influxdb-connector.git)
-* Postgres inline connector
-* Quickwit inline connector
+Three Trino connector plugins that embed non-SQL data source queries directly inside SQL using Trino's query-in-table-name feature:
 
-All connectors exploit a known Trino feature (query in) to embed [non-]sql data source queries.
+* **Quickwit connector** — queries Quickwit search engine indexes; supports aggregations DSL, plain table mode, base32-encoded queries from Grafana Trino plugin
+* **InfluxDB connector** — developed from [presto-influxdb-connector](https://github.com/Chasingdreams6/presto-influxdb-connector.git)
+* **Postgres inline connector** — embeds PostgreSQL queries in Trino SQL
 
-Redis is not required, but needed if caching is requested.
+Redis is optional; required only when query caching (`//cache=true`) is used.
 
-# Connectors
+## Quick Start — Docker
+
+```bash
+docker pull ghcr.io/ulakcommunications/trino-quickwit:479
+docker run -p 8080:8080 ghcr.io/ulakcommunications/trino-quickwit:479
+```
+
+## Connectors
 * [ulak-presto-influxdb-connector](ulak-presto-influxdb-connector)
 * [ulak-presto-postgres-connector](ulak-presto-postgres-connector)
 * [ulak-presto-quickwit-connector](ulak-presto-quickwit-connector)
 
-# Installation
-1. Execute "mvn package".
-2. Create "quickwit" directory in ${presto-root}/plugin/
-3. copy original-presto-quickwit-0.432-SNAPSHOT.jar and presto-quickwit-0.280-SNAPSHOT.jar to /{presto-root-dir}/plugin/quickwit
-4. use "/bin/launcher start" to start server
-5. 
-## Docker Build and Push Commands
-### Building and Publishing Trino
+## Build from Source
+
 ```bash
-./mvnw clean package
-docker build -t 192.168.57.202:35000/trinodb/trino:432 .
-docker push 192.168.57.202:35000/trinodb/trino:432
+mvn clean package -DskipTests
 ```
-### Building and Publishing Trino-Cache
+
+## Docker Build and Push
+
 ```bash
-./mvnw clean package
-docker build -t 192.168.57.202:35000/trinodb/trino:432-cache .
-docker push 192.168.57.202:35000/trinodb/trino:432-cache
+# Build (uses public trinodb/trino:479 base)
+mvn clean package -DskipTests
+docker build \
+  --build-arg TRINO_BASE=trinodb/trino:479 \
+  -t ghcr.io/ulakcommunications/trino-quickwit:479 \
+  -t ghcr.io/ulakcommunications/trino-quickwit:latest \
+  .
+
+# Push to GitHub Container Registry
+echo $GITHUB_TOKEN | docker login ghcr.io -u <github-username> --password-stdin
+docker push ghcr.io/ulakcommunications/trino-quickwit:479
+docker push ghcr.io/ulakcommunications/trino-quickwit:latest
 ```
 
 # Sample Queries
