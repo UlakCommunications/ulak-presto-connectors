@@ -67,3 +67,5 @@ e2e/node_modules/
 e2e/dashboard-report/
 e2e/dist/
 e2e/test-results/
+e2e/screenshots/
+e2e/errors.json

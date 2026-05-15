@@ -43,10 +43,16 @@ Connector uses `quickwit-java-client` (generated from QW 0.7.1 spec). Cluster ru
 
 ## Known open items
 
-- **QW8-06** FIXED — `FastFieldOptions` schema registry (2026-05-14, Jenkins #350)
 - **J46** Connector health + Grafana failover — K8s infra scope, track in `backend/anomaly`
 - **L04b** `ConnectorBaseUtil` per-catalog state — gated on customer need (two catalogs with different Redis URLs)
 - **R22** Credential history rewrite — `master` branch still has old credential blobs; will be cleaned when `develop` is merged via MR
+
+## Recent completions (2026-05-15)
+
+- **QW10** (2026-05-15) — `parseResponseHits()` all-null row filter restored. Commit `9c22330`, Jenkins #359.
+- **QW9-03** (2026-05-14) — base32 decode in `getTableHandle()` via `PlainTableQuery.decodeIfBase32Encoded()`. Commit `2d712eb`, Jenkins #357.
+- **QW9-01/02** (2026-05-14) — COLUMN_NOT_FOUND fixes for sqlversion=0.1 and empty-schema. Jenkins #355/#356.
+- 68/68 Grafana dashboards verified 0 Trino errors (e2e/crawl.js, 2026-05-15).
 
 See `TODO.md` for full item list.
 
