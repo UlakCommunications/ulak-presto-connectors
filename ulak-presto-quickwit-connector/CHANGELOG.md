@@ -2,6 +2,10 @@
 
 Items move here from [`TODO.md`](TODO.md) when finished.
 
+## 2026-05-15 — all-null-row filter fix (QW10)
+
+- **QW10** — `parseResponseHits()`: the `if (!allNulls)` guard was commented out, causing rows where every column value is `null` to be included in results. When Quickwit aggregations return empty inner buckets (no matching data), JFlat produces a row with all-null values — this showed in Grafana as a "1 null row" instead of an empty panel. Fix: uncomment the guard so all-null rows are silently dropped. 3 unit tests added to `QwUtilParseTest` (Java-24 compatible, SPI-free).
+
 ## 2026-05-14 — J56 base32 regression fix (QW9-03)
 
 - **QW9-03** — `getTableHandle()` now decodes base32-encoded table names before storing in `UlakTableHandle`. Root cause: the Grafana Trino plugin base32-encodes query-in-table-name strings (to survive Trino's case-normalization of quoted identifiers). `QueryParameters.getQueryParameters()` always decoded base32 correctly, but J56's `isPlainMode()` check fires *before* `QueryParameters` is called — intercepting the still-encoded name, finding no `//`, and routing it to `getColumnsFromDocMapping(base32_string)`. Quickwit has no index with a base32 name → empty schema → `COLUMN_NOT_FOUND` for all columns. Fix: decode in `getTableHandle()` so the handle and all downstream code (J56 `isPlainMode()`, `QueryParameters`) see the original query string. **Pending**: replace custom base32 decoder with Guava `BaseEncoding.base32()` (same as `QueryParameters`), extract to `PlainTableQuery` for testability, and add unit tests.

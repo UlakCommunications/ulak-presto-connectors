@@ -643,9 +643,9 @@ public class QwUtil {
                     r.put(slashedKey, value);
                 }
             }
-//            if(!allNulls) {
+            if (!allNulls) {
                 toRet.add(new UlakRow(r));
-//            };
+            }
         }
         if(maxTime>0 && minTime<Long.MAX_VALUE && StringUtils.isNotBlank(timeField)){
             ArrayList<Integer> toRemove = new ArrayList<>();
