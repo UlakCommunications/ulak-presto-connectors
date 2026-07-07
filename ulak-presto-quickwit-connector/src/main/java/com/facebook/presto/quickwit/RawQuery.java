@@ -124,6 +124,14 @@ public class RawQuery
             String dbtype = getOptionalVarchar(arguments, "dbtype").orElse("");
             String replacefromcolumns = getOptionalVarchar(arguments, "replacefromcolumns").orElse("");
 
+            boolean timestampEnabled = QwUtil.hasTimestampField(
+                    index,
+                    metadata.getQwUrl(),
+                    metadata.getConnectTimeout(),
+                    metadata.getReadTimeout(),
+                    metadata.getWriteTimeout()
+            );
+
             // Build a temporary handle to generate the search request JSON for analyze().
             // computedColumns is absent here; it will be set after the live search below.
             RawQuickwitQueryTableHandle tempHandle = new RawQuickwitQueryTableHandle(
@@ -140,7 +148,8 @@ public class RawQuery
                     Optional.of(replacefromcolumns),
                     Optional.of(hasjs),
                     Optional.of(sqlversion),
-                    Optional.empty()); // computedColumns — filled below
+                    Optional.empty(), // computedColumns — filled below
+                    Optional.of(timestampEnabled));
 
             // L14: single live search at plan time; frozen column list shared by all three
             // sites (analyze returnedType, getTableMetadata, getColumnHandles) to prevent
@@ -179,7 +188,8 @@ public class RawQuery
                     Optional.of(replacefromcolumns),
                     Optional.of(hasjs),
                     Optional.of(sqlversion),
-                    Optional.of(tmpCls)); // computedColumns frozen
+                    Optional.of(tmpCls), // computedColumns frozen
+                    Optional.of(timestampEnabled));
 
             AtomicInteger noDataIndex = new AtomicInteger(0);
             Descriptor returnedType = new Descriptor(Arrays.stream(tmpCls.split(","))

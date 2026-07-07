@@ -748,5 +748,34 @@ public class QwUtil {
         }
     }
 
+    public static boolean hasTimestampField(String indexName, String qwUrl,
+                                            Integer connectTimeout,
+                                            Integer readTimeout,
+                                            Integer writeTimeout) {
+        try {
+            ApiClient client = defaultClients.computeIfAbsent(qwUrl, url -> {
+                ApiClient c = Configuration.getDefaultApiClient();
+                c.setBasePath(url);
+                if (connectTimeout != null) c.setConnectTimeout(connectTimeout * 1000);
+                if (readTimeout != null) c.setReadTimeout(readTimeout * 1000);
+                if (writeTimeout != null) c.setWriteTimeout(writeTimeout * 1000);
+                return c;
+            });
+            IndexesApi indexesApi = new IndexesApi(client);
+            List<VersionedIndexMetadata> metas = indexesApi.getIndexesMetadatas();
+            for (VersionedIndexMetadata meta : metas) {
+                com.quickwit.javaclient.models.VersionedIndexConfigOneOf cfg =
+                        meta.getVersionedIndexMetadataOneOf().getIndexConfig().getVersionedIndexConfigOneOf();
+                if (indexName.equals(cfg.getIndexId())) {
+                    DocMapping docMapping = cfg.getDocMapping();
+                    return docMapping != null && docMapping.getTimestampField() != null && !docMapping.getTimestampField().trim().isEmpty();
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to check timestamp field for index '{}' at {}: {}", indexName, qwUrl, e.getMessage());
+        }
+        return false;
+    }
+
 }
 

@@ -31,6 +31,7 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
     private final Optional<String> replacefromcolumns;
     private final Optional<String> hasjs;
     private final Optional<String> sqlversion;
+    private final Optional<Boolean> timestampEnabled;
     /**
      * L14: column names frozen at {@code analyze()} time (comma-separated).
      * When present, {@code getTableMetadata()} and {@code getColumnHandles()} use this
@@ -57,7 +58,8 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
             @JsonProperty("replacefromcolumns") Optional<String> replacefromcolumns,
             @JsonProperty("hasjs") Optional<String> hasjs,
             @JsonProperty("sqlversion") Optional<String> sqlversion,
-            @JsonProperty("computedColumns") Optional<String> computedColumns)
+            @JsonProperty("computedColumns") Optional<String> computedColumns,
+            @JsonProperty("timestampEnabled") Optional<Boolean> timestampEnabled)
     {
         this.connectorId = Objects.requireNonNull(connectorId, "connectorId is null");
         this.index = Objects.requireNonNull(index, "index is null");
@@ -74,6 +76,7 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
         this.hasjs = hasjs;
         this.sqlversion = sqlversion;
         this.computedColumns = computedColumns != null ? computedColumns : Optional.empty();
+        this.timestampEnabled = timestampEnabled != null ? timestampEnabled : Optional.empty();
     }
 
     // ---------------- getters ----------------
@@ -135,7 +138,7 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
                 connectorId, index, query,
                 startTimestamp, endTimestamp, maxHits, aggsJson,
                 cache, name, columns, dbtype, replacefromcolumns, hasjs, sqlversion,
-                computedColumns);
+                computedColumns, timestampEnabled);
     }
 
     @Override
@@ -162,7 +165,8 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
                 && replacefromcolumns.equals(other.replacefromcolumns)
                 && hasjs.equals(other.hasjs)
                 && sqlversion.equals(other.sqlversion)
-                && computedColumns.equals(other.computedColumns);
+                && computedColumns.equals(other.computedColumns)
+                && timestampEnabled.equals(other.timestampEnabled);
     }
 
     @Override
@@ -183,6 +187,7 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
                 ", hasjs=" + hasjs +
                 ", sqlversion=" + sqlversion +
                 ", computedColumnsPresent=" + computedColumns.isPresent() +
+                ", timestampEnabled=" + timestampEnabled +
                 '}';
     }
 
@@ -219,5 +224,10 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
     @JsonProperty
     public Optional<String> getComputedColumns() {
         return computedColumns;
+    }
+
+    @JsonProperty
+    public Optional<Boolean> getTimestampEnabled() {
+        return timestampEnabled;
     }
 }

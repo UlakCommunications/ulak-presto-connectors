@@ -80,8 +80,10 @@ public class QuickwitRecordSetProvider extends UlakRecordSetProvider {
         }
         root.put("max_hits", maxHits);
 
-        root.put("start_timestamp",startTs);
-        root.put("end_timestamp", endTs);
+        if (h.getTimestampEnabled().orElse(true)) {
+            root.put("start_timestamp", startTs);
+            root.put("end_timestamp", endTs);
+        }
 
 
         h.getAggsJson().ifPresent(aggs -> {
