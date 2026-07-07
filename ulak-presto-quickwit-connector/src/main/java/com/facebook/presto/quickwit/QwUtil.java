@@ -620,7 +620,7 @@ public class QwUtil {
                         && i + 1 < flatted.size()) {
                     val = flatted.get(i + 1)[j];
                 }
-                String value = String.valueOf(val);
+                String value = cleanScientificNotation(String.valueOf(val));
                 if(!Strings.isNullOrEmpty(value)){
                     value = StringUtils.strip(value, "\"");
                     if(value.equals("null")) {
@@ -775,6 +775,25 @@ public class QwUtil {
             logger.warn("Failed to check timestamp field for index '{}' at {}: {}", indexName, qwUrl, e.getMessage());
         }
         return false;
+    }
+
+    public static String cleanScientificNotation(String value) {
+        if (value == null || "null".equals(value)) return value;
+        if (value.contains("E") || value.contains("e")) {
+            try {
+                java.math.BigDecimal bd = new java.math.BigDecimal(value);
+                if (bd.scale() <= 0 || bd.remainder(java.math.BigDecimal.ONE).compareTo(java.math.BigDecimal.ZERO) == 0) {
+                    return bd.toBigInteger().toString();
+                }
+                return bd.toPlainString();
+            } catch (Exception e) {
+                // ignore
+            }
+        }
+        if (value.endsWith(".0")) {
+            return value.substring(0, value.length() - 2);
+        }
+        return value;
     }
 
 }
