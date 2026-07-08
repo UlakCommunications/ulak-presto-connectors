@@ -34,7 +34,6 @@ public class QueryParameters {
     public static final String TEXT_HASJS = "hasjs";
     public static final String TEXT_TIMEFIELD = "timefield";
     public static final String TEXT_QWREPLACEFROMCOLUMN = "replacefromcolumns";
-    public static final String TEXT_HISTORY_COLUMN_MAPPING = "historycolumnmapping";
 
     public static final String TEXT_QWCONNECTTIMEOUT = "connecttimeout";
     public static final String TEXT_QWREADTIMEOUT = "readtimeout";
@@ -73,7 +72,6 @@ public class QueryParameters {
     private boolean historyEnabled = false;
     private String historyIndex;
     private String replaceFromColumns;
-    private String historyColumnMapping;
     private Integer connectTimeout;
     private Integer readTimeout;
     private Integer writeTimeout;
@@ -269,9 +267,6 @@ public class QueryParameters {
                             break;
                         case TEXT_QWREPLACEFROMCOLUMN:
                             ret.setReplaceFromColumns(value);
-                            break;
-                        case TEXT_HISTORY_COLUMN_MAPPING:
-                            ret.setHistoryColumnMapping(value);
                             break;
                         case TEXT_QWREADTIMEOUT:
                             ret.setReadTimeout(Integer.valueOf(value));
@@ -530,13 +525,5 @@ public class QueryParameters {
 
     public void setWriteTimeout(Integer writeTimeout) {
         this.writeTimeout = writeTimeout;
-    }
-
-    public String getHistoryColumnMapping() {
-        return historyColumnMapping;
-    }
-
-    public void setHistoryColumnMapping(String historyColumnMapping) {
-        this.historyColumnMapping = historyColumnMapping;
     }
 }

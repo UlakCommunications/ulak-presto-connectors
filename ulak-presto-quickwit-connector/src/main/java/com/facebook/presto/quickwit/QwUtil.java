@@ -636,22 +636,6 @@ public class QwUtil {
                     k=StringUtils.replace((String) k, toReplace,"");
                 }
                 String slashedKey = k.startsWith("/") ? k : "/" + k;
-                String mappingStr = queryParameters.getHistoryColumnMapping();
-                if (queryParameters.isHistoryEnabled() && StringUtils.isNotBlank(mappingStr)) {
-                    String[] mappings = StringUtils.split(mappingStr, ",");
-                    for (String mapping : mappings) {
-                        String[] kv = StringUtils.split(mapping, ":");
-                        if (kv.length == 2) {
-                            String fromKey = kv[0].trim();
-                            String toKey = kv[1].trim();
-                            if (slashedKey.equals(fromKey)) {
-                                slashedKey = toKey;
-                                k = toKey;
-                                break;
-                            }
-                        }
-                    }
-                }
                 if (k.startsWith("/")) k = k.substring(1);
                 boolean isTimeField =StringUtils.isNotBlank(timeField) && k.endsWith(timeField);
                 if(value!=null){
