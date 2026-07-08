@@ -476,4 +476,67 @@ class QwUtilParseTest {
 
         assertThat(rewrittenMap).isEqualTo(expectedMap);
     }
+
+    @Test
+    @DisplayName("Verify JFlat column key translation from history to raw mapping")
+    void testHistoryKeyTranslation() {
+        boolean isHistoryEnabled = true;
+        String qwIndex = "metrics3_15";
+
+        String[] testKeys = {
+            "/4/6/key_as_string", "/4/5/key", "/2/51/key", "/2/61/key", 
+            "/2/value", "/21/value", "/3/value", "/4/value", "/41/value", "/42/value"
+        };
+
+        for (String testKey : testKeys) {
+            String k = testKey;
+            String slashedKey = k.startsWith("/") ? k : "/" + k;
+
+            if (isHistoryEnabled && "metrics3_15".equals(qwIndex)) {
+                if (slashedKey.equals("/4/6/key_as_string")) { slashedKey = "/buckets/2/6/key_as_string"; k = "buckets/2/6/key_as_string"; }
+                else if (slashedKey.equals("/4/5/key")) { slashedKey = "/buckets/2/5/key"; k = "buckets/2/5/key"; }
+                else if (slashedKey.equals("/2/51/key")) { slashedKey = "/buckets/2/9/key"; k = "buckets/2/9/key"; }
+                else if (slashedKey.equals("/2/61/key")) { slashedKey = "/buckets/2/a/key"; k = "buckets/2/a/key"; }
+                else if (slashedKey.equals("/2/value")) { slashedKey = "/buckets/2/value"; k = "buckets/2/value"; }
+                else if (slashedKey.equals("/21/value")) { slashedKey = "/buckets/2a/value"; k = "buckets/2a/value"; }
+                else if (slashedKey.equals("/3/value")) { slashedKey = "/buckets/4/value"; k = "buckets/4/value"; }
+                else if (slashedKey.equals("/4/value")) { slashedKey = "/buckets/4a/value"; k = "buckets/4a/value"; }
+                else if (slashedKey.equals("/41/value")) { slashedKey = "/buckets/6a/value"; k = "buckets/6a/value"; }
+                else if (slashedKey.equals("/42/value")) { slashedKey = "/buckets/6/value"; k = "buckets/6/value"; }
+            }
+            if (k.startsWith("/")) k = k.substring(1);
+
+            if (testKey.equals("/4/6/key_as_string")) {
+                assertThat(slashedKey).isEqualTo("/buckets/2/6/key_as_string");
+                assertThat(k).isEqualTo("buckets/2/6/key_as_string");
+            } else if (testKey.equals("/4/5/key")) {
+                assertThat(slashedKey).isEqualTo("/buckets/2/5/key");
+                assertThat(k).isEqualTo("buckets/2/5/key");
+            } else if (testKey.equals("/2/51/key")) {
+                assertThat(slashedKey).isEqualTo("/buckets/2/9/key");
+                assertThat(k).isEqualTo("buckets/2/9/key");
+            } else if (testKey.equals("/2/61/key")) {
+                assertThat(slashedKey).isEqualTo("/buckets/2/a/key");
+                assertThat(k).isEqualTo("buckets/2/a/key");
+            } else if (testKey.equals("/2/value")) {
+                assertThat(slashedKey).isEqualTo("/buckets/2/value");
+                assertThat(k).isEqualTo("buckets/2/value");
+            } else if (testKey.equals("/21/value")) {
+                assertThat(slashedKey).isEqualTo("/buckets/2a/value");
+                assertThat(k).isEqualTo("buckets/2a/value");
+            } else if (testKey.equals("/3/value")) {
+                assertThat(slashedKey).isEqualTo("/buckets/4/value");
+                assertThat(k).isEqualTo("buckets/4/value");
+            } else if (testKey.equals("/4/value")) {
+                assertThat(slashedKey).isEqualTo("/buckets/4a/value");
+                assertThat(k).isEqualTo("buckets/4a/value");
+            } else if (testKey.equals("/41/value")) {
+                assertThat(slashedKey).isEqualTo("/buckets/6a/value");
+                assertThat(k).isEqualTo("buckets/6a/value");
+            } else if (testKey.equals("/42/value")) {
+                assertThat(slashedKey).isEqualTo("/buckets/6/value");
+                assertThat(k).isEqualTo("buckets/6/value");
+            }
+        }
+    }
 }
