@@ -192,7 +192,6 @@ public class QwUtil {
                 logger.debug("Switching to history index '{}' (time range {}s > threshold {}s)",
                         queryParameters.getHistoryIndex(), range, HISTORY_TIME_THRESHOLD_SECONDS);
                 queryParameters.setQwIndex(queryParameters.getHistoryIndex());
-                queryParameters.setQuery(rewriteQueryForHistory(queryParameters.getQuery()));
             }
         }
 
@@ -250,6 +249,13 @@ public class QwUtil {
                 throw new ApiException("hasjs script execution failed: "
                         + e.getClass().getSimpleName() + ": " + e.getMessage());
             }
+        }
+
+        if (queryParameters.isHistoryEnabled() &&
+                queryParameters.getHistoryIndex() != null &&
+                queryParameters.getHistoryIndex().equals(queryParameters.getQwIndex())) {
+            logger.debug("Rewriting query for history index '{}'", queryParameters.getQwIndex());
+            query = QwQueryRewriter.rewriteQueryForHistory(query);
         }
 
         logger.debug("Executing executeOneQuery: {}\n\n\nurl:{}\n\n\nindex:{}",
