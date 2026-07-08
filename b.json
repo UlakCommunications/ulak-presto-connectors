@@ -1,0 +1,58 @@
+{
+  "aggs": {
+  "3": {
+    "aggs": {
+      "2": {
+        "aggs": {
+          "4": {
+            "aggs": {
+              "5": {
+                "aggs": {
+                  "1": {
+                    "sum": {
+                      "field": "span_attributes.value"
+                    }
+                  }
+                },
+                "terms": {
+                  "field": "span_attributes.ti",
+                  "size": 100,
+                  "order": {
+                    "_key": "desc"
+                  },
+                  "min_doc_count": 1
+                }
+              }
+            },
+            "terms": {
+              "field": "span_attributes.pi",
+              "size": 100,
+              "order": {
+                "_key": "desc"
+              },
+              "min_doc_count": 1
+            }
+          }
+        },
+        "terms": {
+          "field": "span_attributes.h",
+          "size": 100,
+          "order": {
+            "_key": "desc"
+          },
+          "min_doc_count": 1
+        }
+      }
+    },
+    "date_histogram": {
+      "field": "span_start_timestamp_nanos",
+      "fixed_interval": "5s",
+      "min_doc_count": 0
+    }
+  }
+},
+  "query": "span_attributes.p:maya_ifstatus AND NOT span_attributes.h:IN [e84b661f-8328-4c7a-863b-65cabdf43f94]",
+"max_hits": 0,
+"start_timestamp": 1719833900,
+"end_timestamp": 1719835700
+}

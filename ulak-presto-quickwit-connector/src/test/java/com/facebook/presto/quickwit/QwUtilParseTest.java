@@ -439,4 +439,41 @@ class QwUtilParseTest {
         }
         assertThat(result).as("only 1 non-null row should be in result").hasSize(1);
     }
+
+    @Test
+    @DisplayName("Verify dynamic query rewriting for history index rollups")
+    void testRewriteQueryForHistory() {
+        String inputJson = "{" +
+                "  \"aggs\": {" +
+                "    \"my_agg\": {" +
+                "      \"min\": { \"field\": \"span_attributes.tx\" }," +
+                "      \"max\": { \"field\": \"span_attributes.rx\" }," +
+                "      \"avg\": { \"field\": \"span_attributes.value\" }," +
+                "      \"sum\": { \"field\": \"span_attributes.tx\" }," +
+                "      \"value_count\": { \"field\": \"span_attributes.rx\" }" +
+                "    }" +
+                "  }" +
+                "}";
+
+        String expectedJson = "{" +
+                "  \"aggs\": {" +
+                "    \"my_agg\": {" +
+                "      \"min\": { \"field\": \"span_attributes.tx_min\" }," +
+                "      \"max\": { \"field\": \"span_attributes.rx_max\" }," +
+                "      \"avg\": { \"field\": \"span_attributes.value_avg\" }," +
+                "      \"sum\": { \"field\": \"span_attributes.tx_sum\" }," +
+                "      \"value_count\": { \"field\": \"span_attributes.rx_count\" }" +
+                "    }" +
+                "  }" +
+                "}";
+
+        String rewritten = QwQueryRewriter.rewriteQueryForHistory(inputJson);
+
+        // Parse both as maps to ignore formatting/ordering differences
+        com.google.gson.Gson gson = new com.google.gson.Gson();
+        Map<?, ?> rewrittenMap = gson.fromJson(rewritten, Map.class);
+        Map<?, ?> expectedMap = gson.fromJson(expectedJson, Map.class);
+
+        assertThat(rewrittenMap).isEqualTo(expectedMap);
+    }
 }

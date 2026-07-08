@@ -159,6 +159,8 @@ public class QwUtil {
     public static String replaceTrinoQWVars(String query){
         query=replaceAll(query,"|"," ");
         query=replaceAll(query," not "," NOT ");
+        query=replaceAll(query," or "," OR ");
+        query=replaceAll(query," and "," AND ");
         query=replaceAll(query,":IN [*]",":*");
         query=replaceAll(query,":IN [-]",":*");
         query=replaceAll(query,":IN []",":*");
@@ -190,6 +192,7 @@ public class QwUtil {
                 logger.debug("Switching to history index '{}' (time range {}s > threshold {}s)",
                         queryParameters.getHistoryIndex(), range, HISTORY_TIME_THRESHOLD_SECONDS);
                 queryParameters.setQwIndex(queryParameters.getHistoryIndex());
+                queryParameters.setQuery(rewriteQueryForHistory(queryParameters.getQuery()));
             }
         }
 
@@ -286,8 +289,8 @@ public class QwUtil {
 
         try {
             // Wait for response (this is where it blocks)
-//            ApiResponse<SearchResponseRest> resp = searchApi.getApiClient()
-//                    .execute(call);
+            // ApiResponse<SearchResponseRest> resp = searchApi.getApiClient()
+            //         .execute(call);
             try(Response execResp = call.execute()) {
                 String body = execResp.body() != null ? execResp.body().string() : "";
                 if (!execResp.isSuccessful()) {
@@ -775,6 +778,10 @@ public class QwUtil {
             logger.warn("Failed to check timestamp field for index '{}' at {}: {}", indexName, qwUrl, e.getMessage());
         }
         return false;
+    }
+
+    public static String rewriteQueryForHistory(String queryJson) {
+        return QwQueryRewriter.rewriteQueryForHistory(queryJson);
     }
 
     public static String cleanScientificNotation(String value) {

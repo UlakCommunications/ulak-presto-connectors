@@ -195,6 +195,15 @@ public class UlakQuickwitMetadata
                             throw new RuntimeException(e);
                         }
                     }));
+            if (list == null || list.isEmpty()) {
+                String[] declaredCols = qp.getColumns();
+                if (declaredCols != null && declaredCols.length > 0) {
+                    list = new ArrayList<>();
+                    for (String col : declaredCols) {
+                        list.add(new ColumnMetadata(col, VarcharType.VARCHAR));
+                    }
+                }
+            }
         } catch (IOException e) {
             logger.error(ERRORSTRING, e);
             throw new TrinoException(StandardErrorCode.GENERIC_INTERNAL_ERROR, e);
@@ -281,7 +290,7 @@ public class UlakQuickwitMetadata
         if (StringUtils.isBlank(qp.getQwIndex())) {
             qp.setQwIndex(qwIndex);
         }
-        return getColumnsBase(ConnectorBaseUtil.select(qp,
+        List<ColumnMetadata> list = getColumnsBase(ConnectorBaseUtil.select(qp,
                 false, new String[]{qwUrl, qwIndex}, (q, s) -> {
                     try {
                         logger.debug("From UlakQuickwitMetadata getColumnsInternal in exec: {}\n\n\nurl:{}\n\n\nindex:{}",
@@ -295,6 +304,16 @@ public class UlakQuickwitMetadata
                         throw new RuntimeException(e);
                     }
                 }));
+        if (list == null || list.isEmpty()) {
+            String[] declaredCols = qp.getColumns();
+            if (declaredCols != null && declaredCols.length > 0) {
+                list = new ArrayList<>();
+                for (String col : declaredCols) {
+                    list.add(new ColumnMetadata(col, VarcharType.VARCHAR));
+                }
+            }
+        }
+        return list;
     }
     @Override
     public Map<SchemaTableName, List<ColumnMetadata>> listTableColumns(ConnectorSession session, SchemaTablePrefix prefix) {

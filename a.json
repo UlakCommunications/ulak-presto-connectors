@@ -1,0 +1,28 @@
+{
+  "columns": [
+    "result",
+    "_field",
+    "avg_delay",
+    "jitter",
+    "plugin_instance",
+    "jn",
+    "iface",
+    "loss_percentage",
+    "host",
+    "link_status",
+    "table",
+    "uptime"
+  ],
+  "query": " \n\n//ttl=172800\n//refresh=60\n//cache=true\n//eagercache=true\n//name=data plane status table\n//columns=result,_field,avg_delay,jitter,plugin_instance,jn,iface,loss_percentage,host,link_status,table,uptime\n\nimport \"strings\"\n\ntbluptime=from(bucket: \"otlp_metric\")\n  |> range(start:  -5m) \n  |> filter(fn: (r) => r[\"_measurement\"] == \"uptime\")\n  |> aggregateWindow(every: 10s, fn: last, createEmpty: false)\n  |> last()\n  |> group()\n  |> keep(columns: [\"host\",\"_value\"])\n  |> map(fn: (r)=>({r with uptime:r[\"_value\"]}))\n  |> group()\n\n\n\n  tblprobe= from(bucket: \"otlp_metric\")\n  |> range(start:  -5m) \n  |> filter(fn: (r) => r[\"_measurement\"] == \"maya_probe\"  ) \n  |> group(columns: [\"host\",\"dsname\",\"iface\"])\n  |> mean( )\n  |> group()\n  |> pivot(columnKey:[\"dsname\"] , rowKey: [\"host\",\"iface\"], valueColumn: \"_value\")\n  |> drop(columns: [\"localbo\",\"sent\",\"test_duration\"])\n \n tbljoin2 = join(tables: {sql: tbluptime, ts:tblprobe}, on: [\"host\"]) \n  |> keep(columns: [\"host\", \"uptime\", \"reset_count\",\"iface\",\"avg_delay\",\"jitter\",\"loss_percentage\"])\n\n\n\n\ntblifstatus = from(bucket: \"otlp_metric\")\n  |> range(start:  -5m) \n  |> filter(fn: (r) => r[\"_measurement\"] == \"maya_ifstatus\")\n  |> filter(fn: (r) => r[\"type\"] == \"maya_ifstatus\") \n  |> filter(fn: (r) => r[\"plugin\"] == \"maya_ifstatus\")  \n  |> map(fn: (r)=>({r with iface:r.plugin_instance, link_status : if strings.tolower(v:r[\"type_instance\"])==\"up\" then 1 else if strings.tolower(v:r[\"type_instance\"])==\"unknown\" then 2 else 0})) \n  |> last()\n  |> filter(fn: (r) => contains(value: r[\"link_status\"], set:[1]))\n  |> group(columns: [\"host\", \"iface\", \"link_status\"])\n  |> count(column: \"_field\")\n  |> group()\n\n \n\n  \n join(tables: {sql: tblifstatus, ts:tbljoin2}, on: [\"host\",\"iface\"]) \n  |> map(fn: (r)=>({r with jn:r.host  + \"-\" + r.iface}))\n  |> sort(columns: [\"host\"])\n\n",
+  "hash": 1381139564,
+  "rows": [],
+  "toBeCached": true,
+  "eagerCached": true,
+  "ttlInSeconds": 172800,
+  "refreshDurationInSeconds": 60,
+  "start": 1713203708797,
+  "finish": 1713203708798,
+  "error": null,
+  "dbType": "INFLUXDB2",
+  "name": "data plane status table"
+}

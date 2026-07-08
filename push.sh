@@ -13,8 +13,8 @@ set -x
 
 #docker buildx create  --use --config=../../buildx_config.toml
 #DOCKER_BUILDKIT=0 
-docker buildx use mybuilder
-docker buildx inspect --bootstrap
+#docker buildx use mybuilder
+#docker buildx inspect --bootstrap
 
 nexus_repo="192.168.57.202:35000/maya/trino:${version}"
 

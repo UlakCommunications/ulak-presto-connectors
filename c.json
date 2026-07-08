@@ -1,0 +1,90 @@
+{
+  "aggs": {
+    "6": {
+      "aggs": {
+        "5": {
+          "aggs": {
+            "1": {
+              "min": {
+                "field": "span_attributes.tx"
+              }
+            },
+            "9": {
+              "aggs": {
+                "b": {
+                  "min": {
+                    "field": "span_attributes.tx"
+                  }
+                },
+                "a": {
+                  "aggs": {
+                    "2": {
+                      "min": {
+                        "field": "span_attributes.tx"
+                      }
+                    },
+                    "2a": {
+                      "max": {
+                        "field": "span_attributes.tx"
+                      }
+                    },
+                    "4": {
+                      "min": {
+                        "field": "span_attributes.rx"
+                      }
+                    },
+                    "4a": {
+                      "max": {
+                        "field": "span_attributes.rx"
+                      }
+                    },
+                    "2c": {
+                      "avg": {
+                        "field": "span_attributes.tx"
+                      }
+                    },
+                    "4c": {
+                      "avg": {
+                        "field": "span_attributes.rx"
+                      }
+                    }
+                  },
+                  "terms": {
+                    "field": "span_attributes.t",
+                    "order": {
+                      "2a": "desc"
+                    },
+                    "min_doc_count": 1
+                  }
+                }
+              },
+              "terms": {
+                "field": "span_attributes.pi",
+                "order": {
+                  "b": "desc"
+                },
+                "min_doc_count": 1
+              }
+            }
+          },
+          "terms": {
+            "field": "span_attributes.h",
+            "order": {
+              "1": "desc"
+            },
+            "min_doc_count": 1
+          }
+        }
+      },
+      "date_histogram": {
+        "field": "span_start_timestamp_nanos",
+        "fixed_interval": "10s",
+        "min_doc_count": 1
+      }
+    }
+  },
+  "query": "span_attributes.p:interface AND span_attributes.h:IN [-]",
+  "max_hits": 0,
+  "start_timestamp": 1721730624,
+  "end_timestamp": 1721730924
+}

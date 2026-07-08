@@ -1,0 +1,57 @@
+
+
+//ttl=172800
+//refresh=60
+//cache=true
+//eagercache=true
+//name=data plane status table
+//columns=result,_field,avg_delay,jitter,plugin_instance,jn,iface,loss_percentage,host,link_status,table,uptime
+
+import "strings"
+
+tbluptime=from(bucket: "otlp_metric")
+  |> range(start:  -5m)
+  |> filter(fn: (r) => r["_measurement"] == "uptime")
+  |> aggregateWindow(every: 10s, fn: last, createEmpty: false)
+  |> last()
+  |> group()
+  |> keep(columns: ["host","_value"])
+  |> map(fn: (r)=>({r with uptime:r["_value"]}))
+  |> group()
+
+
+
+  tblprobe= from(bucket: "otlp_metric")
+  |> range(start:  -5m)
+  |> filter(fn: (r) => r["_measurement"] == "maya_probe"  )
+  |> group(columns: ["host","dsname","iface"])
+  |> mean( )
+  |> group()
+  |> pivot(columnKey:["dsname"] , rowKey: ["host","iface"], valueColumn: "_value")
+  |> drop(columns: ["localbo","sent","test_duration"])
+
+ tbljoin2 = join(tables: {sql: tbluptime, ts:tblprobe}, on: ["host"])
+  |> keep(columns: ["host", "uptime", "reset_count","iface","avg_delay","jitter","loss_percentage"])
+
+
+
+
+tblifstatus = from(bucket: "otlp_metric")
+  |> range(start:  -5m)
+  |> filter(fn: (r) => r["_measurement"] == "maya_ifstatus")
+  |> filter(fn: (r) => r["type"] == "maya_ifstatus")
+  |> filter(fn: (r) => r["plugin"] == "maya_ifstatus")
+  |> map(fn: (r)=>({r with iface:r.plugin_instance, link_status : if strings.tolower(v:r["type_instance"])=="up" then 1 else if strings.tolower(v:r["type_instance"])=="unknown" then 2 else 0}))
+  |> last()
+  |> filter(fn: (r) => contains(value: r["link_status"], set:[1]))
+  |> group(columns: ["host", "iface", "link_status"])
+  |> count(column: "_field")
+  |> group()
+
+
+
+
+ join(tables: {sql: tblifstatus, ts:tbljoin2}, on: ["host","iface"])
+  |> map(fn: (r)=>({r with jn:r.host  + "-" + r.iface}))
+  |> sort(columns: ["host"])
+
