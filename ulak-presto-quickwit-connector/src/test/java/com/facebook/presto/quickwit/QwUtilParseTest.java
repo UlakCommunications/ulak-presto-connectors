@@ -481,7 +481,16 @@ class QwUtilParseTest {
     @DisplayName("Verify JFlat column key translation from history to raw mapping")
     void testHistoryKeyTranslation() {
         boolean isHistoryEnabled = true;
-        String qwIndex = "metrics3_15";
+        String mappingStr = "/4/6/key_as_string:/buckets/2/6/key_as_string," +
+                "/4/5/key:/buckets/2/5/key," +
+                "/2/51/key:/buckets/2/9/key," +
+                "/2/61/key:/buckets/2/a/key," +
+                "/2/value:/buckets/2/value," +
+                "/21/value:/buckets/2a/value," +
+                "/3/value:/buckets/4/value," +
+                "/4/value:/buckets/4a/value," +
+                "/41/value:/buckets/6a/value," +
+                "/42/value:/buckets/6/value";
 
         String[] testKeys = {
             "/4/6/key_as_string", "/4/5/key", "/2/51/key", "/2/61/key", 
@@ -492,17 +501,20 @@ class QwUtilParseTest {
             String k = testKey;
             String slashedKey = k.startsWith("/") ? k : "/" + k;
 
-            if (isHistoryEnabled && "metrics3_15".equals(qwIndex)) {
-                if (slashedKey.equals("/4/6/key_as_string")) { slashedKey = "/buckets/2/6/key_as_string"; k = "buckets/2/6/key_as_string"; }
-                else if (slashedKey.equals("/4/5/key")) { slashedKey = "/buckets/2/5/key"; k = "buckets/2/5/key"; }
-                else if (slashedKey.equals("/2/51/key")) { slashedKey = "/buckets/2/9/key"; k = "buckets/2/9/key"; }
-                else if (slashedKey.equals("/2/61/key")) { slashedKey = "/buckets/2/a/key"; k = "buckets/2/a/key"; }
-                else if (slashedKey.equals("/2/value")) { slashedKey = "/buckets/2/value"; k = "buckets/2/value"; }
-                else if (slashedKey.equals("/21/value")) { slashedKey = "/buckets/2a/value"; k = "buckets/2a/value"; }
-                else if (slashedKey.equals("/3/value")) { slashedKey = "/buckets/4/value"; k = "buckets/4/value"; }
-                else if (slashedKey.equals("/4/value")) { slashedKey = "/buckets/4a/value"; k = "buckets/4a/value"; }
-                else if (slashedKey.equals("/41/value")) { slashedKey = "/buckets/6a/value"; k = "buckets/6a/value"; }
-                else if (slashedKey.equals("/42/value")) { slashedKey = "/buckets/6/value"; k = "buckets/6/value"; }
+            if (isHistoryEnabled && mappingStr != null && !mappingStr.trim().isEmpty()) {
+                String[] mappings = mappingStr.split(",");
+                for (String mapping : mappings) {
+                    String[] kv = mapping.split(":");
+                    if (kv.length == 2) {
+                        String fromKey = kv[0].trim();
+                        String toKey = kv[1].trim();
+                        if (slashedKey.equals(fromKey)) {
+                            slashedKey = toKey;
+                            k = toKey;
+                            break;
+                        }
+                    }
+                }
             }
             if (k.startsWith("/")) k = k.substring(1);
 

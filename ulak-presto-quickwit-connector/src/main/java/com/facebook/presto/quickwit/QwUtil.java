@@ -636,17 +636,21 @@ public class QwUtil {
                     k=StringUtils.replace((String) k, toReplace,"");
                 }
                 String slashedKey = k.startsWith("/") ? k : "/" + k;
-                if (queryParameters.isHistoryEnabled() && "metrics3_15".equals(queryParameters.getQwIndex())) {
-                    if (slashedKey.equals("/4/6/key_as_string")) { slashedKey = "/buckets/2/6/key_as_string"; k = "buckets/2/6/key_as_string"; }
-                    else if (slashedKey.equals("/4/5/key")) { slashedKey = "/buckets/2/5/key"; k = "buckets/2/5/key"; }
-                    else if (slashedKey.equals("/2/51/key")) { slashedKey = "/buckets/2/9/key"; k = "buckets/2/9/key"; }
-                    else if (slashedKey.equals("/2/61/key")) { slashedKey = "/buckets/2/a/key"; k = "buckets/2/a/key"; }
-                    else if (slashedKey.equals("/2/value")) { slashedKey = "/buckets/2/value"; k = "buckets/2/value"; }
-                    else if (slashedKey.equals("/21/value")) { slashedKey = "/buckets/2a/value"; k = "buckets/2a/value"; }
-                    else if (slashedKey.equals("/3/value")) { slashedKey = "/buckets/4/value"; k = "buckets/4/value"; }
-                    else if (slashedKey.equals("/4/value")) { slashedKey = "/buckets/4a/value"; k = "buckets/4a/value"; }
-                    else if (slashedKey.equals("/41/value")) { slashedKey = "/buckets/6a/value"; k = "buckets/6a/value"; }
-                    else if (slashedKey.equals("/42/value")) { slashedKey = "/buckets/6/value"; k = "buckets/6/value"; }
+                String mappingStr = queryParameters.getHistoryColumnMapping();
+                if (queryParameters.isHistoryEnabled() && StringUtils.isNotBlank(mappingStr)) {
+                    String[] mappings = StringUtils.split(mappingStr, ",");
+                    for (String mapping : mappings) {
+                        String[] kv = StringUtils.split(mapping, ":");
+                        if (kv.length == 2) {
+                            String fromKey = kv[0].trim();
+                            String toKey = kv[1].trim();
+                            if (slashedKey.equals(fromKey)) {
+                                slashedKey = toKey;
+                                k = toKey;
+                                break;
+                            }
+                        }
+                    }
                 }
                 if (k.startsWith("/")) k = k.substring(1);
                 boolean isTimeField =StringUtils.isNotBlank(timeField) && k.endsWith(timeField);
