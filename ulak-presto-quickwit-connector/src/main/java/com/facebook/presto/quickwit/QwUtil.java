@@ -358,17 +358,26 @@ public class QwUtil {
     public static List<UlakRow> parseResponse(QueryParameters queryParameters,
                                                   SearchResponseRest ret) {
         String sv = queryParameters.getSqlVersion();
+        if (sv == null || sv.trim().isEmpty()) {
+            sv = "0";
+        }
         if ("0".equals(sv)) {
             logger.warn("DEPRECATED: sqlversion=0 (JFlat) is deprecated. Migrate to sqlversion=0.2. See docs/adr/0003-sqlversion-deprecation.md");
         } else if ("0.1".equals(sv)) {
             logger.warn("DEPRECATED: sqlversion=0.1 is deprecated. Migrate to sqlversion=0.2. See docs/adr/0003-sqlversion-deprecation.md");
         }
         Object g = ret.getAggregations();
-        if (g != null && !"0".equals(sv)) {
+        if (g != null) {
             List<UlakRow> results = new ArrayList<>();
-            boolean stripSuffixes = "0.2".equals(sv);
-            traverseAggregations((Map<String, Object>) g, new LinkedHashMap<>(), results, stripSuffixes);
+            if ("0".equals(sv)) {
+                parseResponseAggregations(ret);
+                flattenMap(g, "", new LinkedHashMap<>(), results);
+            } else {
+                boolean stripSuffixes = "0.2".equals(sv);
+                traverseAggregations((Map<String, Object>) g, new LinkedHashMap<>(), results, stripSuffixes);
+            }
             if (!results.isEmpty()) {
+                results = postProcessRows(results, queryParameters);
                 return trimTimeEdges(results, queryParameters);
             }
             // No data from traverseAggregations (empty time window / no matching docs).
@@ -384,6 +393,94 @@ public class QwUtil {
             parseResponseAggregations(ret);
         }
         return parseResponseHits(queryParameters, ret);
+    }
+
+    private static List<UlakRow> postProcessRows(List<UlakRow> rows, QueryParameters queryParameters) {
+        String toReplace = queryParameters.getReplaceFromColumns();
+        if (StringUtils.isBlank(toReplace)) {
+            return rows;
+        }
+        List<UlakRow> processed = new ArrayList<>();
+        for (UlakRow row : rows) {
+            Map<String, Object> originalMap = row.getColumnMap();
+            Map<String, Object> newMap = new LinkedHashMap<>();
+            for (Map.Entry<String, Object> entry : originalMap.entrySet()) {
+                String k = entry.getKey();
+                Object val = entry.getValue();
+                
+                String newKey = StringUtils.replace(k, toReplace, "");
+                String slashedKey = newKey.startsWith("/") ? newKey : "/" + newKey;
+                String bareKey = newKey.startsWith("/") ? newKey.substring(1) : newKey;
+                
+                newMap.put(bareKey, val);
+                newMap.put(slashedKey, val);
+            }
+            processed.add(new UlakRow(newMap));
+        }
+        return processed;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void flattenMap(
+            Object node,
+            String currentPath,
+            Map<String, Object> currentRow,
+            List<UlakRow> results) {
+
+        if (node instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) node;
+            
+            // Check if this map contains any nested maps or lists
+            boolean hasNested = false;
+            for (Object val : map.values()) {
+                if (val instanceof Map || val instanceof List) {
+                    hasNested = true;
+                    break;
+                }
+            }
+
+            if (!hasNested) {
+                // This is a leaf map! Put all its entries into currentRow
+                Map<String, Object> row = new LinkedHashMap<>(currentRow);
+                for (Map.Entry<String, Object> entry : map.entrySet()) {
+                    String colName = currentPath + "/" + entry.getKey();
+                    String slashedKey = colName.startsWith("/") ? colName : "/" + colName;
+                    String bareKey = colName.startsWith("/") ? colName.substring(1) : colName;
+                    row.put(slashedKey, String.valueOf(entry.getValue()));
+                    row.put(bareKey, String.valueOf(entry.getValue()));
+                }
+                results.add(new UlakRow(row));
+                return;
+            }
+
+            // If it has nested elements, we put all primitive entries into currentRow
+            // and recurse into nested elements.
+            Map<String, Object> newRow = new LinkedHashMap<>(currentRow);
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                Object val = entry.getValue();
+                if (!(val instanceof Map) && !(val instanceof List)) {
+                    String colName = currentPath + "/" + entry.getKey();
+                    String slashedKey = colName.startsWith("/") ? colName : "/" + colName;
+                    String bareKey = colName.startsWith("/") ? colName.substring(1) : colName;
+                    newRow.put(slashedKey, String.valueOf(val));
+                    newRow.put(bareKey, String.valueOf(val));
+                }
+            }
+
+            // Recurse into nested elements
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                Object val = entry.getValue();
+                if (val instanceof Map || val instanceof List) {
+                    flattenMap(val, currentPath + "/" + entry.getKey(), newRow, results);
+                }
+            }
+
+        } else if (node instanceof List) {
+            List<?> list = (List<?>) node;
+            for (Object item : list) {
+                flattenMap(item, currentPath, currentRow, results);
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")

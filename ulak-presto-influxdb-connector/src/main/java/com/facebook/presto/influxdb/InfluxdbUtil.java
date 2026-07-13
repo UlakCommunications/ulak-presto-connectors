@@ -149,7 +149,7 @@ public class InfluxdbUtil {
             List<FluxRecord> records = fluxTable.getRecords();
             for (FluxRecord fluxRecord : records) {
                 Map<String, Object> curRow = fluxRecord.getValues();
-                Map<String, Object> newRow = new HashMap<>();
+                Map<String, Object> newRow = new LinkedHashMap<>();
                 for (Map.Entry<String, Object> entry : curRow.entrySet()) {
                     newRow.put(entry.getKey(), entry.getValue());
                 }

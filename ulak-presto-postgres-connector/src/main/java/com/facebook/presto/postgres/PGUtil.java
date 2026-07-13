@@ -117,7 +117,7 @@ public class PGUtil {
                 try (ResultSet tables = statement.executeQuery(query)) {
                     ResultSetMetaData rsmd = tables.getMetaData();
                     while (tables.next()) {
-                        Map<String, Object> newRow = new HashMap<>();
+                        Map<String, Object> newRow = new LinkedHashMap<>();
                         for (int i = 1; i <= rsmd.getColumnCount(); i++) {
                             newRow.put(rsmd.getColumnName(i), tables.getString(i));
                         }
@@ -125,7 +125,7 @@ public class PGUtil {
                     }
                     if(list.isEmpty()) {
                         String[] columns = queryParameters.getColumns();
-                        Map<String, Object> newRow = new HashMap<>();
+                        Map<String, Object> newRow = new LinkedHashMap<>();
                         if (columns != null && columns.length>0) {
                             for (int i = 0; i < columns.length; i++) {
                                 newRow.put(columns[i], null);
