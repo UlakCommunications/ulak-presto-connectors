@@ -371,7 +371,19 @@ public class QwUtil {
             List<UlakRow> results = new ArrayList<>();
             if ("0".equals(sv)) {
                 parseResponseAggregations(ret);
-                flattenMap(g, "", new LinkedHashMap<>(), results);
+                List<Map<String, Object>> rawRows = flatten(g, "");
+                for (Map<String, Object> rawRow : rawRows) {
+                    Map<String, Object> newRow = new LinkedHashMap<>();
+                    for (Map.Entry<String, Object> entry : rawRow.entrySet()) {
+                        String k = entry.getKey();
+                        Object val = entry.getValue();
+                        String slashedKey = k.startsWith("/") ? k : "/" + k;
+                        String bareKey = k.startsWith("/") ? k.substring(1) : k;
+                        newRow.put(slashedKey, String.valueOf(val));
+                        newRow.put(bareKey, String.valueOf(val));
+                    }
+                    results.add(new UlakRow(newRow));
+                }
             } else {
                 boolean stripSuffixes = "0.2".equals(sv);
                 traverseAggregations((Map<String, Object>) g, new LinkedHashMap<>(), results, stripSuffixes);
@@ -421,65 +433,47 @@ public class QwUtil {
     }
 
     @SuppressWarnings("unchecked")
-    private static void flattenMap(
-            Object node,
-            String currentPath,
-            Map<String, Object> currentRow,
-            List<UlakRow> results) {
-
+    private static List<Map<String, Object>> flatten(Object node, String path) {
+        List<Map<String, Object>> rows = new ArrayList<>();
         if (node instanceof Map) {
             Map<String, Object> map = (Map<String, Object>) node;
-            
-            // Check if this map contains any nested maps or lists
-            boolean hasNested = false;
-            for (Object val : map.values()) {
-                if (val instanceof Map || val instanceof List) {
-                    hasNested = true;
-                    break;
-                }
+            if (map.isEmpty()) {
+                rows.add(new LinkedHashMap<>());
+                return rows;
             }
-
-            if (!hasNested) {
-                // This is a leaf map! Put all its entries into currentRow
-                Map<String, Object> row = new LinkedHashMap<>(currentRow);
-                for (Map.Entry<String, Object> entry : map.entrySet()) {
-                    String colName = currentPath + "/" + entry.getKey();
-                    String slashedKey = colName.startsWith("/") ? colName : "/" + colName;
-                    String bareKey = colName.startsWith("/") ? colName.substring(1) : colName;
-                    row.put(slashedKey, String.valueOf(entry.getValue()));
-                    row.put(bareKey, String.valueOf(entry.getValue()));
-                }
-                results.add(new UlakRow(row));
-                return;
-            }
-
-            // If it has nested elements, we put all primitive entries into currentRow
-            // and recurse into nested elements.
-            Map<String, Object> newRow = new LinkedHashMap<>(currentRow);
+            List<Map<String, Object>> currentRows = new ArrayList<>();
+            currentRows.add(new LinkedHashMap<>());
             for (Map.Entry<String, Object> entry : map.entrySet()) {
-                Object val = entry.getValue();
-                if (!(val instanceof Map) && !(val instanceof List)) {
-                    String colName = currentPath + "/" + entry.getKey();
-                    String slashedKey = colName.startsWith("/") ? colName : "/" + colName;
-                    String bareKey = colName.startsWith("/") ? colName.substring(1) : colName;
-                    newRow.put(slashedKey, String.valueOf(val));
-                    newRow.put(bareKey, String.valueOf(val));
+                String subPath = path.isEmpty() ? entry.getKey() : path + "/" + entry.getKey();
+                List<Map<String, Object>> subRows = flatten(entry.getValue(), subPath);
+                
+                List<Map<String, Object>> newRows = new ArrayList<>();
+                for (Map<String, Object> r1 : currentRows) {
+                    for (Map<String, Object> r2 : subRows) {
+                        Map<String, Object> merged = new LinkedHashMap<>(r1);
+                        merged.putAll(r2);
+                        newRows.add(merged);
+                    }
                 }
+                currentRows = newRows;
             }
-
-            // Recurse into nested elements
-            for (Map.Entry<String, Object> entry : map.entrySet()) {
-                Object val = entry.getValue();
-                if (val instanceof Map || val instanceof List) {
-                    flattenMap(val, currentPath + "/" + entry.getKey(), newRow, results);
-                }
-            }
-
+            return currentRows;
         } else if (node instanceof List) {
             List<?> list = (List<?>) node;
-            for (Object item : list) {
-                flattenMap(item, currentPath, currentRow, results);
+            if (list.isEmpty()) {
+                rows.add(new LinkedHashMap<>());
+                return rows;
             }
+            for (Object item : list) {
+                rows.addAll(flatten(item, path));
+            }
+            return rows;
+        } else {
+            // Primitive
+            Map<String, Object> single = new LinkedHashMap<>();
+            single.put(path, node);
+            rows.add(single);
+            return rows;
         }
     }
 

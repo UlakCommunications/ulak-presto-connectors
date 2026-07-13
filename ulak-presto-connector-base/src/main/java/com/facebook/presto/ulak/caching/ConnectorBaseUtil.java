@@ -38,7 +38,7 @@ import static com.facebook.presto.ulak.QueryParameters.getTableNameForHash;
 
 
 public class ConnectorBaseUtil {
-    public static final int NONE_CACHE_TTL_IN_SECONDS = 5;
+    public static final int NONE_CACHE_TTL_IN_SECONDS = 10;
     public static boolean isCoordinator;
     public static String workerId;
     public static String workerIndexToRunIn;
