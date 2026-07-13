@@ -4,6 +4,17 @@ Items move here from [`TODO.md`](TODO.md) when finished. Keep entries
 concrete enough that a future reader can locate the change without
 chasing commits.
 
+## 2026-07-13 — Quickwit flattener, timeout configuration & no-cache TTL tuning
+
+### Quickwit Flattener Fix
+- Replaced the legacy `flattenMap` with a recursive `flatten` method in `QwUtil.java` to compute the Cartesian product of nested buckets. This correctly merges sibling keys onto the same output rows, preventing null metric columns.
+
+### No-Cache TTL Tuning
+- Increased `NONE_CACHE_TTL_IN_SECONDS` from 5s to 10s in `ConnectorBaseUtil.java` to prevent duplicate live query execution during Trino coordinator queue waits.
+
+### Helm Config
+- Added default `connect-timeout=60`, `read-timeout=60`, and `write-timeout=60` to `quickwit.properties` in `trino-single` and `trino-multi`.
+
 ## 2026-05-12 — Code review security + quality fixes (R-series) + architectural fixes (L-series)
 
 ### Critical / security
