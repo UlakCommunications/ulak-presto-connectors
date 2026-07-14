@@ -172,6 +172,13 @@ public class RawQuery
             if (StringUtils.isBlank(tmpCls) && StringUtils.isNotBlank(columns)) {
                 tmpCls = columns;
             }
+            if (StringUtils.isNotBlank(tmpCls)) {
+                tmpCls = Arrays.stream(tmpCls.split(","))
+                        .map(String::trim)
+                        .filter(StringUtils::isNotBlank)
+                        .distinct()
+                        .collect(Collectors.joining(","));
+            }
 
             // Final handle with frozen column list stashed on it
             RawQuickwitQueryTableHandle tableHandle = new RawQuickwitQueryTableHandle(

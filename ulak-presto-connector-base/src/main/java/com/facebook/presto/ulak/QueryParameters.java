@@ -231,7 +231,9 @@ public class QueryParameters {
                             }
                             break;
                         case TEXT_COLUMNS:
-                            String[] vs = value.split(",");
+                            String normalizedValue = value.replaceAll("(?<=value)(?=[0-9])", ",")
+                                                          .replaceAll("(?<=key)(?=[a-zA-Z])", ",");
+                            String[] vs = normalizedValue.split(",");
                             ret.setColumns(vs);
                             break;
                         case TEXT_DBTYPE:

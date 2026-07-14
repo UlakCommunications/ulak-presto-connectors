@@ -212,6 +212,18 @@ public class QwUtil {
     public static String executeQueryScript(String query) {
         long unixTime = System.currentTimeMillis() / 1000L;
 
+        if (query != null) {
+            String[] lines = query.split("\\r?\\n");
+            StringBuilder sb = new StringBuilder();
+            for (String line : lines) {
+                String trimmed = line.trim();
+                if (!trimmed.startsWith("//") && !trimmed.startsWith("-")) {
+                    sb.append(line).append(" ");
+                }
+            }
+            query = sb.toString();
+        }
+
         query = executeScript(
                 "var now = " + unixTime + ";" +
                         "var d = 24*60*60 /*number of seconds in a day*/;" +

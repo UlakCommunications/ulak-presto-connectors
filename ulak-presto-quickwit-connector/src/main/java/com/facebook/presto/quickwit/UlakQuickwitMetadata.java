@@ -200,7 +200,10 @@ public class UlakQuickwitMetadata
                 if (declaredCols != null && declaredCols.length > 0) {
                     list = new ArrayList<>();
                     for (String col : declaredCols) {
-                        list.add(new ColumnMetadata(col, VarcharType.VARCHAR));
+                        String name = col.trim();
+                        if (!name.isEmpty() && list.stream().noneMatch(c -> c.getName().equalsIgnoreCase(name))) {
+                            list.add(new ColumnMetadata(name, VarcharType.VARCHAR));
+                        }
                     }
                 }
             }
@@ -309,7 +312,10 @@ public class UlakQuickwitMetadata
             if (declaredCols != null && declaredCols.length > 0) {
                 list = new ArrayList<>();
                 for (String col : declaredCols) {
-                    list.add(new ColumnMetadata(col, VarcharType.VARCHAR));
+                    String name = col.trim();
+                    if (!name.isEmpty() && list.stream().noneMatch(c -> c.getName().equalsIgnoreCase(name))) {
+                        list.add(new ColumnMetadata(name, VarcharType.VARCHAR));
+                    }
                 }
             }
         }
@@ -444,11 +450,16 @@ public class UlakQuickwitMetadata
 
     private static List<ColumnMetadata> columnsFromCsv(String csv) {
         AtomicInteger noDataIndex = new AtomicInteger(0);
-        return Arrays.stream(csv.split(","))
-                .map(t -> StringUtils.isBlank(t)
-                        ? new ColumnMetadata("no-data-" + noDataIndex.getAndIncrement(), VarcharType.VARCHAR)
-                        : new ColumnMetadata(t, VarcharType.VARCHAR))
-                .collect(Collectors.toList());
+        List<ColumnMetadata> res = new ArrayList<>();
+        for (String t : csv.split(",")) {
+            String name = StringUtils.isBlank(t)
+                    ? "no-data-" + noDataIndex.getAndIncrement()
+                    : t.trim();
+            if (res.stream().noneMatch(c -> c.getName().equalsIgnoreCase(name))) {
+                res.add(new ColumnMetadata(name, VarcharType.VARCHAR));
+            }
+        }
+        return res;
     }
 
     // -----------------------------------------------------------------------
