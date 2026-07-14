@@ -28,3 +28,10 @@
 - **Problem:** Heavy Quickwit nested aggregation queries (like panel 36) take >10 seconds on cold runs, causing client read timeouts in Trino.
 - **Fix:** Added default `connect-timeout=60`, `read-timeout=60`, and `write-timeout=60` to `quickwit.properties` in both `trino-single` and `trino-multi` helm charts. Patched the ConfigMap and rollout-restarted the Trino coordinator on the OGM cluster.
 
+## 8. Fixed Duplicate Fallback Columns (`UlakQuickwitMetadata.java`)
+- **Problem:** When live query returns no data (due to empty time range), the Quickwit connector falls back to the declared `columns` in the query comment. If a column is listed multiple times, it results in duplicate metadata properties, causing Trino planning phase to fail with `AMBIGUOUS_NAME` and `Multiple entries with same value`.
+- **Fix:** Added deduplication logic in `getTableMetadata` and `getColumnsInternal` fallback paths using `list.stream().noneMatch(...)` based on case-insensitive names.
+
+## 9. Auto-Corrected Dashboard Columns Typos (`QueryParameters.java`)
+- **Problem:** In fallback mode (no live data), dashboard copy-paste typos like `/value1/9/key` (missing comma between `/value` and `1/9/key`) or `1/15/keym_overlay` (missing comma between `1/15/key` and `m_overlay`) omit referenced columns from the schema, throwing `COLUMN_NOT_FOUND` on empty panels.
+- **Fix:** Added regex auto-correction rules inside `QueryParameters.java` TEXT_COLUMNS parsing to insert missing commas between word/digit and word/letter boundaries automatically.

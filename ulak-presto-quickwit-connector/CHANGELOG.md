@@ -2,6 +2,14 @@
 
 Items move here from [`TODO.md`](TODO.md) when finished.
 
+## 2026-07-14 — Quality of Service Query Fallback Fixes
+
+- **Ambiguous Column Name (`AMBIGUOUS_NAME`) Fix**: Inside `UlakQuickwitMetadata.getTableMetadata` and `getColumnsInternal`, when fallback columns are resolved from the dashboard comment parameter (`//columns=...`), we now filter out duplicate column names using a `noneMatch` check. This prevents planning-time duplicates and crashes when data is not returned from Quickwit.
+- **Dashboard Typo Auto-Correction**: In `QueryParameters.java`, we added auto-correction rules for the `//columns` CSV parser. It automatically inserts missing commas between:
+  - `value` and next-digit columns (e.g., `value1/9/key` -> `value,1/9/key`), resolving missing `/value` and `1/9/key` columns.
+  - `key` and next-letter columns (e.g., `keym_overlay` -> `key,m_overlay`), resolving missing `1/15/key` and `m_overlay` columns.
+  This fixes `COLUMN_NOT_FOUND` errors on empty queries where dashboard copy-paste typos had caused critical columns to be skipped in the fallback schema.
+
 ## 2026-05-15 — all-null-row filter fix (QW10)
 
 - **QW10** — `parseResponseHits()`: the `if (!allNulls)` guard was commented out, causing rows where every column value is `null` to be included in results. When Quickwit aggregations return empty inner buckets (no matching data), JFlat produces a row with all-null values — this showed in Grafana as a "1 null row" instead of an empty panel. Fix: uncomment the guard so all-null rows are silently dropped. 3 unit tests added to `QwUtilParseTest` (Java-24 compatible, SPI-free).
