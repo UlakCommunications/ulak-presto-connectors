@@ -35,3 +35,10 @@
 ## 9. Auto-Corrected Dashboard Columns Typos (`QueryParameters.java`)
 - **Problem:** In fallback mode (no live data), dashboard copy-paste typos like `/value1/9/key` (missing comma between `/value` and `1/9/key`) or `1/15/keym_overlay` (missing comma between `1/15/key` and `m_overlay`) omit referenced columns from the schema, throwing `COLUMN_NOT_FOUND` on empty panels.
 - **Fix:** Added regex auto-correction rules inside `QueryParameters.java` TEXT_COLUMNS parsing to insert missing commas between word/digit and word/letter boundaries automatically.
+
+## 10. Researched History Index Integration in Table Queries
+- **Findings:**
+  - In JSON/Metadata-based table queries (table names containing `//`), the history mechanism is fully integrated using the `//historyenabled` and `//historyindex` parameters.
+  - When the query range exceeds `HISTORY_TIME_THRESHOLD_SECONDS` (1 hour), the connector dynamically switches the target index to the history index in `QwUtil.select` and rewrites the query aggregate fields in `QwUtil.executeOneQuery`.
+  - In the new Plain Table Query Mode, the history index mechanism is not active by default as the parameters are not provided.
+
