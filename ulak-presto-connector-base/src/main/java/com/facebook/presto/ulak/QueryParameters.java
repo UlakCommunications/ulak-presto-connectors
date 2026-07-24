@@ -288,6 +288,33 @@ public class QueryParameters {
                 }
             }
         }
+
+        StringBuilder hashBuilder = new StringBuilder(tableNameForHash);
+        hashBuilder.append("|dbtype=").append(ret.getDbType());
+        hashBuilder.append("|historyenabled=").append(ret.isHistoryEnabled());
+        if (ret.getHistoryIndex() != null) {
+            hashBuilder.append("|historyindex=").append(ret.getHistoryIndex());
+        }
+        if (ret.getQwIndex() != null) {
+            hashBuilder.append("|qwindex=").append(ret.getQwIndex());
+        }
+        hashBuilder.append("|from=").append(ret.getFrom());
+        hashBuilder.append("|to=").append(ret.getTo());
+        if (ret.getSqlVersion() != null) {
+            hashBuilder.append("|sqlversion=").append(ret.getSqlVersion());
+        }
+        if (ret.getColumns() != null) {
+            hashBuilder.append("|columns=").append(String.join(",", ret.getColumns()));
+        }
+        hashBuilder.append("|hasjs=").append(ret.getHasJs());
+        if (ret.getReplaceFromColumns() != null) {
+            hashBuilder.append("|replacefromcolumns=").append(ret.getReplaceFromColumns());
+        }
+
+        String finalHashStr = hashBuilder.toString();
+        ret.setHash(finalHashStr.hashCode());
+        ret.setCacheKey(sha256Hex(finalHashStr));
+
         return ret;
     }
     public void setColumns(String[] vs) {

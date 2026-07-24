@@ -265,7 +265,8 @@ public class QwUtil {
 
         if (queryParameters.isHistoryEnabled() &&
                 queryParameters.getHistoryIndex() != null &&
-                queryParameters.getHistoryIndex().equals(queryParameters.getQwIndex())) {
+                queryParameters.getHistoryIndex().equals(queryParameters.getQwIndex()) &&
+                !queryParameters.getQwIndex().startsWith("rollup_")) {
             logger.debug("Rewriting query for history index '{}'", queryParameters.getQwIndex());
             query = QwQueryRewriter.rewriteQueryForHistory(query);
         }
