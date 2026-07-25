@@ -42,3 +42,27 @@
   - When the query range exceeds `HISTORY_TIME_THRESHOLD_SECONDS` (1 hour), the connector dynamically switches the target index to the history index in `QwUtil.select` and rewrites the query aggregate fields in `QwUtil.executeOneQuery`.
   - In the new Plain Table Query Mode, the history index mechanism is not active by default as the parameters are not provided.
 
+## 11. Traffic Statistics Sankey Panel src_ip Rollup Fix
+- **Problem:** When `enable_history` was toggled on the **Traffic Statistics** dashboard, the Sankey panel at the bottom showed `N/A` for all source and destination IPs. This was because the query was routed to the history index `rollup_15m_site_app`, which only aggregates by `site_uuid` and `app`, omitting the `src_ip` and `dst_ip` columns.
+- **Fix:** 
+  1. Created a new Quickwit rollup index `rollup_15m_site_src_dst_ip` with custom schema mappings.
+  2. Defined and registered a new rollup task `flow_rollup_15m_site_src_dst_ip` inside `tasks.json` that aggregates by `site_uuid`, `src_ip`, and `dst_ip` concurrently.
+  3. Deployed the updated configuration via ConfigMap and rollout-restarted the Quickwit rollup engine.
+  4. Updated the dashboard's Sankey panel target query in PostgreSQL to route history queries to `rollup_15m_site_src_dst_ip`.
+- **Verification:** Ran test query via Trino and verified that it successfully returns correct source and destination IP pairs instead of `N/A`.
+
+## 12. Hub Resource Utilization Dashboard Trino Migration
+- **Problem:** The **Hub Resource Utilization** dashboard (`defsvlkcamuwwe`) queried metrics (CPU, RAM, DISK) using the native Quickwit datasource plugin (Lucene query syntax) rather than Trino SQL. This prevented it from utilizing the `enable_history` rollup variables.
+- **Fix:**
+  1. Created a complete dashboard backup at `scratch/dashboard_hub_res_util_backup.json`.
+  2. Enabled the `enable_history` template variable visibility (`hide: 0`) in the UI.
+  3. Converted all 5 resource panels to run direct SQL queries in Trino:
+     - **CPU Utilization:** Moved the join with PostgreSQL `site` table directly into Trino SQL, calculating core values and returning timeseries columns. Cleared transformations and removed Target B. Set `hasjs=false` to bypass Rhino parsing.
+     - **RAM Utilization:** Grouped directly in Trino SQL, using `CASE WHEN` to title-case component names (`Free`, `Used`, etc.) to match color overrides. Cleared transformations and set `hasjs=false`.
+     - **DISK Usage:** Wrapped with an outer `group by component` to return exactly 3 clean rows (`Free`, `Used`, `Reserved`) without duplicates. Cleared transformations and set `hasjs=false`.
+     - **Total RAM / Total DISK:** Performed SQL `SUM` aggregation over component averages in Trino SQL, returning `Total` bytes. Cleared transformations and set `hasjs=false`.
+  4. Fixed a missing closing brace in the `Total DISK` query JSON block.
+  5. Saved the clean SQL-grouped dashboard to PostgreSQL.
+- **Verification:** Verified that `enable_history` successfully switches query routing between live `metrics3` and history `metrics3_15` indexes, returning correct and distinct CPU/RAM/Disk metrics.
+
+
