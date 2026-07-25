@@ -18,3 +18,8 @@
      `/home/fatihyuce/.gemini/antigravity/brain/4837bf22-a4cb-4684-8f23-011b35ab0895/scratch/original_views_backup.json`
      To restore original views, run:
      `python3 /home/fatihyuce/.gemini/antigravity/brain/4837bf22-a4cb-4684-8f23-011b35ab0895/scratch/restore_views_from_backup.py`
+
+4. **Resource Utilization History Rollups**:
+   - Currently, CPU, RAM (`memory`), and Disk (`df`) metrics are successfully rolled up into the `metrics3_15` index.
+   - However, the **Hub Resource Utilization** dashboard (`defsvlkcamuwwe`) queries these metrics directly using the Grafana Quickwit plugin (Lucene query syntax) rather than Trino SQL. This prevents it from supporting the `enable_history` / `history_index` variables.
+   - **Action Item:** Convert these panel targets to Trino SQL queries (using views or direct SQL on `quickwit.otlp_metric`) so they can utilize the `enable_history` variable and pull from `metrics3_15` when history is enabled.
