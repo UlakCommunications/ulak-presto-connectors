@@ -86,7 +86,9 @@ public class RawQuery
                             ScalarArgumentSpecification.builder().name("dbtype").type(VARCHAR).defaultValue(Slices.utf8Slice("qw")).build(),
                             ScalarArgumentSpecification.builder().name("replacefromcolumns").type(VARCHAR).defaultValue(Slices.utf8Slice("no-data")).build(),
                             ScalarArgumentSpecification.builder().name("hasjs").type(VARCHAR).defaultValue(Slices.utf8Slice("false")).build(),
-                            ScalarArgumentSpecification.builder().name("sqlversion").type(VARCHAR).defaultValue(Slices.utf8Slice("0")).build()
+                            ScalarArgumentSpecification.builder().name("sqlversion").type(VARCHAR).defaultValue(Slices.utf8Slice("0")).build(),
+                            ScalarArgumentSpecification.builder().name("enable_history").type(VARCHAR).defaultValue(Slices.utf8Slice("false")).build(),
+                            ScalarArgumentSpecification.builder().name("history_index").type(VARCHAR).defaultValue(Slices.utf8Slice("")).build()
                     ),
                     GENERIC_TABLE
             );
@@ -123,6 +125,8 @@ public class RawQuery
             String columns = getOptionalVarchar(arguments, "columns").orElse("");
             String dbtype = getOptionalVarchar(arguments, "dbtype").orElse("");
             String replacefromcolumns = getOptionalVarchar(arguments, "replacefromcolumns").orElse("");
+            String enableHistory = getOptionalVarchar(arguments, "enable_history").orElse("false");
+            String historyIndex = getOptionalVarchar(arguments, "history_index").orElse("");
 
             boolean timestampEnabled = QwUtil.hasTimestampField(
                     index,
@@ -149,7 +153,9 @@ public class RawQuery
                     Optional.of(hasjs),
                     Optional.of(sqlversion),
                     Optional.empty(), // computedColumns — filled below
-                    Optional.of(timestampEnabled));
+                    Optional.of(timestampEnabled),
+                    Optional.of(enableHistory),
+                    Optional.of(historyIndex));
 
             // L14: single live search at plan time; frozen column list shared by all three
             // sites (analyze returnedType, getTableMetadata, getColumnHandles) to prevent
@@ -158,11 +164,11 @@ public class RawQuery
             String tmpCls;
             try {
                 tmpCls = String.join(",", getColumnsInternal(buildSearchRequestJson(tempHandle),
-                        metadata.getQwUrl(),
-                        metadata.getQwIndex(),
-                        metadata.getConnectTimeout(),
-                        metadata.getReadTimeout(),
-                        metadata.getWriteTimeout()).stream().map(t -> t.getName()).collect(Collectors.toList()));
+                         metadata.getQwUrl(),
+                         metadata.getQwIndex(),
+                         metadata.getConnectTimeout(),
+                         metadata.getReadTimeout(),
+                         metadata.getWriteTimeout()).stream().map(t -> t.getName()).collect(Collectors.toList()));
             } catch (IOException e) {
                 tmpCls = columns;
             }
@@ -196,7 +202,9 @@ public class RawQuery
                     Optional.of(hasjs),
                     Optional.of(sqlversion),
                     Optional.of(tmpCls), // computedColumns frozen
-                    Optional.of(timestampEnabled));
+                    Optional.of(timestampEnabled),
+                    Optional.of(enableHistory),
+                    Optional.of(historyIndex));
 
             AtomicInteger noDataIndex = new AtomicInteger(0);
             Descriptor returnedType = new Descriptor(Arrays.stream(tmpCls.split(","))

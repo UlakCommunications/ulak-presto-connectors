@@ -32,6 +32,8 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
     private final Optional<String> hasjs;
     private final Optional<String> sqlversion;
     private final Optional<Boolean> timestampEnabled;
+    private final Optional<String> enableHistory;
+    private final Optional<String> historyIndex;
     /**
      * L14: column names frozen at {@code analyze()} time (comma-separated).
      * When present, {@code getTableMetadata()} and {@code getColumnHandles()} use this
@@ -59,7 +61,9 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
             @JsonProperty("hasjs") Optional<String> hasjs,
             @JsonProperty("sqlversion") Optional<String> sqlversion,
             @JsonProperty("computedColumns") Optional<String> computedColumns,
-            @JsonProperty("timestampEnabled") Optional<Boolean> timestampEnabled)
+            @JsonProperty("timestampEnabled") Optional<Boolean> timestampEnabled,
+            @JsonProperty("enableHistory") Optional<String> enableHistory,
+            @JsonProperty("historyIndex") Optional<String> historyIndex)
     {
         this.connectorId = Objects.requireNonNull(connectorId, "connectorId is null");
         this.index = Objects.requireNonNull(index, "index is null");
@@ -77,6 +81,8 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
         this.sqlversion = sqlversion;
         this.computedColumns = computedColumns != null ? computedColumns : Optional.empty();
         this.timestampEnabled = timestampEnabled != null ? timestampEnabled : Optional.empty();
+        this.enableHistory = enableHistory != null ? enableHistory : Optional.empty();
+        this.historyIndex = historyIndex != null ? historyIndex : Optional.empty();
     }
 
     // ---------------- getters ----------------
@@ -138,7 +144,7 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
                 connectorId, index, query,
                 startTimestamp, endTimestamp, maxHits, aggsJson,
                 cache, name, columns, dbtype, replacefromcolumns, hasjs, sqlversion,
-                computedColumns, timestampEnabled);
+                computedColumns, timestampEnabled, enableHistory, historyIndex);
     }
 
     @Override
@@ -166,7 +172,9 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
                 && hasjs.equals(other.hasjs)
                 && sqlversion.equals(other.sqlversion)
                 && computedColumns.equals(other.computedColumns)
-                && timestampEnabled.equals(other.timestampEnabled);
+                && timestampEnabled.equals(other.timestampEnabled)
+                && enableHistory.equals(other.enableHistory)
+                && historyIndex.equals(other.historyIndex);
     }
 
     @Override
@@ -188,6 +196,8 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
                 ", sqlversion=" + sqlversion +
                 ", computedColumnsPresent=" + computedColumns.isPresent() +
                 ", timestampEnabled=" + timestampEnabled +
+                ", enableHistory=" + enableHistory +
+                ", historyIndex=" + historyIndex +
                 '}';
     }
 
@@ -229,5 +239,15 @@ public final class RawQuickwitQueryTableHandle implements ConnectorTableHandle
     @JsonProperty
     public Optional<Boolean> getTimestampEnabled() {
         return timestampEnabled;
+    }
+
+    @JsonProperty
+    public Optional<String> getEnableHistory() {
+        return enableHistory;
+    }
+
+    @JsonProperty
+    public Optional<String> getHistoryIndex() {
+        return historyIndex;
     }
 }

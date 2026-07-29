@@ -182,16 +182,28 @@ public class QwUtil {
             queryParameters.setQwIndex(qwIndex);
         }
 
-        // Switch to history index if enabled and time range exceeds threshold
-        if (queryParameters.isHistoryEnabled()
-                && StringUtils.isNotBlank(queryParameters.getHistoryIndex())) {
+        logger.warn("DEBUG HISTORY: isHistoryEnabled={}, historyIndex={}, from={}, to={}, range={}, qwIndex={}, threshold={}",
+                queryParameters.isHistoryEnabled(),
+                queryParameters.getHistoryIndex(),
+                queryParameters.getFrom(),
+                queryParameters.getTo(),
+                (queryParameters.getTo() - queryParameters.getFrom()),
+                queryParameters.getQwIndex(),
+                HISTORY_TIME_THRESHOLD_SECONDS);
+
+        // Switch to history index if enable_history is true and time range exceeds threshold
+        if (StringUtils.isNotBlank(queryParameters.getHistoryIndex())) {
             long from = queryParameters.getFrom();
             long to = queryParameters.getTo();
             long range = to - from;
-            if (from > 0 && to > 0 && range > HISTORY_TIME_THRESHOLD_SECONDS) {
-                logger.debug("Switching to history index '{}' (time range {}s > threshold {}s)",
+            boolean rangeExceedsThreshold = (from > 0 && to > 0 && range > HISTORY_TIME_THRESHOLD_SECONDS);
+            if (queryParameters.isHistoryEnabled() && rangeExceedsThreshold) {
+                logger.warn("Switching to history index '{}' (isHistoryEnabled=true, range {}s > threshold {}s)",
                         queryParameters.getHistoryIndex(), range, HISTORY_TIME_THRESHOLD_SECONDS);
                 queryParameters.setQwIndex(queryParameters.getHistoryIndex());
+            } else {
+                logger.warn("Staying on raw index '{}' (isHistoryEnabled={}, rangeExceedsThreshold={})",
+                        queryParameters.getQwIndex(), queryParameters.isHistoryEnabled(), rangeExceedsThreshold);
             }
         }
 
