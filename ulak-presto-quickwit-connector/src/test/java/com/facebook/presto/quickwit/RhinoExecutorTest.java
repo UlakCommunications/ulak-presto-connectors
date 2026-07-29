@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.net.URLClassLoader;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -146,16 +147,6 @@ class RhinoExecutorTest {
         com.google.gson.Gson gson = new com.google.gson.Gson();
         Map<?, ?> resultMap = gson.fromJson(result, Map.class);
         
-        assertThat(resultMap.get("start_timestamp")).isEqualTo(1784871000.0); // Math.ceil(1784866501/900)*900 = 1983186 * 900 = 1784867400? Wait, 1784866501 / 900 = 1983185.0011, ceil(1983185.0011) = 1983186. 1983186 * 900 = 1784867400.
-        // Wait, what about 1784867401? 1784867401 / 900 = 1983186.0011. floor(1983186.0011) = 1983186. 1983186 * 900 = 1784867400.
-        // Wait, let's verify math:
-        // 1784866501 / 900 = 1983185.0011111112
-        // Math.ceil(1983185.0011111112) = 1983186
-        // 1983186 * 900 = 1784867400
-        // And:
-        // 1784867401 / 900 = 1983186.0011111112
-        // Math.floor(1983186.0011111112) = 1983186
-        // 1983186 * 900 = 1784867400
         assertThat(resultMap.get("start_timestamp")).isEqualTo(1784867400.0);
         assertThat(resultMap.get("end_timestamp")).isEqualTo(1784867400.0);
     }
