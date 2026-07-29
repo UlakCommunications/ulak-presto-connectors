@@ -1,26 +1,15 @@
 # TODO.md — Next Steps and Open Actions
 
 ## Current State
-- The Quickwit connector has been fully updated to resolve `AMBIGUOUS_NAME` and `COLUMN_NOT_FOUND` issues when queries yield no matching documents (fallback mode).
-- Duplicate column handles are deduplicated in metadata resolving (`getTableMetadata`, `getColumnsInternal`).
-- The `//columns` CSV parser in `QueryParameters` now auto-corrects typos (missing commas) between key/value and adjacent columns.
-- The new connector image (`0.0.1-develop-latest`) has been compiled, packaged, pushed, and Trino coordinator restarted.
-- End-to-end verification via statement query scripts succeeded.
+- The Quickwit connector has been updated to spare flow metric fields (`u`, `ac`, `ab`, `t`, `u_ac`, `t_ab`) and default value fields (`value`) from history suffix renaming.
+- Pre presto connectors have been successfully built, pushed to local Nexus registry, and deployed via rollout-restart on the Trino coordinator.
+- End-to-end local test validation queries for all resource utilization panels (CPU, RAM, DISK, etc.) succeeded on the new pod.
 
 ## Next Steps for the Next Session
-1. **User/Grafana Verification**:
-   - Ask the user to open the Quality of Service dashboard at https://192.168.109.206/grafana/d/cez1fkculu1hca/quality-of-service?orgId=1&refresh=1m and verify that all panels load successfully (displaying data or 0 rows/empty panels without errors).
+1. **User/Grafana Dashboard Verification**:
+   - Ask the user to verify that BOTH the **Traffic Statistics** and **Hub Resource Utilization** dashboards load successfully in Grafana.
+   - Verify that toggling the time range (e.g., last 15 mins vs last 6 hours) routes queries dynamically between live and history indexes, and renders graphs correctly without null/zero values or casting errors.
+
 2. **Monitor Logs**:
-   - Monitor Trino coordinator logs during user verification:
-     `KUBECONFIG=/home/fatihyuce/.kube/config-ogm-demo kubectl logs -n maya3 -l app=trino,component=coordinator --tail=100 -f`
-3. **Database Settings Check**:
-   - In case any other views show syntax or runtime evaluation errors, check `public.maya_global_settings` table in PostgreSQL. A complete backup of the views prior to the `Math` conversion is saved at:
-     `/home/fatihyuce/.gemini/antigravity/brain/4837bf22-a4cb-4684-8f23-011b35ab0895/scratch/original_views_backup.json`
-     To restore original views, run:
-     `python3 /home/fatihyuce/.gemini/antigravity/brain/4837bf22-a4cb-4684-8f23-011b35ab0895/scratch/restore_views_from_backup.py`
-
-4. **Resource Utilization History Rollups (COMPLETED)**:
-   - Successfully migrated the **Hub Resource Utilization** dashboard (`defsvlkcamuwwe`) CPU, RAM, DISK, Total RAM, and Total DISK panels to Trino SQL queries.
-   - Verified that `enable_history` works dynamically, routing queries between `metrics3` and `metrics3_15` rollup indexes.
-   - Plotted component values correctly and verified Disk groups cleanly (no fragmentation).
-
+   - Monitor Trino coordinator logs for any unexpected query rewriter failures:
+     `kubectl --kubeconfig /home/fatihyuce/.kube/yucemonitoring.config --insecure-skip-tls-verify -n yucemonitoring logs -l app=trino,component=coordinator --tail=100 -f`

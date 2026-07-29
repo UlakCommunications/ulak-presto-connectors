@@ -460,7 +460,7 @@ class QwUtilParseTest {
                 "    \"my_agg\": {" +
                 "      \"min\": { \"field\": \"span_attributes.tx_min\" }," +
                 "      \"max\": { \"field\": \"span_attributes.rx_max\" }," +
-                "      \"avg\": { \"field\": \"span_attributes.value_avg\" }," +
+                "      \"avg\": { \"field\": \"span_attributes.value\" }," +
                 "      \"sum\": { \"field\": \"span_attributes.tx_sum\" }," +
                 "      \"value_count\": { \"field\": \"span_attributes.rx_count\" }" +
                 "    }" +

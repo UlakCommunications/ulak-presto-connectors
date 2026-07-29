@@ -1,32 +1,22 @@
-# CLAUDE.md — Presto InfluxDB / Quickwit Connector
+# CLAUDE.md — Presto Quickwit Connector
 
-## Build and Test Commands
-- **Compile and Package Connector:** `./mvnw clean install` (run from root)
-- **Run Unit Tests (Quickwit only):** `./mvnw clean test -pl ulak-presto-quickwit-connector`
-- **Build and Push Docker Image (Nexus/Maya):** `./push.sh 0.0.1-develop-latest linux/amd64` (pushes to `192.168.57.202:35000/maya/trino:0.0.1-develop-latest`)
-
-## K8s Deployment and Tailing Commands (yucemonitoring)
+## Build & Deploy Commands
+- **Compile & Package:** `./mvnw clean install -DskipTests` (run from root)
+- **Quickwit Unit Tests:** `./mvnw test -pl ulak-presto-quickwit-connector`
+- **Build & Push Image:** `./push.sh 0.0.1-develop-latest linux/amd64` (pushes to `192.168.57.202:35000/maya/trino:0.0.1-develop-latest`)
 - **Rollout Restart Trino Coordinator:**
-  `KUBECONFIG=/home/fatihyuce/.kube/yucemonitoring-direct.config kubectl rollout restart deployment/maya-trino-multi-coordinator -n yucemonitoring`
-- **Check Trino Pod Status:**
-  `KUBECONFIG=/home/fatihyuce/.kube/yucemonitoring-direct.config kubectl get pods -n yucemonitoring | grep trino`
-- **Tail Trino Coordinator Logs:**
-  `KUBECONFIG=/home/fatihyuce/.kube/yucemonitoring-direct.config kubectl logs -n yucemonitoring -l app=maya-trino,component=coordinator --tail=100 -f`
+  `kubectl --kubeconfig /home/fatihyuce/.kube/yucemonitoring.config --insecure-skip-tls-verify -n yucemonitoring rollout restart deployment/maya-trino-multi-coordinator`
+- **Tail Coordinator Logs:**
+  `kubectl --kubeconfig /home/fatihyuce/.kube/yucemonitoring.config --insecure-skip-tls-verify -n yucemonitoring logs -l app=trino,component=coordinator --tail=100 -f`
 
-## K8s Deployment and Tailing Commands (OGM Demo)
-- **Rollout Restart Trino Coordinator:**
-  `KUBECONFIG=/home/fatihyuce/.kube/config-ogm-demo kubectl rollout restart deployment/maya-trino-coordinator -n maya3`
-- **Check Trino Pod Status:**
-  `KUBECONFIG=/home/fatihyuce/.kube/config-ogm-demo kubectl get pods -n maya3 | grep trino`
-- **Tail Trino Coordinator Logs:**
-  `KUBECONFIG=/home/fatihyuce/.kube/config-ogm-demo kubectl logs -n maya3 -l app=trino,component=coordinator --tail=100 -f`
-
-## Database Access Commands
-- **Connect to Grafana PostgreSQL Settings DB:**
-  `KUBECONFIG=/home/fatihyuce/.kube/yucemonitoring-direct.config kubectl exec -it -n yucemonitoring maya-postgres-1-0 -- env PGPASSWORD=5iE!16hEB1 psql -U postgres -d grafana`
+## Database Access
+- **Connect to Grafana PostgreSQL:**
+  `kubectl exec -it -n yucemonitoring maya-postgres-1-0 -- env PGPASSWORD=5iE!16hEB1 psql -U postgres -d grafana`
 
 ## Verification Scripts
-- Scratch scripts are stored in `/home/fatihyuce/.gemini/antigravity/brain/4837bf22-a4cb-4684-8f23-011b35ab0895/scratch/`
-  - `wait_for_trino_pod.py`: Monitors K8s Trino coordinator readiness.
-  - `test_exec_next_uri.py`: Runs end-to-end Trino queries on history indices using curl via Trino statement HTTP endpoints.
-  - `query_trino_b32_clean_math.py`: Tests Base32 encoded queries with standard `Math` library.
+- Scratch scripts stored in `~/.gemini/antigravity/brain/80e69544-7831-431d-8205-da65ca0f774c/scratch/`:
+  - `compare_buckets.py`: Compares date histogram bucket aggregation values between `value` and `value_avg` indexes.
+  - `test_all_panels.py`: Executes verification queries against all panels in raw and history modes.
+
+## READY FOR HANDOVER (Wed Jul 29 15:02:00 +03 2026)
+We successfully fixed history query failures on flow and resource utilization dashboards. We modified `QwQueryRewriter.java` to spare flow metric fields (`u`, `ac`, `ab`, `t`, `u_ac`, `t_ab`) and the default value field (`value`) from history suffix renaming. This ensures backward compatibility with older rolled-up documents where metric averages were stored directly in `value`. The connector was rebuilt, packaged, pushed to the Nexus registry, deployed, and verified to return complete history dataset ranges across all panels.

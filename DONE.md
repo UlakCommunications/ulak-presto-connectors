@@ -65,4 +65,17 @@
   5. Saved the clean SQL-grouped dashboard to PostgreSQL.
 - **Verification:** Verified that `enable_history` successfully switches query routing between live `metrics3` and history `metrics3_15` indexes, returning correct and distinct CPU/RAM/Disk metrics.
 
+## 13. Excluded Flow Suffixes from History Renaming
+- **Problem:** When querying history indexes for flows, the query rewriter was renaming metrics like `u`, `ac`, etc. to `u_sum`, `ac_avg`, which did not match the actual schemas of the flow rollup indexes (e.g. `rollup_15m_site_src_ip`).
+- **Fix:** Modified `QwQueryRewriter.java` to check for and exclude flow metrics (`u`, `ac`, `ab`, `t`, `u_ac`, `t_ab`) from being renamed with history suffixes.
+
+## 14. Support history_index and enable_history in raw_query
+- **Problem:** Previously, the `quickwit.system.raw_query` table function did not dynamically route queries to history rollup indexes when historical time ranges were queried.
+- **Fix:** Added `enable_history` and `history_index` parameters directly into `RawQuery.java` and `RawQuickwitQueryTableHandle.java`, implementing the conditional routing and schema resolution logic inside `QwUtil.java`.
+
+## 15. Excluded Default Value Metric Field from History Suffix Renaming
+- **Problem:** Suffix renaming (`value` -> `value_avg`) broke historical resource utilization graphs because older rolled-up documents (before today at 08:00) stored the average directly in `value` and did not contain the `value_avg` field, returning null/empty graphs.
+- **Fix:** Excluded `span_attributes.value` from suffix renaming in `QwQueryRewriter.java` so that both older and newer rollups resolve correctly using the common `value` field.
+
+
 
