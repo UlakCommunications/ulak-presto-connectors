@@ -1,4 +1,22 @@
-# DONE.md — Completed Work in this Session
+# DONE.md — Completed Work
+
+## Session 30 July 2026: QoS History Resolution & Dynamic Suffix Exclusions
+
+### 1. QoS History "No Data" Fix (`tasks.json`)
+- **Problem:** The `netlink` rollup task (`netlink_${ROLLUP_INTERVAL}m`) in `tasks.json` did not group by class name (`m_name`) or site ID (`m_site_id`). Toggling `enable_history` on the QoS dashboard caused the queries to return 0 rows since these fields did not exist in the rollup index `metrics3_15`.
+- **Fix:** Added `m_site_id`, `m_name`, and `m_site_name` as dimensions to `netlink_${ROLLUP_INTERVAL}m` in `tasks.json` and nested the aggregations in the template. Deployed configuration via Kubernetes ConfigMap and restarted `qw-rollup-engine`. Cleared the checkpoint key in Redis to backfill rollup data from today 00:00.
+
+### 2. QoS Dashboard Query Typo Fix
+- **Problem:** The targets inside `Class Traffic`, `Queue Depth`, and `QoS` panels of the Quality of Service dashboard (`cez1fkculu1hca`) had a typo `//columns1=` instead of `//columns=`. When history returned 0 rows, Trino could not dynamically discover the schema and failed with a compilation error.
+- **Fix:** Created a script `fix_qos_dashboard.py` to replace all `columns1=` with `columns=`. Kept the original `folderId: 65` from the metadata payload to prevent Grafana from moving the dashboard to the General folder.
+
+### 3. Dynamic Suffix Exclusions (`QwQueryRewriter.java` & `QwUtil.java`)
+- **Problem:** Excluded flow metrics were hardcoded in the Java rewriter code, violating connector design guidelines and breaking Trino dynamic querying for customized rollup schemas.
+- **Fix:** Modified the Presto Quickwit connector to parse a dynamic comment header `//nohistorysuffix=...` in target queries. Excluded fields are parsed on-the-fly and passed to the Gson rewriter, removing hardcoded metric strings from the Java codebase.
+
+---
+
+## Session 29 July 2026: Flow & Resource Utilization History Routing Fixes
 
 ## 1. Moved History Query Rewriter Order (`QwUtil.java`)
 - **Problem:** History index query rewriter (`rewriteQueryForHistory`) was run on the raw query text before Javascript execution. If the query contained Javascript evaluations like `eval(unescape(...))`, Gson would fail to parse the invalid JSON syntax, causing the suffix rewriting (`tx` -> `tx_min`) to be silently skipped.
