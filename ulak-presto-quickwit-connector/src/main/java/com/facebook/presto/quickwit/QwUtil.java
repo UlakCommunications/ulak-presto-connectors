@@ -290,7 +290,24 @@ public class QwUtil {
                 queryParameters.getHistoryIndex().equals(queryParameters.getQwIndex()) &&
                 !queryParameters.getQwIndex().startsWith("rollup_")) {
             logger.debug("Rewriting query for history index '{}'", queryParameters.getQwIndex());
-            query = QwQueryRewriter.rewriteQueryForHistory(query);
+            Set<String> noHistorySuffixSet = new HashSet<>(Arrays.asList("u", "ac", "ab", "t", "u_ac", "t_ab"));
+            String rawQuery = queryParameters.getQuery();
+            if (StringUtils.isNotBlank(rawQuery)) {
+                for (String line : rawQuery.split("\n")) {
+                    String trimmed = line.trim();
+                    if (trimmed.startsWith("//nohistorysuffix=")) {
+                        String val = trimmed.substring("//nohistorysuffix=".length()).trim();
+                        noHistorySuffixSet = new HashSet<>();
+                        if (!val.isEmpty()) {
+                            for (String part : val.split(",")) {
+                                noHistorySuffixSet.add(part.trim());
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            query = QwQueryRewriter.rewriteQueryForHistory(query, noHistorySuffixSet);
         }
 
         logger.debug("Executing executeOneQuery: {}\n\n\nurl:{}\n\n\nindex:{}",

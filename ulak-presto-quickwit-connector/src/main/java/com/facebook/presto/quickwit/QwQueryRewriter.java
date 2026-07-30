@@ -6,10 +6,11 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class QwQueryRewriter {
 
-    public static String rewriteQueryForHistory(String queryJson) {
+    public static String rewriteQueryForHistory(String queryJson, Set<String> noHistorySuffixSet) {
         if (StringUtils.isBlank(queryJson)) {
             return queryJson;
         }
@@ -18,7 +19,7 @@ public class QwQueryRewriter {
             if (jsonElement.isJsonObject()) {
                 com.google.gson.JsonObject root = jsonElement.getAsJsonObject();
                 if (root.has("aggs")) {
-                    rewriteAggsForHistory(root.get("aggs"));
+                    rewriteAggsForHistory(root.get("aggs"), noHistorySuffixSet);
                 }
             }
             return new GsonBuilder().serializeNulls().create().toJson(jsonElement);
@@ -27,7 +28,11 @@ public class QwQueryRewriter {
         }
     }
 
-    private static void rewriteAggsForHistory(com.google.gson.JsonElement element) {
+    public static String rewriteQueryForHistory(String queryJson) {
+        return rewriteQueryForHistory(queryJson, new java.util.HashSet<>(java.util.Arrays.asList("u", "ac", "ab", "t", "u_ac", "t_ab")));
+    }
+
+    private static void rewriteAggsForHistory(com.google.gson.JsonElement element, Set<String> noHistorySuffixSet) {
         if (element == null || element.isJsonNull()) return;
         if (element.isJsonObject()) {
             com.google.gson.JsonObject obj = element.getAsJsonObject();
@@ -44,7 +49,7 @@ public class QwQueryRewriter {
                                 if (field.startsWith("span_attributes.")) {
                                     String fieldName = field.substring("span_attributes.".length());
                                     if (!fieldName.endsWith("_min") && !fieldName.endsWith("_max") && !fieldName.endsWith("_avg") && !fieldName.endsWith("_sum") && !fieldName.endsWith("_count")) {
-                                        if (!fieldName.equals("u") && !fieldName.equals("ac") && !fieldName.equals("ab") && !fieldName.equals("t") && !fieldName.equals("u_ac") && !fieldName.equals("t_ab")) {
+                                        if (!noHistorySuffixSet.contains(fieldName)) {
                                             if (!fieldName.equals("value") || !"avg".equals(key)) {
                                                 String suffix = "value_count".equals(key) ? "count" : key;
                                                 valObj.addProperty("field", "span_attributes." + fieldName + "_" + suffix);
@@ -58,16 +63,16 @@ public class QwQueryRewriter {
                             }
                         }
                     } else {
-                        rewriteAggsForHistory(valObj);
+                        rewriteAggsForHistory(valObj, noHistorySuffixSet);
                     }
                 } else if (val.isJsonArray()) {
-                    rewriteAggsForHistory(val.getAsJsonArray());
+                    rewriteAggsForHistory(val.getAsJsonArray(), noHistorySuffixSet);
                 }
             }
         } else if (element.isJsonArray()) {
             com.google.gson.JsonArray arr = element.getAsJsonArray();
             for (com.google.gson.JsonElement item : arr) {
-                rewriteAggsForHistory(item);
+                rewriteAggsForHistory(item, noHistorySuffixSet);
             }
         }
     }
