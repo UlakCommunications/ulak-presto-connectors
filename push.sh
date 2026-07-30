@@ -16,7 +16,7 @@ set -x
 #docker buildx use mybuilder
 #docker buildx inspect --bootstrap
 
-nexus_repo="192.168.57.205:35000/maya/trino:${version}"
+nexus_repo="192.168.57.202:35000/maya/trino:${version}"
 
 # Eğer prod seçilmişse, prod_nexus_repo ve nexus_repo push işlemi gerçekleşir
 if [ "$prod" == "true" ]; then
