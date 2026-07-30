@@ -44,9 +44,11 @@ public class QwQueryRewriter {
                                 if (field.startsWith("span_attributes.")) {
                                     String fieldName = field.substring("span_attributes.".length());
                                     if (!fieldName.endsWith("_min") && !fieldName.endsWith("_max") && !fieldName.endsWith("_avg") && !fieldName.endsWith("_sum") && !fieldName.endsWith("_count")) {
-                                        if (!fieldName.equals("u") && !fieldName.equals("ac") && !fieldName.equals("ab") && !fieldName.equals("t") && !fieldName.equals("u_ac") && !fieldName.equals("t_ab") && !fieldName.equals("value")) {
-                                            String suffix = "value_count".equals(key) ? "count" : key;
-                                            valObj.addProperty("field", "span_attributes." + fieldName + "_" + suffix);
+                                        if (!fieldName.equals("u") && !fieldName.equals("ac") && !fieldName.equals("ab") && !fieldName.equals("t") && !fieldName.equals("u_ac") && !fieldName.equals("t_ab")) {
+                                            if (!fieldName.equals("value") || !"avg".equals(key)) {
+                                                String suffix = "value_count".equals(key) ? "count" : key;
+                                                valObj.addProperty("field", "span_attributes." + fieldName + "_" + suffix);
+                                            }
                                         }
                                     }
                                 } else if ("span_start_timestamp_nanos".equals(field)) {
