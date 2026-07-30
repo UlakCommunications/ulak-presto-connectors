@@ -451,6 +451,10 @@ class QwUtilParseTest {
                 "      \"avg\": { \"field\": \"span_attributes.value\" }," +
                 "      \"sum\": { \"field\": \"span_attributes.tx\" }," +
                 "      \"value_count\": { \"field\": \"span_attributes.rx\" }" +
+                "    }," +
+                "    \"time_agg\": {" +
+                "      \"min\": { \"field\": \"span_start_timestamp_nanos\" }," +
+                "      \"max\": { \"field\": \"span_start_timestamp_nanos\" }" +
                 "    }" +
                 "  }" +
                 "}";
@@ -463,6 +467,10 @@ class QwUtilParseTest {
                 "      \"avg\": { \"field\": \"span_attributes.value\" }," +
                 "      \"sum\": { \"field\": \"span_attributes.tx_sum\" }," +
                 "      \"value_count\": { \"field\": \"span_attributes.rx_count\" }" +
+                "    }," +
+                "    \"time_agg\": {" +
+                "      \"min\": { \"field\": \"span_attributes.timestamp_min\" }," +
+                "      \"max\": { \"field\": \"span_attributes.timestamp_max\" }" +
                 "    }" +
                 "  }" +
                 "}";

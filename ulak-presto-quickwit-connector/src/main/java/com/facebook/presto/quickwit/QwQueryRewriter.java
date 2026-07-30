@@ -49,6 +49,9 @@ public class QwQueryRewriter {
                                             valObj.addProperty("field", "span_attributes." + fieldName + "_" + suffix);
                                         }
                                     }
+                                } else if ("span_start_timestamp_nanos".equals(field)) {
+                                    String suffix = "min".equals(key) ? "min" : "max";
+                                    valObj.addProperty("field", "span_attributes.timestamp_" + suffix);
                                 }
                             }
                         }
