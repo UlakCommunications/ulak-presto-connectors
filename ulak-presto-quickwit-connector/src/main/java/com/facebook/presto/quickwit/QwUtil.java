@@ -236,12 +236,22 @@ public class QwUtil {
             query = sb.toString();
         }
 
+        if (query != null) {
+            query = query.replace("math.ceil", "Math.ceil")
+                         .replace("math.floor", "Math.floor")
+                         .replace("math.round", "Math.round")
+                         .replace("math.abs", "Math.abs")
+                         .replace("math.max", "Math.max")
+                         .replace("math.min", "Math.min");
+        }
+
         query = executeScript(
                 "var now = " + unixTime + ";" +
                         "var d = 24*60*60 /*number of seconds in a day*/;" +
                         "var h = 60*60 /*number of seconds in an hour*/;" +
                         "var m = 60 /*number of seconds in a minute*/;" +
                         "var s = 1 /*number of seconds in a second*/;" +
+                        "var math = Math;" +
                         "var a = " + query + ";" +
                         "JSON.stringify(a);");
 
