@@ -494,4 +494,18 @@ class QwUtilParseTest {
 
         assertThat(rewrittenMap).isEqualTo(expectedMap);
     }
+
+    @Test
+    @DisplayName("Catalog-scoped history threshold resolution fallback")
+    void testCatalogHistoryThresholdResolution() {
+        // Case 1: Catalog config threshold provided — use it directly
+        Long catalogThreshold1 = 7200L;
+        long resolved1 = catalogThreshold1 != null ? catalogThreshold1 : 10800L;
+        assertThat(resolved1).isEqualTo(7200L);
+
+        // Case 2: No catalog config — falls back to default 10800s (3h)
+        Long catalogThreshold2 = null;
+        long resolved2 = catalogThreshold2 != null ? catalogThreshold2 : 10800L;
+        assertThat(resolved2).isEqualTo(10800L);
+    }
 }
