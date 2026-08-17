@@ -260,7 +260,7 @@ public class UlakQuickwitMetadata
             }
 
             if (list == null) {
-                list = getColumnsInternal(tableName, this.qwUrl, this.qwIndex, connectTimeout, readTimeout, writeTimeout);
+                list = getColumnsInternal(tableName, this.qwUrl, this.qwIndex, connectTimeout, readTimeout, writeTimeout, this.historyTimeThresholdSeconds);
             }
 
             logger.debug("getColumnHandles: num columns:{}", list.size());
@@ -457,6 +457,10 @@ public class UlakQuickwitMetadata
 
     public Integer getWriteTimeout() {
         return writeTimeout;
+    }
+
+    public Long getHistoryTimeThresholdSeconds() {
+        return historyTimeThresholdSeconds;
     }
 
     // -----------------------------------------------------------------------
