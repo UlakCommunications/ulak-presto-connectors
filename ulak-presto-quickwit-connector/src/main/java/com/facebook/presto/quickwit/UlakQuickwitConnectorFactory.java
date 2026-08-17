@@ -62,6 +62,16 @@ public class UlakQuickwitConnectorFactory
         String readTimeout = config.get("read-timeout");
         String writeTimeout = config.get("write-timeout");
         String allowedUrls = config.get("qw-allowed-urls");
+        String historyThreshold = config.get("history-time-threshold-seconds");
+        Long historyTimeThresholdSeconds = null;
+        if (historyThreshold != null && !historyThreshold.trim().isEmpty()) {
+            try {
+                historyTimeThresholdSeconds = Long.parseLong(historyThreshold.trim());
+                logger.info("Configured historyTimeThresholdSeconds to {} seconds for catalog '{}'", historyTimeThresholdSeconds, catalogName);
+            } catch (Exception e) {
+                logger.error("Unable to parse history-time-threshold-seconds: {}", historyThreshold, e);
+            }
+        }
         return new UlakQuickwitConnector(
             url,
             catalogName,
@@ -76,6 +86,7 @@ public class UlakQuickwitConnectorFactory
             connectTimeout == null ? null : Integer.parseInt(connectTimeout),
             readTimeout == null ? null : Integer.parseInt(readTimeout),
             writeTimeout == null ? null : Integer.parseInt(writeTimeout),
-            allowedUrls);
+            allowedUrls,
+            historyTimeThresholdSeconds);
     }
 }

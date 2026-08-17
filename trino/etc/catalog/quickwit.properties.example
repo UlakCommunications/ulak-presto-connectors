@@ -6,3 +6,4 @@ run_in_coordinator_only=true
 worker_index_to_run_in=1
 qw-connection-url=http://<QUICKWIT_HOST>:<QUICKWIT_PORT>
 qw-index=<DEFAULT_INDEX>
+history-time-threshold-seconds=10800

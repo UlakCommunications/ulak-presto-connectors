@@ -168,7 +168,8 @@ public class RawQuery
                          metadata.getQwIndex(),
                          metadata.getConnectTimeout(),
                          metadata.getReadTimeout(),
-                         metadata.getWriteTimeout()).stream().map(t -> t.getName()).collect(Collectors.toList()));
+                         metadata.getWriteTimeout(),
+                         metadata.getHistoryTimeThresholdSeconds()).stream().map(t -> t.getName()).collect(Collectors.toList()));
             } catch (IOException e) {
                 tmpCls = columns;
             }

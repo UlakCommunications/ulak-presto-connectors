@@ -66,7 +66,7 @@ public class QwUtil {
     public static final String SUM_OTHER_DOC_COUNT = "sum_other_doc_count";
     public static final String VALUE = "value";
     public static final String BUCKETS = "buckets";
-    public static long HISTORY_TIME_THRESHOLD_SECONDS = 3600; // 1 hour (in seconds)
+    private static final long DEFAULT_HISTORY_TIME_THRESHOLD_SECONDS = 10800L; // 3 hours
 
     public static ApiClient getDefaultClient(QueryParameters queryParameters,
                                              Integer connectTimeout,
@@ -173,6 +173,16 @@ public class QwUtil {
                                            Integer connectTimeout,
                                            Integer readTimeout,
                                            Integer writeTimeout ) throws ApiException {
+        return select(queryParameters, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout, null);
+    }
+
+    public static List<UlakRow> select(QueryParameters queryParameters,
+                                           String qwUrl,
+                                           String qwIndex,
+                                           Integer connectTimeout,
+                                           Integer readTimeout,
+                                           Integer writeTimeout,
+                                           Long catalogHistoryTimeThresholdSeconds ) throws ApiException {
         queryParameters.setQuery(replaceTrinoQWVars(queryParameters.getQuery()));
         queryParameters.setDbType(DBType.QW);
         if(StringUtils.isBlank(queryParameters.getQwUrl())) {
@@ -182,6 +192,10 @@ public class QwUtil {
             queryParameters.setQwIndex(qwIndex);
         }
 
+        long effectiveThreshold = catalogHistoryTimeThresholdSeconds != null
+                ? catalogHistoryTimeThresholdSeconds
+                : DEFAULT_HISTORY_TIME_THRESHOLD_SECONDS;
+
         logger.warn("DEBUG HISTORY: isHistoryEnabled={}, historyIndex={}, from={}, to={}, range={}, qwIndex={}, threshold={}",
                 queryParameters.isHistoryEnabled(),
                 queryParameters.getHistoryIndex(),
@@ -189,17 +203,18 @@ public class QwUtil {
                 queryParameters.getTo(),
                 (queryParameters.getTo() - queryParameters.getFrom()),
                 queryParameters.getQwIndex(),
-                HISTORY_TIME_THRESHOLD_SECONDS);
+                effectiveThreshold);
 
         // Switch to history index if enable_history is true and time range exceeds threshold
         if (StringUtils.isNotBlank(queryParameters.getHistoryIndex())) {
             long from = queryParameters.getFrom();
             long to = queryParameters.getTo();
             long range = to - from;
-            boolean rangeExceedsThreshold = (from > 0 && to > 0 && range > HISTORY_TIME_THRESHOLD_SECONDS);
+
+            boolean rangeExceedsThreshold = (from > 0 && to > 0 && range > effectiveThreshold);
             if (queryParameters.isHistoryEnabled() && rangeExceedsThreshold) {
                 logger.warn("Switching to history index '{}' (isHistoryEnabled=true, range {}s > threshold {}s)",
-                        queryParameters.getHistoryIndex(), range, HISTORY_TIME_THRESHOLD_SECONDS);
+                        queryParameters.getHistoryIndex(), range, effectiveThreshold);
                 queryParameters.setQwIndex(queryParameters.getHistoryIndex());
             } else {
                 logger.warn("Staying on raw index '{}' (isHistoryEnabled={}, rangeExceedsThreshold={})",

@@ -57,6 +57,7 @@ public class UlakQuickwitMetadata
     private final Integer connectTimeout;
     private final Integer readTimeout;
     private final Integer writeTimeout;
+    private final Long historyTimeThresholdSeconds;
     private String qwUrl;
     private final Set<String> allowedQwUrls;
     private static final String ERRORSTRING = "UlakQuickwitMetadata.java Error: {}";
@@ -73,11 +74,21 @@ public class UlakQuickwitMetadata
                                 Integer readTimeout,
                                 Integer writeTimeout,
                                 String allowedUrlsCsv) {
+        this(catalogName, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout, allowedUrlsCsv, null);
+    }
+
+    public UlakQuickwitMetadata(String catalogName, String qwUrl, String qwIndex,
+                                Integer connectTimeout,
+                                Integer readTimeout,
+                                Integer writeTimeout,
+                                String allowedUrlsCsv,
+                                Long historyTimeThresholdSeconds) {
         this.qwUrl = qwUrl;
         this.qwIndex = qwIndex;
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
         this.writeTimeout = writeTimeout;
+        this.historyTimeThresholdSeconds = historyTimeThresholdSeconds;
         this.setQwUrl(qwUrl);
         this.setQwIndex(qwIndex);
         this.connectorId = new UlakConnectorId(catalogName).toString();
@@ -188,7 +199,7 @@ public class UlakQuickwitMetadata
             list = getColumnsBase(ConnectorBaseUtil.select(qp,
                     false, new String[]{this.qwUrl, this.qwIndex}, (q, s) -> {
                         try {
-                            java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout);
+                            java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout, historyTimeThresholdSeconds);
                             return ret;
                         } catch (ApiException e) {
                             logger.error(ERRORSTRING, e);
@@ -249,7 +260,7 @@ public class UlakQuickwitMetadata
             }
 
             if (list == null) {
-                list = getColumnsInternal(tableName, this.qwUrl, this.qwIndex, connectTimeout, readTimeout, writeTimeout);
+                list = getColumnsInternal(tableName, this.qwUrl, this.qwIndex, connectTimeout, readTimeout, writeTimeout, this.historyTimeThresholdSeconds);
             }
 
             logger.debug("getColumnHandles: num columns:{}", list.size());
@@ -273,7 +284,11 @@ public class UlakQuickwitMetadata
         }
         return res;
     }
-    public  static  List<ColumnMetadata> getColumnsInternal(String tableName, String qwUrl, String qwIndex, Integer connectTimeout, Integer readTimeout, Integer writeTimeout) throws IOException {
+    public static List<ColumnMetadata> getColumnsInternal(String tableName, String qwUrl, String qwIndex, Integer connectTimeout, Integer readTimeout, Integer writeTimeout) throws IOException {
+        return getColumnsInternal(tableName, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout, null);
+    }
+
+    public static List<ColumnMetadata> getColumnsInternal(String tableName, String qwUrl, String qwIndex, Integer connectTimeout, Integer readTimeout, Integer writeTimeout, Long historyTimeThresholdSeconds) throws IOException {
         logger.debug("getColumnHandles: tableName:{}", tableName);
 
         // J56: plain table mode — schema from DocMapping, skip live query
@@ -300,7 +315,7 @@ public class UlakQuickwitMetadata
                                 q.getQuery(),
                                 s[0],
                                 s[1]);
-                        java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout);
+                        java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout, historyTimeThresholdSeconds);
                         return ret;
                     } catch (ApiException e) {
                         logger.error(ERRORSTRING, e);
@@ -349,7 +364,7 @@ public class UlakQuickwitMetadata
                                             new String[]{this.qwUrl, this.qwIndex},
                                             (q, s) -> {
                                                 try {
-                                                    java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout);
+                                                    java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout, historyTimeThresholdSeconds);
                                                     return ret;
                                                 } catch (ApiException e) {
                                                     logger.error(ERRORSTRING, e);
@@ -442,6 +457,10 @@ public class UlakQuickwitMetadata
 
     public Integer getWriteTimeout() {
         return writeTimeout;
+    }
+
+    public Long getHistoryTimeThresholdSeconds() {
+        return historyTimeThresholdSeconds;
     }
 
     // -----------------------------------------------------------------------
