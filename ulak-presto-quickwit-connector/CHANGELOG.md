@@ -2,6 +2,19 @@
 
 Items move here from [`TODO.md`](TODO.md) when finished.
 
+## 2026-08-17 — Rollup Standardization & Query Rewriter Simplification
+
+- **Standardized Flow Rollup Schemas & Removal of `nohistorysuffix`**:
+  - In `qw-rollup-engine` tasks (`tasks.json`), all 5 flow rollup tasks (`site_app`, `site_src_ip`, `site_dst_ip`, `site_ip_proto`, `site_src_dst_ip`) were standardized to produce metrics with standard `_sum` suffixes (`u_sum`, `ac_sum`, `ab_sum`, `t_sum`, `u_ac_sum`, `t_ab_sum`).
+  - In `QwQueryRewriter.java`: Completely removed the hardcoded flow exception list (`{"u", "ac", ...}`) and `noHistorySuffixSet` parameters. The rewriter now applies clean, deterministic metric transformations (`field_<agg>`) to all fields uniformly.
+  - In `QwUtil.java`: Removed the `//nohistorysuffix=` comment parser loop.
+  - In `QwUtilParseTest.java`: Updated test suite with 21 unit tests covering flow metric conversions and deterministic rewriting.
+- **Rhino Native Math Execution Cleanup (`QwUtil.java`)**:
+  - Removed redundant string-based `query.replace("math.ceil", "Math.ceil")...` operations.
+  - Script evaluation cleanly relies on the Rhino scope variable `var math = Math;` and standard Java Rhino runtime classes.
+- **CI/CD Multi-Arch Buildx Setup (`push.sh`)**:
+  - Fixed Docker Buildx `mybuilder` setup in `push.sh` for multi-arch (`both` / `linux/arm64,linux/amd64`) image compilation on Jenkins (`maya-trino-platform` Build #379).
+
 ## 2026-07-14 — Quality of Service Query Fallback Fixes
 
 - **Ambiguous Column Name (`AMBIGUOUS_NAME`) Fix**: Inside `UlakQuickwitMetadata.getTableMetadata` and `getColumnsInternal`, when fallback columns are resolved from the dashboard comment parameter (`//columns=...`), we now filter out duplicate column names using a `noneMatch` check. This prevents planning-time duplicates and crashes when data is not returned from Quickwit.

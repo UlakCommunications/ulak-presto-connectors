@@ -444,18 +444,54 @@ order by _value desc
 | `from`               | unixtime             | from date in seconds for caching. The values are replaced for relative time in execution.                                                                                                                                                                                                                                                                                                                                               |   |
 | `to`                 | unixtime             | to date in seconds for caching. The values are replaced for relative time in execution.                                                                                                                                                                                                                                                                                                                                                 |   |
 | `name`               | text                 | Name of the query                                                                                                                                                                                                                                                                                                                                                                                                                       |   |
-| `columns`            | Comma sperated names | If no data available, then only these headers will be returned                                                                                                                                                                                                                                                                                                                                                                          |   |
-| `dbtype`             | `qw`/`pg`/`influxdb` |                                                                                                                                                                                                                                                                                                                                                                                                                                         |   |
-| `qwindex`            | text                 | Quickwit index   name                                                                                                                                                                                                                                                                                                                                                                                                                   |   |
+| `columns`            | Comma separated names| If no data available, then only these headers will be returned                                                                                                                                                                                                                                                                                                                                                                          |   |
+| `dbtype`             | `qw`/`pg`/`influxdb` | Database type                                                                                                                                                                                                                                                                                                                                                                                                                           |   |
+| `qwindex`            | text                 | Quickwit index name (raw/live index)                                                                                                                                                                                                                                                                                                                                                                                                    |   |
 | `qwurl`              | URL                  | Quickwit URL                                                                                                                                                                                                                                                                                                                                                                                                                            |   |
 | `replacefromcolumns` | text                 | Text to replace from field names                                                                                                                                                                                                                                                                                                                                                                                                        |   |
-| `ttl`                | seconds              | Time to leave for redis                                                                                                                                                                                                                                                                                                                                                                                                                 |   |
+| `enable_history`     | `true`/`false`       | Dynamically switch to rollup history index when query time range exceeds threshold (default: 3600s / 1 hour)                                                                                                                                                                                                                                                                                                                            |   |
+| `history_index`      | text                 | Target rollup index name for historical time ranges (e.g., `metrics3_15`, `rollup_15m_site_app`)                                                                                                                                                                                                                                                                                                                                        |   |
+| `ttl`                | seconds              | Time to live for redis cache                                                                                                                                                                                                                                                                                                                                                                                                            |   |
 | `refresh`            | seconds              | Cache refresh period                                                                                                                                                                                                                                                                                                                                                                                                                    |   |
-| `hasjs` (trino only) | `true`/`false`       | Ability to use javascript code in queries  <br/> Predefined javascripts variables;<br/><table><tr><th>Name</th><th>Value</th><tr><td>`now`</td><td>current unix time  </td></tr><tr><td>`now`</td><td>current unix time  </td></tr><tr><td>`d`</td><td>seconds in a day  </td></tr><tr><td>`h`</td><td>seconds in an hour  </td></tr><tr><td>`m`</td><td>seconds in a minute</td></tr><tr><td>`s`</td><td>1 second  </td></tr> </table> |   |
+| `hasjs` (trino only) | `true`/`false`       | Ability to use javascript code in queries  <br/> Predefined javascripts variables: `now` (current unix time), `d` (day), `h` (hour), `m` (minute), `s` (second), `math` (`Math`). Standard `Math.floor`, `Math.ceil` are natively supported in Rhino runtime. |   |
 
+---
+
+# History & Rollup Query Routing Architecture
+
+When queries span large time windows, scanning millions of raw documents in Quickwit causes high CPU, memory, and I/O load. To solve this, Quickwit indices are paired with pre-aggregated rollup tables produced continuously by `qw-rollup-engine`.
+
+The Quickwit Connector automatically and transparently rewrites queries to use rollup indices whenever the requested time range exceeds `history-time-threshold-seconds` (configured in catalog properties or defaulting to 1 hour).
+
+```mermaid
+flowchart TD
+    A["Grafana / Trino SQL Query"] --> B["Trino Engine: QwUtil.select()"]
+    B --> C{"enable_history == true?"}
+    
+    C -- "No" --> D["Live Index (e.g. metrics3, flows3)"]
+    C -- "Yes" --> E{"Time Range >= Threshold?<br/>(e.g., end_ts - start_ts >= 3600s)"}
+    
+    E -- "No (Recent data)" --> D
+    E -- "Yes (Historical data)" --> F["Target Rollup Index<br/>(e.g. metrics3_15, rollup_15m_site_app)"]
+    
+    F --> G["QwQueryRewriter.rewriteQueryForHistory()"]
+    G --> H["Deterministic Metric Suffix Mapping:<br/>• sum(field) → field_sum<br/>• avg(field) → field_avg<br/>• min(field) → field_min<br/>• max(field) → field_max<br/>• count(field) → field_count"]
+    
+    H --> I["Quickwit Search API Call<br/>(Reads pre-aggregated splits)"]
+    D --> I
+    I --> J["Response Parser & Flattener<br/>(JFlat / Tree Traversal)"]
+    J --> K["SQL Tabular Result Set"]
 ```
-./push.sh 0.1.10-RCI20122024 'linux/arm64,linux/amd64' false
+
+### Standardized Metric Suffix Convention
+In both `qw-rollup-engine` tasks and the Quickwit connector rewriter, metric names adhere to a strictly standardized naming model:
+* All flow metrics (`u`, `ac`, `ab`, `t`, `u_ac`, `t_ab`) are pre-aggregated as sum in rollup tasks and stored with the `_sum` suffix (`u_sum`, `ac_sum`, `ab_sum`, `t_sum`, `u_ac_sum`, `t_ab_sum`).
+* System metrics (`rx`, `tx`, `cpu`, etc.) are pre-aggregated as `_avg`, `_min`, `_max`, `_sum`, `_count`.
+* The rewriter deterministically maps each metric aggregation without needing custom exclusions or query-level comments.
+
+---
+
+```bash
+./push.sh 0.0.1-develop-latest 'linux/arm64,linux/amd64' false
 ```
-```
-docker buildx imagetools create --tag 192.168.57.202:35000/trinodb/trino:479 trinodb/trino:479
-```
+

@@ -106,16 +106,60 @@ FROM TABLE(
 | Parameter | Default | Description |
 |---|---|---|
 | `query` | `*` | Quickwit query string (`field:value AND ...`) |
-| `qwindex` | *(required)* | Quickwit index name |
+| `qwindex` | *(required)* | Quickwit index name (raw/live index) |
 | `start_timestamp` | now−15m | Query start, epoch seconds |
 | `end_timestamp` | now | Query end, epoch seconds |
 | `max_hits` | `1000` | Max raw document hits; set to `0` for aggs-only |
 | `aggs` | *(empty)* | Aggregations in Aggs DSL or raw Quickwit/ES JSON |
 | `columns` | `no-data` | Comma-separated fallback column names (see [Schema Definition](#schema-definition-columns)) |
 | `replacefromcolumns` | *(empty)* | JFlat path prefix stripped from all column names |
-| `hasjs` | `false` | Set `true` to enable aggregation tree flattening |
+| `enable_history` | `false` | Dynamically route query to `history_index` if time range exceeds `history-time-threshold-seconds` |
+| `history_index` | *(empty)* | Target rollup index name (e.g. `metrics3_15`, `rollup_15m_site_app`) |
+| `hasjs` | `false` | Set `true` to enable aggregation tree flattening and JavaScript variable evaluation (`now`, `d`, `h`, `m`, `s`, `Math`) |
 | `cache` | `false` | Enable Redis result caching |
 | `sqlversion` | `0` | Aggregation response parsing mode (see below) |
+
+---
+
+## History & Rollup Query Routing
+
+When `enable_history=true` is specified, the connector dynamically evaluates the query's time interval against the configured threshold (`history-time-threshold-seconds`, default 3600s).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Grafana / Trino Client
+    participant Conn as Quickwit Connector (QwUtil)
+    participant Rewriter as QwQueryRewriter
+    participant QW as Quickwit Server
+    
+    Client->>Conn: Execute query (start_ts, end_ts, enable_history=true)
+    Note over Conn: Calculate duration = (end_ts - start_ts)
+    alt duration >= history_threshold_seconds (e.g. >= 3600s)
+        Conn->>Conn: Target Index := history_index
+        Conn->>Rewriter: rewriteQueryForHistory(query / aggs)
+        Note over Rewriter: Deterministically map metrics:<br/>field → field_sum, field_avg, etc.
+        Rewriter-->>Conn: Rewritten JSON Query & Aggs
+    else duration < history_threshold_seconds
+        Conn->>Conn: Target Index := qwindex (Live)
+    end
+    Conn->>QW: POST /api/v1/{target_index}/search
+    QW-->>Conn: Aggregation JSON Results
+    Conn->>Conn: Flatten JSON & Format Trino Rows
+    Conn-->>Client: SQL Result Set
+```
+
+### Metric Suffix Mapping Rules
+1. All aggregation metrics inside the `aggs` block are deterministically rewritten to match rollup index schemas:
+   * `"sum": {"field": "x"}` $\rightarrow$ `"field": "x_sum"`
+   * `"avg": {"field": "x"}` $\rightarrow$ `"field": "x_avg"`
+   * `"min": {"field": "x"}` $\rightarrow$ `"field": "x_min"`
+   * `"max": {"field": "x"}` $\rightarrow$ `"field": "x_max"`
+   * `"value_count": {"field": "x"}` $\rightarrow$ `"field": "x_count"`
+2. Suffixes are idempotent; if a field already ends with `_sum`, `_avg`, etc., it is preserved as-is.
+3. Flow metrics in `qw-rollup-engine` tasks are standardized to `_sum` (`u_sum`, `ac_sum`, `ab_sum`, `t_sum`, `u_ac_sum`, `t_ab_sum`), eliminating any need for hardcoded exceptions.
+
+---
 
 ### `sqlversion` — aggregation parsing modes
 
@@ -132,6 +176,7 @@ Controls how Quickwit's nested aggregation JSON is converted to Trino rows. Only
 ---
 
 ## Aggs DSL
+
 
 A concise DSL for building Quickwit/Elasticsearch nested aggregations. The compiler (`AggsDslCompiler`) converts it to nested JSON automatically.
 

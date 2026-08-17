@@ -1,5 +1,26 @@
 # DONE.md — Completed Work
 
+## Session 17 August 2026: Standardized Rollup Schemas, Connector Rewriter Simplification & CI/CD Deployment
+
+### 1. Standardized Flow Rollup Metrics in `qw-rollup-engine`
+- **Problem:** Flow rollup tasks originally stored metrics without standard aggregation suffixes (`u`, `ac`, `ab`, `t`, `u_ac`, `t_ab`), leading to ad-hoc exceptions in the connector and workaround comments (`//nohistorysuffix=`).
+- **Fix:** Standardized all 5 flow rollup tasks (`site_app`, `site_src_ip`, `site_dst_ip`, `site_ip_proto`, `site_src_dst_ip`) to use `_sum` suffixes (`u_sum`, `ac_sum`, `ab_sum`, `t_sum`, `u_ac_sum`, `t_ab_sum`) in both `metrics` mapping and `aggs` definitions. Updated `processor.rs` (`apply_top_n_filter`) with fallback checking for `{field}_sum`.
+
+### 2. Simplified Presto / Quickwit Connector Query Rewriter (`QwQueryRewriter.java` & `QwUtil.java`)
+- **Problem:** The connector contained hardcoded lists and `//nohistorysuffix=` parser loops to bypass suffix rewriting for flow metrics.
+- **Fix:** Completely eliminated hardcoded lists and dynamic `//nohistorysuffix=` parsing. The query rewriter now deterministically and idempotently rewrites all aggregation metrics to `field_<agg>` across the board.
+
+### 3. Cleaned Up Redundant String-based Math Replaces (`QwUtil.java`)
+- **Problem:** `QwUtil.java` performed string replaces (`query.replace("math.ceil", "Math.ceil")...`) before passing to Rhino.
+- **Fix:** Removed string-based replaces. Rhino execution natively supports `Math.*` with `var math = Math;` in JavaScript script scope.
+
+### 4. Jenkins CI/CD & Deployment to `yucemonitoring`
+- **Rollup Engine Build:** `maya-anomaly-platform` Build #282 passed (`SUCCESS`). Image `maya/qw-rollup-engine:latest` deployed to `yucemonitoring`.
+- **Trino Connector Build:** Fixed multi-arch Buildx builder configuration in `push.sh`. `maya-trino-platform` Build #379 passed (`SUCCESS`) with all 166 unit tests passing. Image `maya/trino:0.0.1-develop-latest` deployed to `yucemonitoring`.
+- **Live Verification:** Verified `qw-rollup-engine` task processing and executed live `quickwit.system.raw_query` tests on the Trino coordinator.
+
+---
+
 ## Session 30 July 2026: QoS History Resolution & Dynamic Suffix Exclusions
 
 ### 1. QoS History "No Data" Fix (`tasks.json`)
