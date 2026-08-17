@@ -11,11 +11,7 @@ set -x
 
 #unzip openapi/*.zip -d openapi/plugin/
 
-echo "Setting up docker buildx builder: mybuilder..."
-docker buildx use mybuilder || {
-    echo "mybuilder not found, creating it..."
-    docker buildx create --name mybuilder --use
-}
+docker buildx use mybuilder
 docker buildx inspect --bootstrap
 
 nexus_repo="192.168.57.202:35000/maya/trino:${version}"
