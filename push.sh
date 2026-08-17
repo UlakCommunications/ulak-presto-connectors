@@ -11,17 +11,12 @@ set -x
 
 #unzip openapi/*.zip -d openapi/plugin/
 
-if [[ "$platform" == *","* ]]; then
-    echo "Setting up shared docker buildx builder: mybuilder..."
-    docker buildx use mybuilder || {
-        echo "mybuilder not found, creating it..."
-        docker buildx create --name mybuilder --use
-    }
-    docker buildx inspect --bootstrap
-else
-    echo "Single platform build (${platform}): using default host builder..."
-    docker buildx use default || true
-fi
+echo "Setting up docker buildx builder: mybuilder..."
+docker buildx use mybuilder || {
+    echo "mybuilder not found, creating it..."
+    docker buildx create --name mybuilder --use
+}
+docker buildx inspect --bootstrap
 
 nexus_repo="192.168.57.202:35000/maya/trino:${version}"
 
