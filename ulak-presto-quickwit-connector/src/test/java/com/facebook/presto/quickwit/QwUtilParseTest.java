@@ -441,7 +441,7 @@ class QwUtilParseTest {
     }
 
     @Test
-    @DisplayName("Verify dynamic query rewriting for history index rollups")
+    @DisplayName("Verify dynamic query rewriting for history index rollups including standardized flow metrics")
     void testRewriteQueryForHistory() {
         String inputJson = "{" +
                 "  \"aggs\": {" +
@@ -451,6 +451,11 @@ class QwUtilParseTest {
                 "      \"avg\": { \"field\": \"span_attributes.value\" }," +
                 "      \"sum\": { \"field\": \"span_attributes.tx\" }," +
                 "      \"value_count\": { \"field\": \"span_attributes.rx\" }" +
+                "    }," +
+                "    \"flow_agg\": {" +
+                "      \"sum\": { \"field\": \"span_attributes.u\" }," +
+                "      \"sum_ac\": { \"sum\": { \"field\": \"span_attributes.ac\" } }," +
+                "      \"sum_u_ac\": { \"sum\": { \"field\": \"span_attributes.u_ac\" } }" +
                 "    }," +
                 "    \"time_agg\": {" +
                 "      \"min\": { \"field\": \"span_start_timestamp_nanos\" }," +
@@ -467,6 +472,11 @@ class QwUtilParseTest {
                 "      \"avg\": { \"field\": \"span_attributes.value\" }," +
                 "      \"sum\": { \"field\": \"span_attributes.tx_sum\" }," +
                 "      \"value_count\": { \"field\": \"span_attributes.rx_count\" }" +
+                "    }," +
+                "    \"flow_agg\": {" +
+                "      \"sum\": { \"field\": \"span_attributes.u_sum\" }," +
+                "      \"sum_ac\": { \"sum\": { \"field\": \"span_attributes.ac_sum\" } }," +
+                "      \"sum_u_ac\": { \"sum\": { \"field\": \"span_attributes.u_ac_sum\" } }" +
                 "    }," +
                 "    \"time_agg\": {" +
                 "      \"min\": { \"field\": \"span_attributes.timestamp_min\" }," +
