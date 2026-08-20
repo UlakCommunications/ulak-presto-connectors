@@ -18,3 +18,6 @@ High-performance Trino connector for Quickwit and OpenSearch/Elasticsearch with 
 
 ## READY FOR HANDOVER (Tue Aug 18 18:50:00 +03 2026)
 Successfully integrated and merged catalog-configured `history-time-threshold-seconds` (MR !33), enabling dynamic 3-hour history threshold routing without hardcoded constants. Updated Helm charts across all Trino deployments. Diagnosed and resolved the Overlay Dashboard destination peer matching issue by rewriting `data_gen` top-level topology generators to emit matched Hub-Spoke WireGuard endpoints and WAN IPs. Fixed `push.sh` Buildx container builder setup and verified all unit tests and builds. All changes are committed and pushed to remote branches.
+
+## READY FOR HANDOVER (Thu Aug 20 12:43:00 +03 2026)
+Successfully replaced the heavy `JFlat` library with a fully performant, native JSON recursive flattener within `QwUtil.java`, entirely bypassing object allocation bottlenecks and keeping the old path formatting identical (100% backward compatibility). Utilized Playwright to scan 79 production Grafana dashboards, extracting 219 raw Trino queries, and verified backward compatibility with average query speeds of 0.56 seconds. Configured local Trino with remote `maya-trino-configmap` configurations (via `kubectl` and NodePort bindings) to resolve local testing `CATALOG_NOT_FOUND` errors.

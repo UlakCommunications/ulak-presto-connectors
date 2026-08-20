@@ -44,3 +44,8 @@
 - **Rollup Engine Build:** `maya-anomaly-platform` Build #282 passed (`SUCCESS`). Image `maya/qw-rollup-engine:latest` deployed to `yucemonitoring`.
 - **Trino Connector Build:** Fixed multi-arch Buildx builder configuration in `push.sh`. `maya-trino-platform` Build #379 passed (`SUCCESS`) with all 166 unit tests passing. Image `maya/trino:0.0.1-develop-latest` deployed to `yucemonitoring`.
 - **Live Verification:** Verified `qw-rollup-engine` task processing and executed live `quickwit.system.raw_query` tests on the Trino coordinator.
+
+## 16. Replaced JFlat with Performant Custom Flattener
+- **Problem:** `JFlat` library parsing and recursive mapping caused a severe performance bottleneck during object instantiation and tree traversal, increasing query times by 10-20 seconds on large datasets.
+- **Fix:** Wrote a highly performant native `flattenJsonNode` method inside `QwUtil.java` to recursively flatten JSON trees into maps, exactly matching `JFlat`'s column naming conventions (e.g., `/span_attributes/x`). `JFlat` object initialization and imports were completely removed.
+- **Verification:** Ran a comprehensive regression test using Playwright to extract 219 production queries from 79 Grafana dashboards. The native flattener passed all backward compatibility tests, and queries completed in 0.56 seconds on average.

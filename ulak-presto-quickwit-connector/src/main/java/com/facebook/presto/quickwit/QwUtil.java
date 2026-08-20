@@ -18,7 +18,6 @@ import com.facebook.presto.ulak.DBType;
 import com.facebook.presto.ulak.QueryParameters;
 import com.facebook.presto.ulak.UlakRow;
 import com.facebook.presto.ulak.caching.ConnectorBaseUtil;
-import com.github.opendevl.JFlat;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -713,119 +712,151 @@ public class QwUtil {
         }
         return currentValues;
     }
-    public static List<UlakRow> parseResponseHits(QueryParameters queryParameters,
-                                                      SearchResponseRest ret) {
+    private static List<Map<String, Object>> flattenJsonNode(Object node, String path) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        if (node instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) node;
+            if (map.isEmpty()) {
+                return rows;
+            }
+            List<Map<String, Object>> currentRows = new ArrayList<>();
+            currentRows.add(new LinkedHashMap<>());
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                String key = String.valueOf(entry.getKey());
+                String subPath = path.isEmpty() ? "/" + key : path + "/" + key;
+                List<Map<String, Object>> subRows = flattenJsonNode(entry.getValue(), subPath);
+                
+                List<Map<String, Object>> newRows = new ArrayList<>();
+                for (Map<String, Object> r1 : currentRows) {
+                    for (Map<String, Object> r2 : subRows) {
+                        Map<String, Object> merged = new LinkedHashMap<>(r1);
+                        merged.putAll(r2);
+                        newRows.add(merged);
+                    }
+                }
+                currentRows = newRows;
+            }
+            return currentRows;
+        } else if (node instanceof List) {
+            List<?> list = (List<?>) node;
+            if (list.isEmpty()) {
+                return rows;
+            }
+            for (int i = 0; i < list.size(); i++) {
+                List<Map<String, Object>> subRows = flattenJsonNode(list.get(i), path);
+                rows.addAll(subRows);
+            }
+            return rows;
+        } else {
+            Map<String, Object> map = new LinkedHashMap<>();
+            if (node != null) {
+                map.put(path, node);
+            }
+            rows.add(map);
+            return rows;
+        }
+    }
+
+    public static List<UlakRow> parseResponseHits(QueryParameters queryParameters, SearchResponseRest ret) {
         Object g = ret.getAggregations();
         if (g == null) {
             g = ret.getHits();
         }
-        String json = getGson().toJson(g);
-        JFlat flatMe = new JFlat(json);
-        List<Object[]> flatted = null;
-        if(json.equals("[]")){
-            flatted=new ArrayList<>();
-        }else{
-            flatted = flatMe.json2Sheet().getJsonAsSheet();
+
+        List<Object[]> flatted = new ArrayList<>();
+        if (g != null) {
+            List<Map<String, Object>> rawRows = flattenJsonNode(g, "");
+            if (!rawRows.isEmpty()) {
+                Set<String> headerSet = new LinkedHashSet<>();
+                for (Map<String, Object> row : rawRows) {
+                    headerSet.addAll(row.keySet());
+                }
+                Object[] headers = headerSet.toArray(new Object[0]);
+                flatted.add(headers);
+                for (Map<String, Object> row : rawRows) {
+                    Object[] rowData = new Object[headers.length];
+                    for (int i = 0; i < headers.length; i++) {
+                        rowData[i] = row.get((String) headers[i]);
+                    }
+                    flatted.add(rowData);
+                }
+            }
         }
 
         Map<String, Integer> headerIndexes = new HashMap<>();
-        Object[] headers = flatted.size()==0 ? null : flatted.get(0);
+        Object[] headers = flatted.isEmpty() ? null : flatted.get(0);
         if(headers==null || headers.length==0){
-            //get headers from columns
             headers = queryParameters.getColumns();
             if(headers!=null && headers.length>0 ){
-//                headers = new Object[0];
-                //a simple empty row for columns
                 flatted.add(new Object[headers.length]);
-            }else{
-                headers =  flatted.get(0);
+            } else {
+                headers = new Object[0];
             }
         }
 
-        for (int i = 0; i < headers.length; i++) {
-            headerIndexes.put((String) headers[i], i);
-        }
-        List<UlakRow> toRet = new ArrayList<>();
-        long maxTime = 0;
-        long minTime = Long.MAX_VALUE;
-        String timeField = queryParameters.getTimeField();
-        for (int i = 1; i < flatted.size(); i++) {
-            Map<String, Object> r = new HashMap<>();
-            Object[] c = flatted.get(i);
-            boolean allNulls=true;
+        if(headers != null) {
             for (int j = 0; j < headers.length; j++) {
-                Object val = j < c.length ? c[j] : null;
-                if (queryParameters.getNullFill()
-                        && val == null
-                        && i + 1 < flatted.size()) {
-                    val = flatted.get(i + 1)[j];
-                }
-                String value = cleanScientificNotation(String.valueOf(val));
-                if(!Strings.isNullOrEmpty(value)){
-                    value = StringUtils.strip(value, "\"");
-                    if(value.equals("null")) {
-                        value=null;
-                    }
-                }
-                String k = (String) headers[j];
-                String toReplace =queryParameters.getReplaceFromColumns();
-                if(StringUtils.isNotBlank(toReplace)){
-                    k=StringUtils.replace((String) k, toReplace,"");
-                }
-                String slashedKey = k.startsWith("/") ? k : "/" + k;
-                if (k.startsWith("/")) k = k.substring(1);
-                boolean isTimeField =StringUtils.isNotBlank(timeField) && k.endsWith(timeField);
-                if(value!=null){
-                    if(isTimeField){
-                        timeField = k;
-                        double parsed = Double.parseDouble(value);
-                        if(parsed >maxTime){
-                            maxTime=(long)parsed;
-                        }
-                        if(parsed <minTime){
-                            minTime=(long)parsed;
-                        }
-                    }
-                    allNulls=false;
-                }
-                // Trino column names: existing dashboards select either
-                // "X/key" (no leading slash) or "/X/key" (with). Expose
-                // both forms so a `select "/6/key"` works alongside the
-                // historical `select "1/5/key"`.
-                r.put(k, value);
-                if (!slashedKey.equals(k)) {
-                    r.put(slashedKey, value);
-                }
-            }
-            if (!allNulls) {
-                toRet.add(new UlakRow(r));
+                headerIndexes.put((String) headers[j], j);
             }
         }
-        if(maxTime>0 && minTime<Long.MAX_VALUE && StringUtils.isNotBlank(timeField)){
-            ArrayList<Integer> toRemove = new ArrayList<>();
-            for(int i=0; i<toRet.size(); i++){
-                UlakRow row = toRet.get(i);
-                String o = (String) row.getColumnMap().get(timeField);
-                if(o!=null ){
-                    long v = (long)Double.parseDouble(o);
-                    if(v == maxTime || v == minTime) {
-                        toRemove.add(i);
+
+        List<UlakRow> retHits = new ArrayList<>();
+        if(flatted != null && flatted.size() > 1 && headers != null) {
+            boolean allNulls = true;
+            String timeField = queryParameters.getTimeField();
+            long maxTime = 0;
+            long minTime = Long.MAX_VALUE;
+
+            for (int i = 0; i < flatted.size() - 1; i++) {
+                Map<String, Object> rowMap = new HashMap<>();
+                for (int j = 0; j < headers.length; j++) {
+                    Object val = flatted.get(i + 1)[j];
+                    if (val == null) {
+                        continue;
                     }
+                    String value = String.valueOf(val);
+                    if (!com.google.common.base.Strings.isNullOrEmpty(value)) {
+                        value = org.apache.commons.lang3.StringUtils.strip(value, "\"");
+                        if (value.equals("null")) {
+                            value = null;
+                        }
+                    }
+                    String k = (String) headers[j];
+                    String toReplace = queryParameters.getReplaceFromColumns();
+                    if (org.apache.commons.lang3.StringUtils.isNotBlank(toReplace)) {
+                        k = org.apache.commons.lang3.StringUtils.replace((String) k, toReplace, "");
+                    }
+                    String slashedKey = k.startsWith("/") ? k : "/" + k;
+                    if (k.startsWith("/")) k = k.substring(1);
+                    boolean isTimeField = org.apache.commons.lang3.StringUtils.isNotBlank(timeField) && k.endsWith(timeField);
+                    if (value != null) {
+                        if (isTimeField) {
+                            timeField = k;
+                            try {
+                                double parsed = Double.parseDouble(value);
+                                if (parsed > maxTime) {
+                                    maxTime = (long) parsed;
+                                }
+                                if (parsed < minTime) {
+                                    minTime = (long) parsed;
+                                }
+                            } catch (NumberFormatException ignored) {}
+                        }
+                        allNulls = false;
+                    }
+                    rowMap.put(slashedKey, value);
+                    rowMap.put(k.startsWith("/") ? k.substring(1) : k, value);
+                }
+                if (!allNulls) {
+                    UlakRow ulakRow = new UlakRow();
+                    ulakRow.setColumnMap(rowMap);
+                    retHits.add(ulakRow);
                 }
             }
-            while(toRemove.size()>0){
-                toRet.remove(toRemove.get(toRemove.size()-1));
-                toRemove.remove(toRemove.size()-1);
-            }
         }
-        return toRet;
+        return retHits;
     }
 
-    // -----------------------------------------------------------------------
-    // J56 — Plain Table Query Mode helpers
-    // -----------------------------------------------------------------------
-
-    /** Returns true when tableName is a bare index name (no //param= directives). */
     public static boolean isPlainTableMode(String tableName) {
         return PlainTableQuery.isPlainMode(tableName);
     }

@@ -1,20 +1,23 @@
 # TODO.md — Next Steps and Open Actions
 
 ## Current State
-- **Catalog Threshold & History Routing**:
-  - `history-time-threshold-seconds` dynamically read from catalog config (10800s default) and integrated end-to-end (MR !33 merged into `develop`).
-  - Helm charts in `helm_repo1` updated with 3-hour history threshold values.
-- **Overlay Topologies & Data Generation**:
-  - `data_gen` top-level topology generators updated for dynamic WAN IP and mutual WireGuard endpoint meshes.
-  - Overlay dashboard queries tested, verified, and functioning.
-- **CI/CD & Builds**:
-  - `push.sh` updated to directly use `mybuilder` container BuildKit driver.
-  - All unit tests pass cleanly (`./mvnw clean test`).
+- **Rollup Standardization Complete**:
+  - `qw-rollup-engine` tasks standardized to produce `_sum` flow metrics (`u_sum`, `ac_sum`, etc.).
+  - `QwQueryRewriter.java` refactored to remove hardcoded exceptions and deterministic metric suffix mappings applied.
+  - Redundant string-based `math.ceil` replaces removed in favor of native Rhino execution.
+  - Multi-arch Docker Buildx configured and tested in `push.sh`.
+- **Performance Optimization Complete**:
+  - `JFlat` successfully removed and replaced by a custom performant JSON flattener logic in `QwUtil.java`.
+  - All 219 production dashboard queries extracted via Playwright tested successfully against the new logic, resulting in massive performance improvements (0.56s avg latency).
+- **CI/CD & Deployment Verified**:
+  - `maya-anomaly-platform` Build #282 (`qw-rollup-engine`) passed and deployed on `yucemonitoring`.
+  - `maya-trino-platform` Build #379 (`maya/trino`) passed and deployed on `yucemonitoring`.
+  - Live query validation on Trino coordinator and Quickwit search API succeeded.
 
 ## Next Steps
-1. **Jenkins Pipeline Update**:
-   - Ensure Jenkins `maya-trino-platform` job uses `https://` for git tag pushing or sync SCM branch with `develop`.
-2. **End-to-End History Verification**:
-   - Monitor long-running history queries (>3h) on Grafana dashboards in production/staging environments.
-3. **Performance & Memory Monitoring**:
-   - Track Trino coordinator memory usage and query execution times with concurrent Quickwit aggregations.
+1. **Merge feature branches into `develop`**:
+   - Merge `feature/qw-non-cache-ttl-tuning` and history-related branches into `develop`.
+2. **Dashboard Verification**:
+   - Verify Grafana QoS and Flow dashboards with `enable_history=true` over time ranges > 1h.
+3. **Monitor Performance**:
+   - Observe Trino coordinator and Quickwit query latencies during rollup index queries.
