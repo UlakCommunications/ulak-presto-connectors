@@ -11,3 +11,6 @@
 - **History Query Rewriting:** `QwQueryRewriter.java` standardizes aggregation field rewriting (`field_<agg>`). 
 - **Rhino Javascript Engine:** Query evaluation executes with native `Math` support via scope injection (`var math = Math;`).
 - **JFlat Removed:** We use a highly performant custom `flattenJsonNode` inside `QwUtil.java` to parse and flatten Quickwit JSON responses.
+
+## READY FOR HANDOVER (Thu Aug 20 13:22:00 +03 2026)
+Session completed. Successfully replaced JFlat with a custom recursive `flattenJsonNode` in `QwUtil.java`, resolving high GC and string allocation overhead while preserving existing Grafana dashboard JSON path queries. Handled Trino history routing investigations for `metrics3` views by discovering that `rustrino` PostgreSQL views (e.g. `view_interface_with_site_filter_rustrino`) wrap `qw_agg` calls without appending the required `//historyenabled=${enable_history}` comments to trigger Trino's `history_index` logic. Documented findings in TODO.md for the next session. All code merged, tested, and Jenkins deployments launched for `maya-trino-platform` (Build 387).
