@@ -47,6 +47,10 @@ public class RedisCacheWorkerItem extends Thread implements Supplier<String> {
                     ConnectorBaseUtil.select(queryParameters,true,new String[]{},  exec1);
                 } catch (Throwable e) {
                     logger.error("Query Execution Error: {}/{}", this.key, queryParameters != null ? queryParameters.getName() : "", e);
+                    // Do not extend the TTL of a stale/erroring entry — that used to keep a
+                    // once-broken or once-empty result alive forever, refreshed every cycle.
+                    // Delete it instead; the next real client request will re-populate it.
+                    jedis.del(key);
                 }
             }
         } catch (Throwable e) {

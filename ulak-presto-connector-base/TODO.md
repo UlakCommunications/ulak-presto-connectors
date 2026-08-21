@@ -69,6 +69,40 @@ this file to `CHANGELOG.md` once done.
 - [x] **R32 [Low] `redactIfSecret` misses URL-embedded passwords** — `QueryParameters.java:403-404`: pattern doesn't match `redis-url` or `qwurl`. Added `url` to pattern.
 - [x] **R33 [Low] Logger fields not `static final`** — Base connector classes. Fixed.
 
+## Redis cache hygiene (2026-08-21)
+
+Triggered by investigating why a stale/empty query result could persist
+indefinitely and by observing an ~80MB Redis instance in production.
+
+- [x] **C01 [P2] `RedisCacheWorkerItem` resurrected erroring cache entries.**
+      On a failed background refresh (`exec1` throws), the worker used to
+      call `jedis.expire(key, ttl)`, resetting the TTL on the *old* cached
+      value (which could itself be an empty/stale result) without ever
+      updating its content — a permanently-broken query's empty result
+      could live forever, refreshed every cycle. Fixed: on error, the key
+      is deleted (`jedis.del`) instead; the next real client request
+      re-populates it from scratch.
+- [x] **C02 [P2] No idle-eviction for `cache=true` entries.** `RedisCacheWorker`
+      only checked `isToBeCached()` before proactively refreshing a key —
+      it never considered whether any real client had actually read the
+      entry recently. A `cache=true` query behind a dashboard/panel that
+      was since removed or changed would get refreshed by the background
+      worker forever, never expiring naturally. Added `QueryParameters
+      .lastAccess` (updated only on real cache-hit reads in
+      `ConnectorBaseUtil.select`, never by the worker's own forced
+      refresh) + `idleTtlInSeconds` (default 6h, overridable per-query via
+      `//idlettl=<seconds>`). `RedisCacheWorker` now evicts (`jedis.del`)
+      any entry idle longer than its `idleTtlInSeconds` instead of
+      refreshing it.
+- [ ] **C03 [P2] Investigate `maya_ifstatus` queries — ~80MB observed in
+      production Redis.** Find which dashboard(s)/panels generate these
+      (likely `cache=true` with a large/high-cardinality result set, or
+      many distinct cache keys from per-site/per-interface query
+      variants never converging to a shared cache key). C02's
+      idle-eviction should shrink this over time for abandoned entries,
+      but the root cause (why this query family is so large) is still
+      unexplained and worth a dedicated look.
+
 - [x] **L15 [P3, 0.5d] Rhino classloader fix — `Math.floor` under Trino plugin classloader.**
       Root causes found and fixed statically (no live-cluster repro needed):
       (1) `rhino-runtime:1.7.15.1` + `rhino-engine:1.8.1` were declared alongside the

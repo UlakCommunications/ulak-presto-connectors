@@ -218,6 +218,7 @@ public class ConnectorBaseUtil {
             List<UlakRow> fromCache = getCacheResultAsList(forceRefresh, jedis, cacheKey);
             if (fromCache != null) {
                 queryParameters.setRows(fromCache);
+                queryParameters.setLastAccess(System.currentTimeMillis());
                 setCacheItem(jedis, queryParameters);
                 return fromCache;
             }
@@ -225,6 +226,7 @@ public class ConnectorBaseUtil {
                 fromCache = getCacheResultAsList(forceRefresh, jedis, cacheKey);
                 if (fromCache != null) {
                     queryParameters.setRows(fromCache);
+                    queryParameters.setLastAccess(System.currentTimeMillis());
                     setCacheItem(jedis, queryParameters);
                     return fromCache;
                 }
@@ -239,6 +241,7 @@ public class ConnectorBaseUtil {
                     fromCache = getCacheResultAsList(forceRefresh, jedis, cacheKey);
                     if (fromCache != null) {
                         queryParameters.setRows(fromCache);
+                        queryParameters.setLastAccess(System.currentTimeMillis());
                         setCacheItem(jedis, queryParameters);
                         return fromCache;
                     }

@@ -64,6 +64,7 @@ public class UlakPostgresConnector
         this.splitManager = new UlakSplitManager();
         this.recordSetProvider = new UlakRecordSetProvider((q,s)-> {
             try {
+                q.setConnectionId(this.pgUrl);
                 return PGUtil.select(q.getQuery(), this.pgUrl, this.pgUser, this.pgPwd);
             } catch (IOException | SQLException e) {
                 logger.error(ERRORSTRING, e.toString());
@@ -78,12 +79,13 @@ public class UlakPostgresConnector
         if ((isCoordinator && runInCoordinatorOnly) && redisCacheWorker == null) {
             redisCacheWorker = new RedisCacheWorker((q,s)-> {
                 try {
+                    q.setConnectionId(this.pgUrl);
                     return  PGUtil.select(q, this.pgUrl, this.pgUser, this.pgPwd) ;
                 } catch (IOException | SQLException e) {
                     logger.error(ERRORSTRING, e.toString());
                     throw new RuntimeException(e);
                 }
-            },numThreads, DBType.PG);
+            },numThreads, DBType.PG, this.pgUrl);
             redisCacheWorker.start();
         }
     }

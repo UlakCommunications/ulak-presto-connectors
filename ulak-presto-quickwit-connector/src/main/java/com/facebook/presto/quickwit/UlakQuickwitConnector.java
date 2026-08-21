@@ -117,6 +117,7 @@ public class UlakQuickwitConnector
         this.splitManager = new QuickwitSplitManager();
         this.recordSetProvider = new QuickwitRecordSetProvider(((q,s)-> {
             try {
+                q.setConnectionId(qwUrl);
                 java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q,s[0],s[1], connectTimeout, readTimeout, writeTimeout, historyTimeThresholdSeconds);
                 return ret;
             } catch (ApiException e) {
@@ -133,13 +134,14 @@ public class UlakQuickwitConnector
         if ((isCoordinator && runInCoordinatorOnly) && redisCacheWorker == null) {
                 redisCacheWorker = new RedisCacheWorker((q,s)-> {
                     try {
+                        q.setConnectionId(qwUrl);
                         java.util.List<com.facebook.presto.ulak.UlakRow> ret = QwUtil.select(q, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout, historyTimeThresholdSeconds) ;
                         return ret;
                     } catch (ApiException e) {
                         logger.error("InfluxdbConnector", e);
                         throw new RuntimeException(e);
                     }
-                },numThreads, DBType.QW);
+                },numThreads, DBType.QW, qwUrl);
                 redisCacheWorker.start();
         }
     }

@@ -31,12 +31,19 @@ public class RedisCacheWorker extends Thread{
     private int numThreads = DEFAULT_N_THREADS;
     private final BiFunction<QueryParameters,String[], List<UlakRow>> exec1;
     private final DBType dbType;
+    private final String connectionId;
     private ExecutorService executor = null;
 
     public RedisCacheWorker(BiFunction<QueryParameters,String[], List<UlakRow>> exec1,
                             int numThreads, DBType dbType) {
+        this(exec1, numThreads, dbType, null);
+    }
+
+    public RedisCacheWorker(BiFunction<QueryParameters,String[], List<UlakRow>> exec1,
+                            int numThreads, DBType dbType, String connectionId) {
         this.exec1 = exec1;
         this.dbType = dbType;
+        this.connectionId = connectionId;
         setNumThreads(numThreads);
     }
 
@@ -166,6 +173,30 @@ public class RedisCacheWorker extends Thread{
                                             logger.debug("not the to be cached {}",queryParameters.getHash());
                                             continue;
                                         }
+
+                                        // Several catalogs of the same DBType (e.g. multiple
+                                        // mayapostgres catalogs on different Postgres databases)
+                                        // share this Redis keyspace. If both sides know their
+                                        // connection identity and they differ, this entry belongs
+                                        // to a different catalog's worker — skip it rather than
+                                        // refreshing someone else's query against our connection.
+                                        String entryConnectionId = queryParameters.getConnectionId();
+                                        if (this.connectionId != null && entryConnectionId != null
+                                                && !this.connectionId.equals(entryConnectionId)) {
+                                            logger.debug("not our connection {}/{}", entryConnectionId, this.connectionId);
+                                            continue;
+                                        }
+
+                                        long idleSeconds = (System.currentTimeMillis()
+                                                - queryParameters.getLastAccess()) / 1000;
+                                        int idleTtl = queryParameters.getIdleTtlInSeconds();
+                                        if (idleTtl > 0 && idleSeconds > idleTtl) {
+                                            logger.debug("Idle too long ({}s > {}s), evicting {}",
+                                                    idleSeconds, idleTtl, currentRedisKey);
+                                            jedis.del(currentRedisKey);
+                                            continue;
+                                        }
+
                                         CacheUsageStats usageStats = stats.get(queryParameters.getHash());
                                         if(usageStats==null){
                                             //maybe we have restarted.

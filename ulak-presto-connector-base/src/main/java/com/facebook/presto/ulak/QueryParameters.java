@@ -20,6 +20,7 @@ public class QueryParameters {
     public static final String TEXT_TTL = "ttl";
     public static final String TEXT_CACHE = "cache";
     public static final String TEXT_REFRESH = "refresh";
+    public static final String TEXT_IDLE_TTL = "idlettl";
     //TODO: eager caching is to be added
     public static final String TEXT_COLUMNS = "columns";
     public static final String TEXT_DBTYPE = "dbtype";
@@ -46,6 +47,9 @@ public class QueryParameters {
     public static final String NEW_LINE_CHAR = System.lineSeparator();
     public static final int DEFAULT_CACHE_TTL = 60 * 60 * 24;
     public static final int DEFAULT_TTL = 10;
+    // If a cache=true entry hasn't been read by a real client in this long,
+    // RedisCacheWorker stops refreshing it and evicts it, regardless of its TTL.
+    public static final int DEFAULT_IDLE_TTL = 60 * 60 * 6;
     //TODO: eager caching is to be added
     private String[] columns;
     private String sqlVersion = "0";
@@ -62,6 +66,8 @@ public class QueryParameters {
     private boolean nullFill = true;
     private int ttlInSeconds = DEFAULT_TTL;
     private int refreshDurationInSeconds = DEFAULT_TTL + 5;
+    private int idleTtlInSeconds = DEFAULT_IDLE_TTL;
+    private long lastAccess = System.currentTimeMillis();
     private long start;
     private long finish;
     private long from;
@@ -71,6 +77,14 @@ public class QueryParameters {
     private String qwIndex;
     private boolean historyEnabled = false;
     private String historyIndex;
+    // Identifies which catalog instance's live connection (pgUrl / qwUrl / influx url)
+    // last executed this query. Multiple catalogs of the same DBType (e.g. several
+    // mayapostgres catalogs pointed at different Postgres databases) share one Redis
+    // keyspace; without this, RedisCacheWorker instances distinguish entries only by
+    // DBType and any worker of the same type can pick up and refresh another catalog's
+    // cached query against its own (wrong) connection. Not part of the cache-key hash —
+    // it identifies *who executes* the query, not the query's logical identity.
+    private String connectionId;
     private String replaceFromColumns;
     private Integer connectTimeout;
     private Integer readTimeout;
@@ -216,6 +230,12 @@ public class QueryParameters {
                             v = Integer.parseInt(value);
                             if (v > 0) {
                                 ret.setRefreshDurationInSeconds(v);
+                            }
+                            break;
+                        case TEXT_IDLE_TTL:
+                            v = Integer.parseInt(value);
+                            if (v > 0) {
+                                ret.setIdleTtlInSeconds(v);
                             }
                             break;
                         case TEXT_FROM:
@@ -372,6 +392,22 @@ public class QueryParameters {
     public void setRefreshDurationInSeconds(int refreshDurationInSeconds) {
         this.refreshDurationInSeconds = refreshDurationInSeconds;
     }
+
+    public int getIdleTtlInSeconds() {
+        return idleTtlInSeconds;
+    }
+
+    public void setIdleTtlInSeconds(int idleTtlInSeconds) {
+        this.idleTtlInSeconds = idleTtlInSeconds;
+    }
+
+    public long getLastAccess() {
+        return lastAccess;
+    }
+
+    public void setLastAccess(long lastAccess) {
+        this.lastAccess = lastAccess;
+    }
     //TODO: eager caching is to be added
 //
 //    public boolean isEagerCached() {
@@ -472,6 +508,14 @@ public class QueryParameters {
 
     public void setHistoryIndex(String historyIndex) {
         this.historyIndex = historyIndex;
+    }
+
+    public String getConnectionId() {
+        return connectionId;
+    }
+
+    public void setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
     }
 
     public void setReplaceFromColumns(String replaceFromColumns) {

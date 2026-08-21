@@ -60,6 +60,7 @@ public class InfluxdbConnector
         this.splitManager = new UlakSplitManager();
         this.recordSetProvider = new UlakRecordSetProvider((q,s)-> {
             try {
+                q.setConnectionId(url);
                 return InfluxdbUtil.exec(q.getQuery(),url,org,token);
             } catch (IOException | ClassNotFoundException | SQLException | ApiException e) {
                 logger.error(ERRORSTRING, e.toString());
@@ -74,12 +75,13 @@ public class InfluxdbConnector
         if ((isCoordinator && runInCoordinatorOnly) && redisCacheWorker == null) {
             redisCacheWorker = new RedisCacheWorker((q,s)-> {
                 try {
+                    q.setConnectionId(url);
                     return  InfluxdbUtil.exec(q.getQuery(),url,org,token) ;
                 } catch (IOException | ClassNotFoundException | SQLException | ApiException e) {
                     logger.error(ERRORSTRING, e.toString());
                     throw new RuntimeException(e);
                 }
-            },numThreads, DBType.INFLUXDB2);
+            },numThreads, DBType.INFLUXDB2, url);
             redisCacheWorker.start();
         }
     }
