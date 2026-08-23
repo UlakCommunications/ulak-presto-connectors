@@ -1,5 +1,27 @@
 # DONE.md — Completed Work
 
+## Session 21 August 2026: Redis cache correctness, cross-catalog cache isolation, OGM data-gen deadlock
+
+### 1. Redis cache bugs (see `ulak-presto-connector-base/TODO.md` C01/C02/C04 for full detail)
+- **C01** `RedisCacheWorkerItem` used to extend the TTL of a stale/erroring cache entry on a failed background refresh instead of clearing it — a permanently-broken query's bad result could live forever. Fixed: delete the key on error.
+- **C02** No idle-eviction for `cache=true` entries — a query behind a since-deleted dashboard panel got refreshed by the background worker forever. Added `QueryParameters.lastAccess` + `idleTtlInSeconds` (default 6h, `//idlettl=`); `RedisCacheWorker` now evicts idle entries instead of refreshing them.
+- **C04 (the big one)**: multiple `mayapostgres` catalogs (`maya_tenant`/`maya_grafana`/`maya_envanter`) share one Redis keyspace and all register `DBType.PG`; `RedisCacheWorker` only filtered by `DBType`, so one catalog's background worker could refresh another catalog's cached query against the *wrong* Postgres database. Live symptom: `relation "public.site_temp_version_state" does not exist` on a query that works fine run directly through the correct catalog. Fixed with `QueryParameters.connectionId` (catalog's own pgUrl/qwUrl/influx url) + a connection-identity check in `RedisCacheWorker`, applied across all three connectors that spin up a worker (postgres, quickwit, influxdb).
+- All three fixes are covered by unit tests (167/167 passing across the repo) and deployed live to both OGM (`maya-nexus:35000/maya/trino:3.1.4-20260810-OGM`, tag kept stable, content replaced) and `yucemonitoring` (`maya-nexus:35000/maya/trino:0.0.1`) — both built from one image, copied byte-identical between registries via `docker buildx imagetools create` rather than rebuilt twice.
+
+### 2. OGM `data-gen` was silently producing zero data — root cause + fix
+- Symptom: no data reaching Quickwit for hours, no errors in logs, no crash — just silence.
+- Root cause found via `py-spy dump` on the live worker processes (added `py-spy` to the `data-gen` image + a temporary `SYS_PTRACE` capability, removed again once done): `export_spans()` in `data_gen_cyclic.py` passed the *same* per-process `ThreadPoolExecutor` (`pool`, 4 workers) both as the outer site-level dispatcher and, when a single site's span list exceeded `chunk_size=500`, as the executor for a *nested* sub-chunk dispatch. Once all 4 pool threads were busy with outer per-site tasks, each one's attempt to submit inner chunks back into the same (fully occupied) pool deadlocked permanently — classic thread-pool reentrancy. It only triggered in the `NORMAL` phase (where `FLOW_MULTIPLIER=20` pushes flow-span counts over 500); the `ANOMALY` phase's small span counts never hit it, which made the bug look intermittent.
+- Fix: the nested `export_spans(..., executor=pool)` calls inside `process_site_normal`/`process_site_anomaly` now pass `executor=None` — sub-chunks send sequentially within the already-parallel outer worker thread instead of re-entering the pool.
+- Also switched `multiprocessing` start method to `spawn` (Linux default `fork` + gRPC's C-core is a known unsafe combination) and added an explicit `timeout=15` to the gRPC `Export()` call, as defense-in-depth so a future stall fails loud instead of silent — neither turned out to be the actual root cause, but both are legitimate hardening.
+- Separately fixed: OGM's `data-gen` deployment had `ANOMALY_SECS: "90"` **hardcoded** in the pod spec's literal `env:` list, which silently shadows the `data-gen-config` ConfigMap's `ANOMALY_SECS` value (Kubernetes: literal `env:` always wins over `envFrom`). User wanted OGM anomaly-free; `kubectl set env deployment/data-gen -n maya3 ANOMALY_SECS=0` fixed it at the actual point of truth.
+- Deployed to OGM only — `yucemonitoring`'s `data-gen` runs an older, different (non-cyclic, non-multiprocess) script; not migrated, see TODO.
+
+### 3. Discovered (not fixed): OGM cluster infra instability
+- `ssb-sdwan-master`'s k8s API server + SSH became intermittently/then persistently unreachable while investigating the above. Root cause traced to a stuck Longhorn PVC (`pvc-b2109990-cf13-44dc-a997-d8d4c0c2f5d8`, backing `maya-quickwit`'s data volume): CSI `VolumeAttachment` was stuck exclusively attached to `ssb-sdwan-master` with no pod actually using it there, while `maya-quickwit`'s pod was rescheduled to `ssb-sdwan-worker1` and could never mount it (`Multi-Attach error`). This is unrelated to any code change this session — see TODO, still open as of 2026-08-23.
+
+### 4. Housekeeping
+- A real (per user: temporary/throwaway) `postgres_viewer` Postgres password got committed in plaintext in `trino/etc/catalog/maya_tenant.properties` + `mayapostgres.properties` (commit `eea9592`), already pushed to the `gitlab_mfyuce` mirror — `.gitignore` only covered the older `quickwit.properties`/`tenant.properties` names, not the newer `maya_*` ones. User confirmed no rotation needed (temp creds); `.gitignore` gap itself is still open, see TODO.
+
 ## Session 17–18 August 2026: Catalog History Threshold, Overlay Topology Generation & CI/CD Enhancements
 
 ### 1. Catalog-Scoped History Time Threshold (MR !33)

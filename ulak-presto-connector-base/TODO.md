@@ -102,6 +102,20 @@ indefinitely and by observing an ~80MB Redis instance in production.
       idle-eviction should shrink this over time for abandoned entries,
       but the root cause (why this query family is so large) is still
       unexplained and worth a dedicated look.
+- [x] **C04 [P1] `RedisCacheWorker` refreshed entries against the wrong
+      catalog's connection.** Multiple `mayapostgres` catalogs
+      (`maya_tenant`→services, `maya_grafana`→grafana, `maya_envanter`→
+      envanter_db) all register `DBType.PG` and share one Redis keyspace;
+      `RedisCacheWorker` filtered only by `DBType`, so e.g. `maya_grafana`'s
+      background worker could pick up a `maya_tenant`-cached query and
+      execute it against the `grafana` database — surfaced live as
+      `relation "public.site_temp_version_state" does not exist` on a
+      query that is correct when run directly through `maya_tenant`.
+      Fixed: `QueryParameters.connectionId` (catalog's own pgUrl/qwUrl/
+      influx url, set at execution time) + a connection-identity check in
+      `RedisCacheWorker` alongside the existing `DBType` check. Applied to
+      all three connectors (postgres, quickwit, influxdb) that construct a
+      `RedisCacheWorker`. Deployed + verified on OGM 2026-08-21.
 
 - [x] **L15 [P3, 0.5d] Rhino classloader fix — `Math.floor` under Trino plugin classloader.**
       Root causes found and fixed statically (no live-cluster repro needed):
