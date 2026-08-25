@@ -6,6 +6,26 @@ architecture items tracked in
 
 ## Open — infra (OGM, `192.168.109.203`)
 
+- [ ] **`ssb-sdwan-master` pod containers run ~6.5 minutes behind the
+      node's real clock.** Found 2026-08-25 while debugging why a freshly
+      redeployed `qw-rollup-engine` pod appeared to hang with zero
+      progress for minutes (`kubectl exec ... date -u` vs the node's own
+      `date -u` showed the gap directly; confirmed on two separate fresh
+      pods on that node). Not a `qw-rollup-engine` bug — just adds a real
+      ~6.5min lag to anything on that node computing "is this due yet"
+      off its own clock. yucemonitoring's nodes have no such skew. Worth
+      an NTP check on `ssb-sdwan-master` specifically; not blocking
+      anything today.
+- [ ] **`qw-rollup-engine`'s `flow_rollup_15m_site_src_dst_ip`
+      `host_prefix_chars` fix (2026-08-25, see DONE.md) is deployed and
+      verified on both OGM and yucemonitoring, but no other flow_rollup/
+      metric tasks were audited for the same class of bucket-limit-
+      overflow risk** — only netlink (known, ~35x over) and this one
+      (found by accident once it started erroring loudly instead of
+      silently, ~1.17x over) got the generic fix. Worth a deliberate
+      sweep of all `qw-rollup-engine` tasks' top-level `terms(size:9999)`
+      cardinality against the 65,000 bucket cap rather than waiting for
+      each one to fail into visibility one at a time.
 - [ ] **`ssb-sdwan-master` has no outbound internet path.** `ping 8.8.8.8`
       and `docker.io`/`gcr.io` DNS resolution both fail past the node's
       own default gateway (`192.168.109.254`), which itself responds
@@ -36,6 +56,94 @@ architecture items tracked in
       Needs someone with dev-environment access to check index existence
       + alert-rule pause state there before deciding whether to create
       the indexes on OGM, unpause anything, or leave as-is.
+      **Update 2026-08-24 (later same session), root-caused while
+      diagnosing "why is the alert-map dashboard slow":** checked live —
+      all 5 `anomaly|cpe|gateway` rules (`critical_flow_anomaly`,
+      `sustained_flow_anomaly`, `critical_metrics_anomaly` @ 1m;
+      `pipeline_silent_gateway`, `pipeline_silent_cpe` @ 5m) currently
+      show `isPaused=false` via `/api/v1/provisioning/alert-rules` — the
+      stopgap pause from the earlier session is **not** in effect now
+      (unpaused since, or never actually applied to these UIDs). They're
+      no longer hitting the old 404-missing-index error either — now
+      failing with `quickwit.javaclient.ApiException: Quickwit 500:
+      tantivy error: Aborting aggregation because bucket limit was
+      exceeded. Limit: 65000, Current: ~155000` from
+      `UlakQuickwitMetadata.getColumnsInternal` against
+      `quickwit.metrics3`, at a sustained ~1/sec (335 of 335+91 queries
+      in a 5-min `system.runtime.queries` sample were `FAILED
+      GENERIC_INTERNAL_ERROR`, each burning ~2-3.5s of coordinator
+      dispatcher time). Almost certainly triggered by today's 1-month/
+      753-site synthetic rollup backfill (see the 2-year-backfill item
+      below) pushing whatever field these rules group by (host/iface/
+      datasource-shaped, matching `view_alerts_trino`'s label set) past
+      Quickwit's default 65k aggregation bucket cap. This churn is
+      loading the shared Trino coordinator enough to add ~1s of
+      queueing delay to otherwise-fast queries (`FINISHED` queries in
+      the same sample showed ~1000ms `waiting`/`scheduling` vs ~20-40ms
+      actual `running`) — a direct, currently-live contributor to the
+      alert-map (and likely other dashboards') sluggishness. Fix options
+      (none applied yet, needs a decision): re-pause these 5 rules again
+      via the provisioning API (fast stopgap, same as before); raise
+      Quickwit's aggregation bucket limit
+      (`aggregation.max_terms_aggregation_buckets`-style Quickwit
+      config, needs checking exact key for this version); or narrow the
+      rules' queries so they don't need a 155k-bucket terms aggregation.
+      Separately, while investigating this, confirmed the RedisCacheWorker
+      multi-catalog bug from `CLAUDE.md`/commit `eea9592` ("cache fixes")
+      is **still live on OGM** — `RedisCacheWorkerItem` background thread
+      is repeatedly failing on the "Data Plane Status Sites And Overlays"
+      cached query (`view_tenant_host_overlay_iface` in
+      `maya_global_settings`, which feeds the alert-map dashboard's
+      "Alarm Status Map" panel directly) with the exact documented
+      symptom — `relation "public.site_temp_version_state" does not
+      exist`. Since that fix already exists in `develop` (commit
+      `eea9592`), this means **OGM's Trino image predates that commit
+      and hasn't been rebuilt/redeployed since** — a separate action
+      item from the alert-rule issue above. (Confirmed, while there: the
+      session-scoped `WITH tv_json AS MATERIALIZED (...)` CTE the user
+      recalled adding is present and correct in
+      `view_tenant_host_overlay_iface` — that part is not the problem.)
+
+      **Resolution 2026-08-24 (same session):** the actual dominant
+      failure source turned out to be **`tx_maya_link_utilization` /
+      `rx_maya_link_utilization`**, not the anomaly/cpe/gateway family —
+      pausing those 5 (then user paused 2 more, `pipeline_silent_flow`/
+      `pipeline_silent_metrics`, via UI) barely moved the FAILED rate
+      (still 241/5min after). Cross-checked all 13 alert rules using
+      `raw_query(...)` against any Quickwit index (not just `metrics3`):
+      10 already paused (the whole `anomaly-events*`/`anomaly-model-stats`
+      family), 3 live — `ntp_out_of_sync` (no `size=` terms aggs, not a
+      risk), and `tx_`/`rx_maya_link_utilization` (4-5x `size=9999`
+      nested `terms()` inside a `histogram()` each — confirmed via full
+      query text capture from `system.runtime.queries`, this is the
+      bucket-explosion source). Separately, the `alert_rule`/
+      `alert_rule_version` desync wasn't just the one rule the user
+      first hit (`cf910a6d-...`) — **26 rules** had `alert_rule.version`
+      behind `alert_rule_version`'s max (gaps of 1-48), from the
+      `REFRESH_DASHBOARD=1` bulk SQL reimport earlier in the session.
+      User ran a targeted `UPDATE alert_rule ... SET version = mv.max_version`
+      (synced to history max per `rule_uid`/`rule_org_id`) — confirmed
+      0 rules behind afterward, and pause/edit started working again via
+      UI (was 403 for my service-account token via the provisioning API
+      the whole time — that permission gap is still unresolved, only
+      worked around by the user doing it via UI). User then applied some
+      fix for `tx_`/`rx_maya_link_utilization` — **mechanism unconfirmed**,
+      `alert_rule.data` still shows `size=9999` and `is_paused=false` for
+      both, so it wasn't a query edit or a pause; verified empirically
+      instead: 0 `FAILED` queries and 0 matching error log lines over a
+      90s window post-fix (was ~1/sec sustained before). Declared fixed
+      by user call, but since the rule definitions are unchanged the
+      same bucket-explosion could resurface (e.g. after any process
+      restart that resets whatever was actually changed) — worth a
+      real fix (lower the `size=9999` values, or raise Quickwit's
+      aggregation bucket limit) rather than relying on whatever this was.
+      **Resolved 2026-08-25:** the RedisCacheWorker `site_temp_version_state`
+      failure was root-caused (a `services.public.` vs `public.` prefix bug
+      in a `maya_global_settings` SQL-template row, nothing to do with
+      `eea9592`/`connectionId`) and fixed on both OGM and yucemonitoring —
+      full detail in DONE.md ("Session 25 August 2026", item 2). The
+      Redis-keyspace audit done alongside it found nothing else actionable
+      (32 keys, all legitimate infra, no long-lived stray cache entries).
 - [ ] **Plaintext Grafana service-account bearer token in `machine_ops/
       OGM_DEMO_INSTALL_DONE.md`** (section 11-G, `glsa_...` prefix — real
       token format). Found 2026-08-24 while reviewing that doc, not
@@ -192,9 +300,40 @@ architecture items tracked in
       connector-base TODO C03. Idle-eviction (C02) should shrink this
       over time for abandoned entries; root cause of the size itself is
       still unexplained.
+- [x] **`IllegalStateException: Current transaction already committed`
+      in OGM coordinator logs (2026-08-25) — investigated, benign,
+      Trino-core, not actionable here.** `io.trino.execution.
+      QueryStateMachine` logs `Error collecting query catalog metadata
+      metrics: <queryId>` with this exception from
+      `io.trino.transaction.InMemoryTransactionManager$TransactionMetadata
+      .checkOpenTransaction` — a race in Trino 479's own post-completion
+      metrics collection running after the transaction's already been
+      committed/removed. Entirely `io.trino.*`/`io.trino.$gen.Trino_479...`
+      stack, nothing in this repo's connectors. Confirmed harmless:
+      cross-checked 3 affected query IDs against
+      `system.runtime.queries` — all `FINISHED`, `error_type` empty, so
+      clients get correct results; only the internal telemetry step
+      fails. Frequency ~5% of queries (23/464 in a 15-minute sample) —
+      log noise, not a functional issue. No fix available without a
+      Trino version upgrade (out of scope); not worth chasing further
+      unless it starts actually failing queries.
 
 ## Open — dashboards (carried over, not reverified this session)
 
+- [ ] **`view_interface`'s stale `//columns=` fix (Hub Network Throughput
+      panel, see DONE.md item 3) only applied to OGM.** Same
+      `maya_global_settings` row/content on yucemonitoring almost
+      certainly has the identical bug — not yet checked or fixed there.
+- [ ] **A `general-purpose` agent's yucemonitoring stale-`//columns=`
+      audit (18 candidate SQL fixes + 5 dashboard fixes, prepared
+      2026-08-25) is sitting unreviewed and unapplied.** Classifier-
+      blocked from running directly; output left on disk in the agent's
+      own scratchpad (`yucemonitoring_columns_fixes.sql`,
+      `apply_dashboard_fixes.sh`) but not yet reviewed for correctness or
+      handed to the user to run. Needs a review pass before trusting it
+      wholesale — it was generated, not verified against live data the
+      way the OGM `view_interface`/`view_tenant_host_overlay_iface` fixes
+      were.
 - [ ] **`_rustrino` Grafana macros missing `//historyenabled=`.**
       Discovered 2026-08-20: macros ending in `_rustrino` (e.g.
       `view_interface_with_site_filter_rustrino`, used by the Hub Network

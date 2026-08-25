@@ -535,11 +535,17 @@ public class QwUtil {
             } else {
                 Object value = aggValue.get(VALUE);
                 if (value != null) {
-                    // v0.2: bare aggId; v0.1: aggId/value
-                    String colName = stripSuffixes ? entry.getKey() : entry.getKey() + "/" + VALUE;
-                    currentRow.put(colName, String.valueOf(value));
-                    // expose "/aggId/value" alongside "aggId/value" so dashboards using either form work
-                    if (!stripSuffixes) currentRow.put("/" + colName, String.valueOf(value));
+                    String strValue = String.valueOf(value);
+                    // guard against literal "null" text (e.g. Rhino JS string-coercion of a
+                    // missing field) reaching Trino as VARCHAR and failing CAST(...AS DOUBLE)
+                    // downstream — same guard already applied in parseResponseHits().
+                    if (!"null".equals(strValue)) {
+                        // v0.2: bare aggId; v0.1: aggId/value
+                        String colName = stripSuffixes ? entry.getKey() : entry.getKey() + "/" + VALUE;
+                        currentRow.put(colName, strValue);
+                        // expose "/aggId/value" alongside "aggId/value" so dashboards using either form work
+                        if (!stripSuffixes) currentRow.put("/" + colName, strValue);
+                    }
                 }
             }
         }
