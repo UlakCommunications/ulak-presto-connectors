@@ -221,20 +221,58 @@ architecture items tracked in
       cluster already runs `rancher-monitoring-prometheus`) plus a Grafana
       panel so this is visible going forward instead of only discoverable
       after the fact.
-- [ ] **`monitoring-jobs` image needs a rebuild+push to ship the
-      `ROLLUP_RETENTION` fix.** `pg_works.py`'s rollup-index retention
-      (see DONE.md #15) is code-complete and the env var is wired through
-      Helm (`helm_repo1/postgres-single`) and already set live on
-      `maya-postgres-single-cronjob`, but the code itself won't run until
-      a new `monitoring-jobs` image ships — it's baked into the image, not
-      ConfigMap-mounted like `data-gen`. `monitoring_temp/.../grafana_init/
-      push.sh` defaults to `192.168.57.202:35000`, a *different* registry
-      than the one OGM actually pulls from (`maya-nexus:35000` →
-      `192.168.109.203:35000`) — confirm the right registry/invocation
-      (or find the Jenkins job used for the `3.1.4-20260810-OGM`-tagged
-      builds referenced in `machine_ops/OGM_DEMO_INSTALL_DONE.md`) before
-      building, rather than guessing and possibly pushing somewhere OGM
-      never pulls from.
+- [ ] **`maya-reporting-sqla-platform` Jenkins job still broken** —
+      `backend/sqla` repo, blocking a clean `sqli`-sibling build of
+      `grafana-sql-analyser`. Fixed 3 sequential missing-dependency
+      failures in its Dockerfile 2026-08-25/26 (`autoconf`/`automake`/
+      `libtool`, then `build-essential`, then `python3` — each fix got
+      further before hitting the next missing tool; commits `7a6b1be`,
+      `ad7daf1`, `75645e1` on `develop`, pushed). Current failure (build
+      #66): `bindgen-0.72.1` panics — needs `libclang`/`clang` (bindgen
+      shells out to libclang for the C header it's binding) added to the
+      same `apt-get install` line. Not fixed — deprioritized once the
+      actual deploy need (see DONE.md) was satisfied a different way.
+      `maya-reporting-sqli-platform` (the sibling job) builds clean
+      (#70) — no known reason `sqla` and `sqli` diverge on system deps.
+- [ ] **`ROLLUP_RETENTION=1 month` vs the 90GB `qwdata` volume — capacity
+      may not actually fit.** Measured 2026-08-26 from the just-completed
+      full-density 8-day/753-site backfill: all 6 rollup indexes combined
+      cost **~3.6-4GB/day** at current (post metric-type-revival) real
+      density. A full 1-month retention window, once the live indexes
+      actually hold that much, would need **~107-120GB** — more than the
+      90GB volume has. See TOBEDECIDED.md for the decision (shorten
+      retention vs. expand further vs. accept it'll self-limit via
+      DiskPressure). Not urgent today: live accumulation is still well
+      under a month deep, and the retention *code* only just went live
+      (see DONE.md) — but don't be surprised when it becomes urgent.
+- [ ] **`Quality_of_Service` dashboard hits the null-cast-to-double bug on
+      its 2d range specifically** — `USER_ERROR: Cannot cast 'null' to
+      DOUBLE`, found during the 2026-08-26 Query Sweep benchmark (see
+      DONE.md), on a query path the `QwUtil.traverseAggregations` guard
+      fixed 2026-08-25 doesn't cover. Same dashboard also throws
+      `Column '1/value' cannot be resolved` on its 2h-24h ranges (probably
+      the stale-`//columns=` bug class, not yet mapped to a specific
+      `maya_global_settings` row), and 4d-7d never return anything within
+      45s. Only 4 panels on this dashboard — worth a focused look rather
+      than assuming it's a data-volume problem.
+- [ ] **`Top_Sites_Traffic` dashboard broken on all 14 ranges tested**,
+      two distinct causes (Query Sweep, 2026-08-26, see DONE.md): 15m-1h
+      throw `Grafana template not substituted: ${type}` (no default set
+      on that dashboard variable — quick fix); 2h-7d throw
+      `Column '/9/buckets/4/6/key_as_string' cannot be resolved` — the
+      same stale-`//columns=` class as the already-fixed Hub Network
+      Throughput panel (DONE.md, "Session 25 August 2026" item 4), on a
+      row not yet identified in `maya_global_settings`.
+- [ ] **`SLA_Chart` dashboard: inconsistent failures across ranges, cause
+      unclear.** Query Sweep (2026-08-26): 15m-2d fail with a silent 45s
+      timeout (no error captured); 3d/4d fail with real backend errors
+      (`Connection reset`, then `Failed to connect to maya-quickwit`); 5d-
+      7d load fine. Only 1 panel, so not a data-volume issue, and the
+      pattern (short ranges quietest, long ranges fine) is the *opposite*
+      of every other dashboard in the sweep. The 4d connection-refused
+      error may just be Quickwit under transient load from the benchmark
+      itself rather than a real bug — reproduce outside the sweep before
+      concluding anything.
 - [ ] **Flow/metric ratio still well short of the ~3:1 target.** User
       wants flow generation ≈ 3× metric generation in steady state;
       current live setting (`FLOW_MULTIPLIER=15`, `INTERVAL=20`, see
@@ -268,6 +306,14 @@ architecture items tracked in
       indexes actually *hold* close to 2 years of data — at 1 month of
       backfill plus whatever the live rollup engine accumulates going
       forward, that's still a long way off.
+      **Reality-check added 2026-08-26:** that `~14.4GB for 2 years`
+      estimate was extrapolated from the low-density synthetic generator
+      (`rollup_backfill_pilot.py`). A same-session real-density measurement
+      (see DONE.md, full-site tile-and-shift backfill) puts actual full
+      density at ~3.6-4GB/day for all 6 rollup indexes combined — 2 years
+      at that rate is **~2.9TB**, not 14.4GB. If "2 years" ever means real
+      density rather than sparse synthetic filler, this needs a real
+      capacity conversation first, not just running the script longer.
 - [ ] **`.gitignore` gap for `trino/etc/catalog/maya_*.properties` +
       `mayapostgres.properties`.** These newer catalog config files
       (contain live pg-connection-password) aren't covered by the

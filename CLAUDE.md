@@ -2,7 +2,7 @@
 
 ## Key Commands
 - **Unit Tests:** `./mvnw clean test` (or `./mvnw test -pl ulak-presto-quickwit-connector`)
-- **Docker Build & Push:** `./push.sh <version> <platform>` (e.g. `./push.sh 0.0.1-develop-latest linux/amd64`)
+- **Docker Build & Push:** `./push.sh <version> <platform>`. Jenkins `prod=true` builds: override `prod_ip=192.168.109.203` for OGM (its default isn't OGM), and `version` must match an existing sibling-image tag (e.g. `sqla`'s base `sqli` image is resolved by that same version string).
 - **Restart Coordinator:** `kubectl --kubeconfig ~/.kube/yucemonitoring.config -n yucemonitoring rollout restart deployment/maya-trino-multi-coordinator`
 - **Trino CLI:** `kubectl --kubeconfig ~/.kube/yucemonitoring.config -n yucemonitoring exec -it deployment/maya-trino-multi-coordinator -- trino`
 - **OGM cluster access:** `ssh ulak@192.168.109.203`, then `kubectl` directly — no `--kubeconfig` flag needed (unlike `yucemonitoring` above).
@@ -17,5 +17,5 @@
 - **Quickwit metastore is Postgres-backed** (`QW_METASTORE_URI`), independent of the `qwdata` volume — clear orphaned splits via `PUT /api/v1/indexes/{id}/clear`, not delete+recreate.
 - **`qw-rollup-engine`** (sibling repo, `../qw-rollup-engine`) populates the rollup indexes this connector reads — see its README for `host_prefix_chars` (generic per-task bucket-limit fix). Gotcha: builds go to a shared `~/.cargo-target` (`~/.cargo/config.toml`), not the project-local `target/`.
 
-## READY FOR HANDOVER (Tue Aug 25 2026)
-`qw-rollup-engine`: built a generic `host_prefix_chars` site-partitioning fix for Quickwit bucket-limit overflows, used it on 2 tasks; separately revived 3 metric types (`maya_bfd`/`maya_system_services`/`maya_ifstatus`) dead for months from a Quickwit `top_hits` panic bug. All 5 fixes deployed+verified on OGM and yucemonitoring — likely also root cause of a recurring Quickwit OOMKill. Connector: fixed a null-cast-to-double bug, deployed to OGM. Also fixed live: RedisCacheWorker's `services.public.` bug (both clusters) and the Hub Network Throughput panel's stale `//columns=` (OGM only). Full detail: `DONE.md` ("Session 25 August 2026"). Open: same panel fix + an agent's 18 candidate fixes still needed on yucemonitoring; other rollup tasks unswept for the same bucket-limit risk; OGM's clock skew — see `TODO.md`.
+## READY FOR HANDOVER (Wed Aug 26 2026)
+`ROLLUP_RETENTION` deployed to OGM, verified live. Ran a full 8-day/753-site rollup backfill (tile-and-shift, hex-prefix-partitioned) — clean, ~311M docs, no duplication. Measured real rollup density (~4GB/day, all sites) — `ROLLUP_RETENTION=1 month` likely won't fit the 90GB volume once it fills that deep, see TOBEDECIDED.md. Ran a 210-combo dashboard Query Sweep (15 dashboards × 14 ranges): 3 broken on every range (incl. a *new* null-cast-to-double instance on `Quality_of_Service`), published as an Artifact — detail in TODO.md. `backend/sqla`'s Jenkins build: fixed 3 of 4 missing deps, still blocked on `libclang`. Full detail: `DONE.md` ("Session 25-26 August 2026").
