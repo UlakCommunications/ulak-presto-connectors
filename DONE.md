@@ -1,5 +1,53 @@
 # DONE.md — Completed Work
 
+## Session 26 August 2026 (continued): QoS/SLA_Chart dashboard fix attempted and reverted, stale-columns audit reviewed, netlink rollup gap found
+
+### 1. Reviewed the prior session's yucemonitoring stale-`//columns=` audit (19 SQL + 5 dashboard fixes) — found genuinely live-verified, safe to apply
+- TODO.md flagged this (prepared 2026-08-25) as "generated, not verified against live data." Re-checked the full scratchpad
+  (`fe1dd4bc-.../scratchpad/`, still on disk, different session) and found real evidence of live-capture verification —
+  `live_diff.json`/`live_captures.json`/`capture_live.py` — with concrete per-dashboard `declared_missing_from_real` gaps
+  (e.g. Alarms missing `alarm_name`; LTE missing 13 real fields incl. `rsrp`/`sinr`/`rsrq`). Confirms the 19
+  `UPDATE maya_global_settings` statements and 5 dashboard-JSON payloads are trustworthy — not applied yet, ready via `!`.
+- This audit only checks declared `//columns=` staleness (matters for the empty-result fallback path) — a different, narrower
+  bug class than item 3 below, no overlap.
+
+### 2. Connector: extended the null-cast-to-double guard to bucket keys, not just leaf values
+- Yesterday's fix (2026-08-25, `QwUtil.traverseAggregations`) only guarded the leaf-metric `value` field against literal
+  `"null"` text. Found the same gap applies to the bucket `key`/`key_as_string` handling in the same method's second pass —
+  extended the identical guard there. `./mvnw clean test -pl ulak-presto-quickwit-connector`: 167/167 pass.
+  **Not built/pushed/deployed to either cluster** — a real, reasonable fix on its own merits, but turned out not to be the
+  actual root cause of the `Quality_of_Service` bug it was originally aimed at (see item 3).
+
+### 3. Attempted a `Quality_of_Service`/`SLA_Chart` dashboard fix based on a column-path theory — applied live to both
+   clusters, disproven by real Trino execution, fully reverted
+- Traced every panel's Quickwit sub-query by hand against its own `//replacefromcolumns=` prefix, derived a rule for what
+  the correct bucket-key column names should be, cross-checked it against 2 live read-only Quickwit queries — looked
+  solid, internally consistent across every panel checked. Applied it live via Grafana API to all 4 dashboard/cluster
+  combinations (OGM + yucemonitoring × Quality_of_Service + SLA_Chart).
+- **It was wrong.** A follow-up end-to-end verification — actually executing the fixed SQL through Trino (`kubectl cp` a
+  `.sql` file into the trino-coordinator pod, `trino --file`), not just matching Quickwit's raw response shape — showed
+  the *original* pre-fix text (e.g. `"2221/2/key"`, `"2222/2/key"`) already resolved correctly and returned real data,
+  while the "fixed" version (bare `"key"`) did not resolve at all. `SELECT *` against the live table revealed the real
+  column-naming scheme: a bucket's key shows up once per sibling leaf-metric, as `<leafAggId>/<ancestorAggId>/key` for
+  what appears to be *every* ancestor level, not just the immediate parent — behavior that doesn't match a static trace of
+  either `flatten()` or `flattenJsonNode()` in `QwUtil.java`, for reasons not established even after the fact.
+- Reverted all 4 dashboards to their exact original text (OGM QoS v177→178→179, OGM SLA v75→76→77, yucemonitoring same),
+  confirmed via fresh GET that original markers are back. **Net effect: nothing fixed, nothing regressed** — dashboards
+  are exactly as broken as the original Query Sweep found them.
+- `SLA_Chart`'s missing `iface` column (selected/grouped 3 subquery levels above where any subquery actually produces it)
+  is a real, separate, still-unfixed structural bug independent of the path-naming confusion — the specific fix attempted
+  for it was reverted along with everything else, not trusted given the rest of this item.
+- **Lesson recorded in TODO.md and CLAUDE.md**: any future column-path fix for this connector must be verified by
+  actually executing it through Trino before shipping, not just by matching Quickwit's response shape — however
+  internally consistent the derivation looks on paper.
+
+### 4. Found (not root-caused): yucemonitoring has no dedicated netlink/bfd/system-services/ifstatus rollup indexes
+- User asked why OGM's netlink rollup counts are much higher than yucemonitoring's. Checked yucemonitoring's live
+  Quickwit index list directly: only `metrics3_15` + the 5 `rollup_15m_site_*` flow indexes exist — no `netlink_15m` etc.
+  at all, contradicting DONE.md's 2026-08-25 note that it had 1,120 real docs/window there. Investigation paused mid-way
+  (OGM's Quickwit was unresponsive to `/indexes`/`/describe` calls at the time — pod only ~21min old, 0 restarts, so a
+  clean rollout not a crash, but still not answering those specific endpoints) — see TODO.md for the concrete next steps.
+
 ## Session 25-26 August 2026: ROLLUP_RETENTION deployed, 8-day/753-site rollup backfill, dashboard Query Sweep benchmark
 
 ### 1. Confirmed the null-cast-to-double fix (previous session) was already live on OGM — no redeploy needed

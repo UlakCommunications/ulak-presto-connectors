@@ -580,12 +580,20 @@ public class QwUtil {
                     // expose "/aggId/key" alongside "aggId/key" for dashboard compatibility
                     if (!stripSuffixes) rowForBucket.put("/" + keyCol, String.valueOf(((Number) key).longValue()));
                 } else if (key != null) {
-                    rowForBucket.put(keyCol, String.valueOf(key));
-                    if (!stripSuffixes) rowForBucket.put("/" + keyCol, String.valueOf(key));
+                    // same literal-"null" guard as the leaf-value case above and parseResponseHits() —
+                    // a non-numeric bucket key can carry Rhino's string-coerced "null" too
+                    String keyStr = String.valueOf(key);
+                    if (!"null".equals(keyStr)) {
+                        rowForBucket.put(keyCol, keyStr);
+                        if (!stripSuffixes) rowForBucket.put("/" + keyCol, keyStr);
+                    }
                 }
                 if (keyAsString != null) {
-                    rowForBucket.put(keyStrCol, String.valueOf(keyAsString));
-                    if (!stripSuffixes) rowForBucket.put("/" + keyStrCol, String.valueOf(keyAsString));
+                    String keyAsStringStr = String.valueOf(keyAsString);
+                    if (!"null".equals(keyAsStringStr)) {
+                        rowForBucket.put(keyStrCol, keyAsStringStr);
+                        if (!stripSuffixes) rowForBucket.put("/" + keyStrCol, keyAsStringStr);
+                    }
                 }
 
                 // collect sub-aggregation maps (skip primitive metadata: key, key_as_string, doc_count, etc.)

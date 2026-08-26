@@ -6,6 +6,33 @@ architecture items tracked in
 
 ## Open — infra (OGM, `192.168.109.203`)
 
+- [ ] **yucemonitoring has no `netlink_15m` (or `maya_bfd_15m`/
+      `maya_system_services_15m`/`maya_ifstatus_15m`) Quickwit index at
+      all — investigation paused mid-way 2026-08-26, not root-caused.**
+      User asked why OGM shows much higher netlink rollup counts than
+      yucemonitoring ("20 kat küçük" — 20x smaller). Checked yucemonitoring's
+      live index list directly (`kubectl exec deployment/maya-quickwit-s3
+      -- curl localhost:7280/api/v1/indexes`): only `metrics3_15` + the 5
+      `rollup_15m_site_*` flow indexes exist — no dedicated netlink/bfd/
+      system-services/ifstatus rollup indexes at all, contradicting
+      DONE.md's 2026-08-25 note that `netlink_15m` had 1,120 real
+      docs/window there as of that session. Either the index was dropped/
+      never durably created, or the qw-rollup-engine task config on
+      yucemonitoring no longer includes these tasks. **Not yet compared
+      against OGM's index list** — that check was hanging/timing out
+      (OGM's `maya-quickwit` pod was only ~21min old at the time,
+      0 restarts per `kubectl get pod ... -o jsonpath=...restartCount`,
+      so a clean recent rollout, not a crash — but `/api/v1/indexes` and
+      `/describe` calls through it were consistently timing out even via
+      direct pod `exec`, unlike search POSTs which worked fine). Paused
+      here per user request ("biraz yoğun sistem... rahatlasın"); next
+      session should: (1) get OGM's current index list once the cluster
+      isn't under this load, (2) check yucemonitoring's `qw-rollup-engine`
+      task config (`tasks.json`) for whether netlink/bfd/etc. tasks are
+      even defined there, (3) only then figure out whether the user's
+      "20x" observation is about this missing-index gap or about
+      netlink-tagged document volume inside `metrics3_15` instead — those
+      are different things and weren't disambiguated.
 - [ ] **`ssb-sdwan-master` pod containers run ~6.5 minutes behind the
       node's real clock.** Found 2026-08-25 while debugging why a freshly
       redeployed `qw-rollup-engine` pod appeared to hang with zero
@@ -245,34 +272,84 @@ architecture items tracked in
       DiskPressure). Not urgent today: live accumulation is still well
       under a month deep, and the retention *code* only just went live
       (see DONE.md) — but don't be surprised when it becomes urgent.
-- [ ] **`Quality_of_Service` dashboard hits the null-cast-to-double bug on
-      its 2d range specifically** — `USER_ERROR: Cannot cast 'null' to
-      DOUBLE`, found during the 2026-08-26 Query Sweep benchmark (see
-      DONE.md), on a query path the `QwUtil.traverseAggregations` guard
-      fixed 2026-08-25 doesn't cover. Same dashboard also throws
-      `Column '1/value' cannot be resolved` on its 2h-24h ranges (probably
-      the stale-`//columns=` bug class, not yet mapped to a specific
-      `maya_global_settings` row), and 4d-7d never return anything within
-      45s. Only 4 panels on this dashboard — worth a focused look rather
-      than assuming it's a data-volume problem.
-- [ ] **`Top_Sites_Traffic` dashboard broken on all 14 ranges tested**,
-      two distinct causes (Query Sweep, 2026-08-26, see DONE.md): 15m-1h
-      throw `Grafana template not substituted: ${type}` (no default set
-      on that dashboard variable — quick fix); 2h-7d throw
-      `Column '/9/buckets/4/6/key_as_string' cannot be resolved` — the
-      same stale-`//columns=` class as the already-fixed Hub Network
-      Throughput panel (DONE.md, "Session 25 August 2026" item 4), on a
-      row not yet identified in `maya_global_settings`.
-- [ ] **`SLA_Chart` dashboard: inconsistent failures across ranges, cause
-      unclear.** Query Sweep (2026-08-26): 15m-2d fail with a silent 45s
-      timeout (no error captured); 3d/4d fail with real backend errors
-      (`Connection reset`, then `Failed to connect to maya-quickwit`); 5d-
-      7d load fine. Only 1 panel, so not a data-volume issue, and the
-      pattern (short ranges quietest, long ranges fine) is the *opposite*
-      of every other dashboard in the sweep. The 4d connection-refused
-      error may just be Quickwit under transient load from the benchmark
-      itself rather than a real bug — reproduce outside the sweep before
-      concluding anything.
+- [ ] **`Quality_of_Service` / `SLA_Chart`: 2026-08-26 fix attempt applied
+      then REVERTED same session — the underlying path-derivation theory
+      was wrong, disproven empirically against live Trino after the fix
+      was already live on both clusters.** Both dashboards are back to
+      their original (still-buggy) text on OGM and yucemonitoring as of
+      this note — nothing is fixed yet, see the full account below for
+      what's actually true and what isn't.
+      **What happened:** traced every panel's Quickwit sub-query by hand
+      against its own `//replacefromcolumns=` prefix, concluding the
+      bucket-key references (site/host, traffic class, interface, overlay,
+      peer uuid — things like `"2221/2/key"`, `"111/15/key"`) were stale
+      and should reduce to short forms like bare `"key"` after the
+      declared strip prefix. This looked well-verified — cross-checked
+      against 2 live Quickwit queries (`flows3`/`metrics3`), internally
+      consistent (leaf-value refs like `222/value` matched the same rule
+      and were already correct in every panel) — so the fix was applied
+      live to all 4 dashboard/cluster combos (OGM+yucemonitoring ×
+      QoS+SLA_Chart).
+      **It was wrong.** Verifying end-to-end through Trino afterward (not
+      just against raw Quickwit shape) showed the *original* text —
+      `"2221/2/key"`, `"2222/2/key"` — already resolved correctly and
+      returned real data; my "fixed" bare `"key"` did not resolve at all
+      (`Column 'key' cannot be resolved`). `SELECT *` against the live
+      table revealed the real column-naming scheme is not a simple
+      prefix-strip of the true nesting path — empirically, a bucket's key
+      shows up **once per sibling leaf-metric**, named
+      `<leafAggId>/<ancestorAggId>/key` for seemingly every ancestor level,
+      not just the immediate parent (e.g. leaf `"1"` paired with ancestor
+      `"2"` *and* ancestor `"3"` both produced valid columns). This does
+      not match either `flatten()` or `flattenJsonNode()`'s code as read —
+      the actual runtime behavior diverges from what a static trace of
+      those methods predicts, for reasons not yet understood. **Reverted
+      all 4 dashboards to their original pre-session text** (OGM QoS
+      v179, OGM SLA v77, yucemonitoring QoS v179, yucemonitoring SLA v77) —
+      confirmed via fresh GET that the original markers are back on all 4.
+      **Net result: nothing is actually fixed.** The dashboards are
+      exactly as broken as the original Query Sweep found them.
+      **Lesson for next attempt, don't repeat this mistake:** any proposed
+      column-path fix for this connector MUST be verified by actually
+      executing it through Trino (`kubectl cp` a `.sql` file into the
+      trino-coordinator pod, `trino --file`) and confirming real rows come
+      back — matching the Quickwit response shape alone is not sufficient
+      evidence, no matter how internally consistent the derivation looks.
+      `SELECT *` against the live table is the fastest way to see the
+      *actual* resolvable column names for a given aggs body +
+      `//replacefromcolumns=` combination.
+      - The `classes_from_metrics` CTE present in all 3 QoS panels is
+        confirmed **dead code** (defined, never referenced downstream) —
+        not part of this bug regardless of which theory is right.
+      - `SLA_Chart`'s missing `iface` column (selected/grouped at the
+        middle subquery level but never produced by any inner subquery)
+        is a **separate, still-real, still-unfixed** structural bug — independent of
+        the path-naming confusion above. The specific column expression I
+        added for it (`/3/buckets/2/buckets/4/buckets/key`) is *not*
+        trusted given everything above and was reverted along with
+        everything else; needs the same real-Trino-execution verification
+        before trying again.
+      - The original documented errors (`Column '1/value' cannot be
+        resolved` on 2h-24h, the 2d-specific null-cast, QoS's 4d-7d hang,
+        SLA_Chart's short-range timeouts) are **still unexplained** — my
+        "fix" targeted the wrong thing, so none of this investigation
+        should be assumed to carry over. Next attempt should start from
+        `SELECT *` against each panel's actual query (with real
+        `//replacefromcolumns=`) rather than from this session's
+        path-derivation theory.
+      - Unaffected by any of this: the `QwUtil.traverseAggregations`
+        null-guard code fix (separate item, above) — never deployed, no
+        live impact either way, still a reasonable fix on its own merits.
+- [x] **`Top_Sites_Traffic` — deprioritized 2026-08-26, dashboard
+      confirmed unused by the user ("bu dash kullanılmıyor").** Never
+      applied (per user direction, not because of the item below) — good
+      thing, since the fix used the same flawed path-derivation theory
+      the QoS/SLA_Chart fix above turned out to be wrong about (only the
+      `${type}` label part is trustworthy; the stale-columns part is not).
+      Not worth revisiting unless the dashboard comes back into use, and
+      if it does, re-derive the columns fix properly (real Trino
+      execution, not Quickwit-shape matching) rather than reusing what's
+      already sitting prepared.
 - [ ] **Flow/metric ratio still well short of the ~3:1 target.** User
       wants flow generation ≈ 3× metric generation in steady state;
       current live setting (`FLOW_MULTIPLIER=15`, `INTERVAL=20`, see
@@ -326,6 +403,22 @@ architecture items tracked in
       add `.example` templates, matching the R21 pattern) before the
       *next* real secret lands there.
 
+- [ ] **Connector fix ready but not built/deployed: `QwUtil.traverseAggregations`'s
+      null-string guard (added 2026-08-25) only covered the leaf-metric
+      `value` field, not bucket `key`/`key_as_string`.** Found 2026-08-26
+      while root-causing the Query Sweep's broken dashboards — extended
+      the identical `!"null".equals(...)` guard to both branches of the
+      bucket-key handling (non-numeric `key`, and `key_as_string`) in
+      `QwUtil.java`. `./mvnw clean test -pl ulak-presto-quickwit-connector`:
+      167/167 pass. Turned out NOT to be `Quality_of_Service`'s actual
+      2d-range root cause (see the stale-bucket-key-path item above,
+      which is) — this is still a real, separate gap worth shipping, just
+      lower urgency than first thought. Not built/pushed/deployed to
+      either cluster yet — needs `./mvnw` build, `./push.sh`, and a
+      coordinator rollout restart on both OGM and yucemonitoring (shared
+      infra, only do this with the user's go-ahead given both clusters'
+      Trino serves live dashboard traffic).
+
 ## Open — feature parity
 
 - [ ] **`yucemonitoring`'s `data-gen` was not migrated** to the
@@ -370,16 +463,42 @@ architecture items tracked in
       panel, see DONE.md item 3) only applied to OGM.** Same
       `maya_global_settings` row/content on yucemonitoring almost
       certainly has the identical bug — not yet checked or fixed there.
-- [ ] **A `general-purpose` agent's yucemonitoring stale-`//columns=`
-      audit (18 candidate SQL fixes + 5 dashboard fixes, prepared
-      2026-08-25) is sitting unreviewed and unapplied.** Classifier-
-      blocked from running directly; output left on disk in the agent's
-      own scratchpad (`yucemonitoring_columns_fixes.sql`,
-      `apply_dashboard_fixes.sh`) but not yet reviewed for correctness or
-      handed to the user to run. Needs a review pass before trusting it
-      wholesale — it was generated, not verified against live data the
-      way the OGM `view_interface`/`view_tenant_host_overlay_iface` fixes
-      were.
+      (This exact fix is included in the reviewed audit below —
+      `view_interface` UPDATE statement — so applying that file closes
+      this item too.)
+- [x] **Reviewed 2026-08-26 (this session): the `general-purpose` agent's
+      yucemonitoring stale-`//columns=` audit (prepared 2026-08-25) is
+      more solid than it looked — genuinely live-capture-verified, not
+      blind-generated.** Files still on disk (different session's
+      scratchpad, still readable):
+      `/tmp/claude-1000/.../fe1dd4bc-.../scratchpad/yucemonitoring_columns_fixes.sql`
+      (19 `UPDATE maya_global_settings` statements, each a surgical
+      single-line `replace()` on the exact original `//columns=` text —
+      no-ops safely if the row already changed) and
+      `apply_dashboard_fixes.sh` (5 dashboard-JSON PUT payloads for
+      `Alarms`/`Alarms History`/`LTE`/`Hub Resource Utilization`/`Hub
+      Resource Utilization Disk Time Analysis`, payloads pre-built with
+      `overwrite:false` so they refuse rather than clobber if someone
+      else edited meanwhile). Confirmed real verification evidence exists
+      in the same directory (`live_diff.json`, `live_captures.json`,
+      `capture_live.py`) — e.g. concrete `declared_missing_from_real`
+      gaps captured per-dashboard (Alarms: missing `alarm_name`; LTE:
+      missing 13 real fields incl. `rsrp`/`sinr`/`rsrq`; Hub Resource
+      Utilization: missing `host`/`/1/5/key`/`/1/7/key`), not just
+      hand-waved. **Not the same bug as the QoS/SLA_Chart fix above** —
+      this audit only ever checked the declared `//columns=` list against
+      reality (matters for the empty-result fallback path), not the
+      SELECT-list bucket-key references themselves (matters for every
+      query, empty or not) — complementary, not overlapping, coverage.
+      One item (`del_view_probe_with_site_filter`) is flagged by the
+      audit itself as likely-orphaned (`del_` prefix) — recommend
+      skipping that one/considering row deletion instead of fixing it.
+      Did not re-verify current live state (the `mayapostgres`/
+      `maya_grafana` Trino catalogs are raw-JDBC-passthrough only, no
+      `SHOW TABLES`/direct `SELECT` — matches the `//dbtype=pg` note in
+      DONE.md "Session 25 August 2026" item 3; would need real psql
+      access to re-check). Ready to apply via `!`, same as everything
+      else in this session — not applied yet.
 - [ ] **`_rustrino` Grafana macros missing `//historyenabled=`.**
       Discovered 2026-08-20: macros ending in `_rustrino` (e.g.
       `view_interface_with_site_filter_rustrino`, used by the Hub Network
