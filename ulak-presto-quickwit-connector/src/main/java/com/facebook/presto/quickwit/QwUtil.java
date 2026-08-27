@@ -219,6 +219,7 @@ public class QwUtil {
         // Escalate to the coarsest history tier the query's date range clears — driven by
         // range, not by the query's own requested bucket width (resolution_in_seconds):
         // a dashboard's bucket width says nothing about how much data the query scans.
+        boolean historyIndexActive = false;
         if (StringUtils.isNotBlank(queryParameters.getHistoryIndex())) {
             long from = queryParameters.getFrom();
             long to = queryParameters.getTo();
@@ -237,6 +238,10 @@ public class QwUtil {
                             candidate, chosen, queryParameters.getHistoryIndex());
                     queryParameters.setQwIndex(queryParameters.getHistoryIndex());
                 }
+                // Either branch above points qwIndex at a rollup/history index (the
+                // tier-derived one, or the fallback literal historyIndex) — both need
+                // the field-name rewrite (tx -> tx_max etc.) in executeOneQuery below.
+                historyIndexActive = true;
             } else {
                 logger.warn("Staying on raw index '{}' (isHistoryEnabled={}, tierChosen={})",
                         queryParameters.getQwIndex(), queryParameters.isHistoryEnabled(), chosen);
@@ -255,7 +260,8 @@ public class QwUtil {
         return executeOneQuery( queryParameters,queryParameters.getQuery(),
                   connectTimeout,
                   readTimeout,
-                  writeTimeout);
+                  writeTimeout,
+                  historyIndexActive);
     }
     public static String executeQueryScript(String query) {
         long unixTime = System.currentTimeMillis() / 1000L;
@@ -291,7 +297,8 @@ public class QwUtil {
                                                      String query,
                                                      Integer connectTimeout,
                                                      Integer readTimeout,
-                                                     Integer writeTimeout) throws ApiException {
+                                                     Integer writeTimeout,
+                                                     boolean historyIndexActive) throws ApiException {
 
         queryParameters.setQuery(replaceTrinoQWVars(queryParameters.getQuery()));
         if (queryParameters.getHasJs()) {
@@ -312,9 +319,13 @@ public class QwUtil {
             }
         }
 
-        if (queryParameters.isHistoryEnabled() &&
-                queryParameters.getHistoryIndex() != null &&
-                queryParameters.getHistoryIndex().equals(queryParameters.getQwIndex())) {
+        if (historyIndexActive) {
+            // historyIndexActive is set by select() at the point it actually points
+            // qwIndex at a rollup index — do NOT re-derive this via
+            // historyIndex.equals(qwIndex): once multi-tier routing can send qwIndex to
+            // a *derived* index (e.g. historyIndex="metrics3_15" but tier escalation
+            // switches to "metrics3_60"), that equality silently goes false and this
+            // rewrite gets skipped even though qwIndex is still a rollup index.
             logger.debug("Rewriting query for history index '{}'", queryParameters.getQwIndex());
             query = QwQueryRewriter.rewriteQueryForHistory(query);
         }
@@ -726,10 +737,19 @@ public class QwUtil {
 
 
         Object value = aggValue.getOrDefault(VALUE, null);
-        if (value != null) {
+        Object buckets = aggValue.getOrDefault(BUCKETS, null);
+        if (buckets == null) {
+            // Leaf metric node (min/max/avg/sum/value_count) — propagate ancestor
+            // bucket context (key, doc_count, ...) down into it unconditionally.
+            // Previously this only happened when value != null: a metric that
+            // legitimately has no matching value (empty bucket, or a field that
+            // doesn't exist for this index) silently lost its own row's identity
+            // (which bucket/key it belonged to) instead of just having a null
+            // value — flatten() then produced only a bare ".../value" column with
+            // no key alongside it, and any query referencing the key column
+            // (e.g. via replacefromcolumns) failed to resolve it entirely.
             aggValue.putAll(currentValues);
         }
-        Object buckets = aggValue.getOrDefault(BUCKETS, null);
         if (buckets != null) {
             if(value!=null) {
                 currentValues.put(prefix +  VALUE, value);

@@ -75,4 +75,39 @@ class HistoryTierTest
     {
         assertThat(HistoryTier.select(Collections.emptyList(), Long.MAX_VALUE)).isNull();
     }
+
+    @Test
+    @DisplayName("build: a coarser tier configured with a lower threshold than the finest tier gets clamped, not left inverted")
+    void build_coarserTierWithLowerThreshold_isClamped()
+    {
+        // Live yucemonitoring misconfiguration (2026-08-27): finest=10800 (3h) but
+        // history-tiers=60:3600 (1h) — without clamping, 60m's lower threshold would
+        // silently win select()'s "last exceeded wins" walk for ANY range > 3600s,
+        // making the 15m tier completely unreachable.
+        List<HistoryTier> tiers = HistoryTier.build(10800L, "60:3600");
+        assertThat(tiers).extracting(t -> t.minutes).containsExactly(15, 60);
+        assertThat(tiers.get(0).thresholdSeconds).isEqualTo(10800L);
+        assertThat(tiers.get(1).thresholdSeconds).isEqualTo(10800L); // clamped up from 3600
+    }
+
+    @Test
+    @DisplayName("select: with a clamped coarser tier, a mid-range query no longer escalates prematurely")
+    void select_clampedTier_noPrematureEscalation()
+    {
+        List<HistoryTier> tiers = HistoryTier.build(10800L, "60:3600");
+        // 5000s clears the misconfigured raw 3600 threshold but not the finest 10800 —
+        // pre-fix this returned the 60m tier; post-fix it must stay on raw (null).
+        assertThat(HistoryTier.select(tiers, 5000L)).isNull();
+    }
+
+    @Test
+    @DisplayName("build: three tiers with a middle one under-configured all clamp forward correctly")
+    void build_multipleOutOfOrderTiers_clampSequentially()
+    {
+        List<HistoryTier> tiers = HistoryTier.build(10800L, "60:5000,1440:20000");
+        assertThat(tiers).extracting(t -> t.minutes).containsExactly(15, 60, 1440);
+        assertThat(tiers.get(0).thresholdSeconds).isEqualTo(10800L);
+        assertThat(tiers.get(1).thresholdSeconds).isEqualTo(10800L); // clamped up from 5000
+        assertThat(tiers.get(2).thresholdSeconds).isEqualTo(20000L); // already above 10800, untouched
+    }
 }

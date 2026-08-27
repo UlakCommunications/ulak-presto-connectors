@@ -62,19 +62,47 @@ public class UlakQuickwitConnectorFactory
         String readTimeout = config.get("read-timeout");
         String writeTimeout = config.get("write-timeout");
         String allowedUrls = config.get("qw-allowed-urls");
+        // Additional escalation tiers beyond the finest one, e.g. "60:604800,1440:31536000"
+        // (minutes:thresholdSeconds pairs) — see HistoryTier.build() for parsing/validation.
+        String historyTiersCsv = config.get("history-tiers");
+
         String historyThreshold = config.get("history-time-threshold-seconds");
         Long historyTimeThresholdSeconds = null;
         if (historyThreshold != null && !historyThreshold.trim().isEmpty()) {
-            try {
-                historyTimeThresholdSeconds = Long.parseLong(historyThreshold.trim());
-                logger.info("Configured historyTimeThresholdSeconds to {} seconds for catalog '{}'", historyTimeThresholdSeconds, catalogName);
-            } catch (Exception e) {
-                logger.error("Unable to parse history-time-threshold-seconds: {}", historyThreshold, e);
+            String trimmed = historyThreshold.trim();
+            if (trimmed.contains(":")) {
+                // Explicit "minutes:thresholdSeconds" pair — same format as history-tiers
+                // entries, so this catalog can state which granularity the finest tier
+                // actually is instead of HistoryTier.build() silently assuming 15m. Folded
+                // straight into historyTiersCsv (as just another tier, no special-casing)
+                // rather than threading a new parameter through every call site that
+                // already carries historyTimeThresholdSeconds/historyTiersCsv unchanged.
+                String[] parts = trimmed.split(":", 2);
+                try {
+                    int minutes = Integer.parseInt(parts[0].trim());
+                    long seconds = Long.parseLong(parts[1].trim());
+                    if (minutes <= 0 || seconds < 0) {
+                        throw new IllegalArgumentException("minutes and thresholdSeconds must be positive");
+                    }
+                    historyTiersCsv = trimmed + (StringUtils.isBlank(historyTiersCsv) ? "" : "," + historyTiersCsv);
+                    logger.info("Configured finest history tier as {}m@{}s for catalog '{}' (folded into history-tiers)",
+                            minutes, seconds, catalogName);
+                } catch (RuntimeException e) {
+                    logger.error("Unable to parse history-time-threshold-seconds '{}' as minutes:thresholdSeconds: {}",
+                            trimmed, e.getMessage());
+                }
+                // historyTimeThresholdSeconds stays null: HistoryTier.build()'s hardcoded
+                // 15m finest-tier entry is suppressed since this catalog defined its own
+                // finest tier explicitly above instead.
+            } else {
+                try {
+                    historyTimeThresholdSeconds = Long.parseLong(trimmed);
+                    logger.info("Configured historyTimeThresholdSeconds to {} seconds for catalog '{}'", historyTimeThresholdSeconds, catalogName);
+                } catch (Exception e) {
+                    logger.error("Unable to parse history-time-threshold-seconds: {}", historyThreshold, e);
+                }
             }
         }
-        // Additional escalation tiers beyond the classic 15m one, e.g. "60:604800,1440:31536000"
-        // (minutes:thresholdSeconds pairs) — see HistoryTier.build() for parsing/validation.
-        String historyTiersCsv = config.get("history-tiers");
         return new UlakQuickwitConnector(
             url,
             catalogName,
