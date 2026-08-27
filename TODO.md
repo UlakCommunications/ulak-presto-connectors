@@ -171,6 +171,12 @@ architecture items tracked in
       full detail in DONE.md ("Session 25 August 2026", item 2). The
       Redis-keyspace audit done alongside it found nothing else actionable
       (32 keys, all legitimate infra, no long-lived stray cache entries).
+      **Side-note resolved 2026-08-27:** the separate "OGM's Trino image
+      predates `eea9592`" staleness observed above is also moot now —
+      OGM's Trino image was rebuilt this session from `1h_rollup` (branched
+      off `develop`), confirmed via `git merge-base --is-ancestor eea9592
+      1h_rollup` to include that commit. Not the reason it was rebuilt,
+      just a side effect worth recording so nobody re-diagnoses this.
 - [ ] **Plaintext Grafana service-account bearer token in `machine_ops/
       OGM_DEMO_INSTALL_DONE.md`** (section 11-G, `glsa_...` prefix — real
       token format). Found 2026-08-24 while reviewing that doc, not
