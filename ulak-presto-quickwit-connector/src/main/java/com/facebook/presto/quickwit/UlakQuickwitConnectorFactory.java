@@ -72,6 +72,9 @@ public class UlakQuickwitConnectorFactory
                 logger.error("Unable to parse history-time-threshold-seconds: {}", historyThreshold, e);
             }
         }
+        // Additional escalation tiers beyond the classic 15m one, e.g. "60:604800,1440:31536000"
+        // (minutes:thresholdSeconds pairs) — see HistoryTier.build() for parsing/validation.
+        String historyTiersCsv = config.get("history-tiers");
         return new UlakQuickwitConnector(
             url,
             catalogName,
@@ -87,6 +90,7 @@ public class UlakQuickwitConnectorFactory
             readTimeout == null ? null : Integer.parseInt(readTimeout),
             writeTimeout == null ? null : Integer.parseInt(writeTimeout),
             allowedUrls,
-            historyTimeThresholdSeconds);
+            historyTimeThresholdSeconds,
+            historyTiersCsv);
     }
 }

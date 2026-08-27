@@ -58,6 +58,7 @@ public class UlakQuickwitMetadata
     private final Integer readTimeout;
     private final Integer writeTimeout;
     private final Long historyTimeThresholdSeconds;
+    private final String historyTiersCsv;
     private String qwUrl;
     private final Set<String> allowedQwUrls;
     private static final String ERRORSTRING = "UlakQuickwitMetadata.java Error: {}";
@@ -83,12 +84,23 @@ public class UlakQuickwitMetadata
                                 Integer writeTimeout,
                                 String allowedUrlsCsv,
                                 Long historyTimeThresholdSeconds) {
+        this(catalogName, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout, allowedUrlsCsv, historyTimeThresholdSeconds, null);
+    }
+
+    public UlakQuickwitMetadata(String catalogName, String qwUrl, String qwIndex,
+                                Integer connectTimeout,
+                                Integer readTimeout,
+                                Integer writeTimeout,
+                                String allowedUrlsCsv,
+                                Long historyTimeThresholdSeconds,
+                                String historyTiersCsv) {
         this.qwUrl = qwUrl;
         this.qwIndex = qwIndex;
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
         this.writeTimeout = writeTimeout;
         this.historyTimeThresholdSeconds = historyTimeThresholdSeconds;
+        this.historyTiersCsv = historyTiersCsv;
         this.setQwUrl(qwUrl);
         this.setQwIndex(qwIndex);
         this.connectorId = new UlakConnectorId(catalogName).toString();
@@ -199,7 +211,7 @@ public class UlakQuickwitMetadata
             list = getColumnsBase(ConnectorBaseUtil.select(qp,
                     false, new String[]{this.qwUrl, this.qwIndex}, (q, s) -> {
                         try {
-                            java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout, historyTimeThresholdSeconds);
+                            java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout, historyTimeThresholdSeconds, historyTiersCsv);
                             return ret;
                         } catch (ApiException e) {
                             logger.error(ERRORSTRING, e);
@@ -260,7 +272,7 @@ public class UlakQuickwitMetadata
             }
 
             if (list == null) {
-                list = getColumnsInternal(tableName, this.qwUrl, this.qwIndex, connectTimeout, readTimeout, writeTimeout, this.historyTimeThresholdSeconds);
+                list = getColumnsInternal(tableName, this.qwUrl, this.qwIndex, connectTimeout, readTimeout, writeTimeout, this.historyTimeThresholdSeconds, this.historyTiersCsv);
             }
 
             logger.debug("getColumnHandles: num columns:{}", list.size());
@@ -285,10 +297,14 @@ public class UlakQuickwitMetadata
         return res;
     }
     public static List<ColumnMetadata> getColumnsInternal(String tableName, String qwUrl, String qwIndex, Integer connectTimeout, Integer readTimeout, Integer writeTimeout) throws IOException {
-        return getColumnsInternal(tableName, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout, null);
+        return getColumnsInternal(tableName, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout, null, null);
     }
 
     public static List<ColumnMetadata> getColumnsInternal(String tableName, String qwUrl, String qwIndex, Integer connectTimeout, Integer readTimeout, Integer writeTimeout, Long historyTimeThresholdSeconds) throws IOException {
+        return getColumnsInternal(tableName, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout, historyTimeThresholdSeconds, null);
+    }
+
+    public static List<ColumnMetadata> getColumnsInternal(String tableName, String qwUrl, String qwIndex, Integer connectTimeout, Integer readTimeout, Integer writeTimeout, Long historyTimeThresholdSeconds, String historyTiersCsv) throws IOException {
         logger.debug("getColumnHandles: tableName:{}", tableName);
 
         // J56: plain table mode — schema from DocMapping, skip live query
@@ -315,7 +331,7 @@ public class UlakQuickwitMetadata
                                 q.getQuery(),
                                 s[0],
                                 s[1]);
-                        java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout, historyTimeThresholdSeconds);
+                        java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout, historyTimeThresholdSeconds, historyTiersCsv);
                         return ret;
                     } catch (ApiException e) {
                         logger.error(ERRORSTRING, e);
@@ -364,7 +380,7 @@ public class UlakQuickwitMetadata
                                             new String[]{this.qwUrl, this.qwIndex},
                                             (q, s) -> {
                                                 try {
-                                                    java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout, historyTimeThresholdSeconds);
+                                                    java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q, s[0], s[1], connectTimeout, readTimeout, writeTimeout, historyTimeThresholdSeconds, historyTiersCsv);
                                                     return ret;
                                                 } catch (ApiException e) {
                                                     logger.error(ERRORSTRING, e);
@@ -461,6 +477,10 @@ public class UlakQuickwitMetadata
 
     public Long getHistoryTimeThresholdSeconds() {
         return historyTimeThresholdSeconds;
+    }
+
+    public String getHistoryTiersCsv() {
+        return historyTiersCsv;
     }
 
     // -----------------------------------------------------------------------
