@@ -624,6 +624,7 @@ class QwUtilParseTest {
                         throw new IllegalArgumentException("minutes and thresholdSeconds must be positive");
                     }
                     result.historyTiersCsv = trimmed + (org.apache.commons.lang3.StringUtils.isBlank(historyTiersCsv) ? "" : "," + historyTiersCsv);
+                    result.historyTimeThresholdSeconds = HistoryTier.FINEST_TIER_SUPPRESSED;
                 } catch (RuntimeException e) {
                     // malformed: leave historyTimeThresholdSeconds null, historyTiersCsv untouched
                 }
@@ -638,6 +639,13 @@ class QwUtilParseTest {
         return result;
     }
 
+    /** Mirrors QwUtil.select()'s exact effectiveThreshold fallback line. */
+    private static long resolveEffectiveThreshold(Long catalogHistoryTimeThresholdSeconds) {
+        return catalogHistoryTimeThresholdSeconds != null
+                ? catalogHistoryTimeThresholdSeconds
+                : 10800L; // DEFAULT_HISTORY_TIME_THRESHOLD_SECONDS
+    }
+
     @Test
     @DisplayName("R16: bare number keeps existing Long-threshold behaviour (yucemonitoring/OGM back-compat)")
     void historyThreshold_bareNumber_backwardCompatible() {
@@ -648,11 +656,11 @@ class QwUtilParseTest {
     }
 
     @Test
-    @DisplayName("R16: minutes:seconds pair folds into historyTiersCsv, suppresses the hardcoded 15m default")
+    @DisplayName("R16: minutes:seconds pair folds into historyTiersCsv and returns the suppression sentinel")
     void historyThreshold_pair_foldsIntoTiersCsv() {
         ParsedThreshold result = parseHistoryThreshold("30:10800", "60:604800");
 
-        assertThat(result.historyTimeThresholdSeconds).isNull(); // suppresses HistoryTier.build()'s hardcoded 15m
+        assertThat(result.historyTimeThresholdSeconds).isEqualTo(HistoryTier.FINEST_TIER_SUPPRESSED);
         assertThat(result.historyTiersCsv).isEqualTo("30:10800,60:604800");
     }
 
@@ -661,7 +669,7 @@ class QwUtilParseTest {
     void historyThreshold_pair_noExistingTiersCsv() {
         ParsedThreshold result = parseHistoryThreshold("15:10800", null);
 
-        assertThat(result.historyTimeThresholdSeconds).isNull();
+        assertThat(result.historyTimeThresholdSeconds).isEqualTo(HistoryTier.FINEST_TIER_SUPPRESSED);
         assertThat(result.historyTiersCsv).isEqualTo("15:10800");
     }
 
@@ -670,12 +678,47 @@ class QwUtilParseTest {
     void historyThreshold_malformedPair_skipped() {
         ParsedThreshold result = parseHistoryThreshold("garbage:notanumber", "60:604800");
 
-        assertThat(result.historyTimeThresholdSeconds).isNull();
+        assertThat(result.historyTimeThresholdSeconds).isNull(); // genuinely unset, NOT the sentinel
         assertThat(result.historyTiersCsv).isEqualTo("60:604800"); // untouched by the malformed entry
     }
 
     @Test
-    @DisplayName("R16: end-to-end — folded pair combines with HistoryTier.build()'s clamping (R15) correctly")
+    @DisplayName("R16: malformed pair falls back to QwUtil.select()'s normal default threshold, not FINEST_TIER_SUPPRESSED")
+    void historyThreshold_malformedPair_fallsBackToDefault() {
+        ParsedThreshold result = parseHistoryThreshold("garbage:notanumber", null);
+
+        long effectiveThreshold = resolveEffectiveThreshold(result.historyTimeThresholdSeconds);
+        List<HistoryTier> tiers = HistoryTier.build(effectiveThreshold, result.historyTiersCsv);
+
+        assertThat(tiers).extracting(t -> t.minutes).containsExactly(15);
+        assertThat(tiers.get(0).thresholdSeconds).isEqualTo(10800L); // system default, not suppressed
+    }
+
+    @Test
+    @DisplayName("R16 regression (2026-08-27 live OGM bug): pair survives QwUtil.select()'s effectiveThreshold "
+            + "fallback without resurrecting a duplicate/conflicting default-15m tier")
+    void historyThreshold_pair_survivesEffectiveThresholdFallback() {
+        // This is the exact bug: build() called with the RAW parsed Long (which was
+        // plain null in the pre-fix code) skips the sentinel check entirely and never
+        // exercises QwUtil.select()'s own null -> DEFAULT_HISTORY_TIME_THRESHOLD_SECONDS
+        // substitution — so a naive test of build() alone stays green even though the
+        // real call chain (factory -> select()'s effectiveThreshold line -> build())
+        // was broken. Live symptom on OGM: catalog configured "15:3600", but the
+        // resolved tier list came back as [15m@10800s, 15m@10800s, 60m@86400s] — a
+        // phantom default-15m entry (from the wrongly-substituted 10800 default)
+        // duplicating and conflicting with the catalog's real 15m@3600s choice.
+        ParsedThreshold result = parseHistoryThreshold("15:3600", "60:86400");
+
+        long effectiveThreshold = resolveEffectiveThreshold(result.historyTimeThresholdSeconds);
+        List<HistoryTier> tiers = HistoryTier.build(effectiveThreshold, result.historyTiersCsv);
+
+        assertThat(tiers).extracting(t -> t.minutes).containsExactly(15, 60);
+        assertThat(tiers.get(0).thresholdSeconds).isEqualTo(3600L); // the catalog's real value, not 10800
+        assertThat(tiers.get(1).thresholdSeconds).isEqualTo(86400L);
+    }
+
+    @Test
+    @DisplayName("R16: end-to-end through effectiveThreshold — folded pair still composes with HistoryTier.build()'s clamping (R15)")
     void historyThreshold_pair_endToEndWithClamping() {
         // Catalog states its own finest tier as 30m@10800s explicitly, plus a
         // (deliberately under-configured) coarser 60m@3600s tier — same live
@@ -683,7 +726,8 @@ class QwUtilParseTest {
         // instead of 15m/60m, to prove the fold-in composes with clamping.
         ParsedThreshold result = parseHistoryThreshold("30:10800", "60:3600");
 
-        List<HistoryTier> tiers = HistoryTier.build(result.historyTimeThresholdSeconds, result.historyTiersCsv);
+        long effectiveThreshold = resolveEffectiveThreshold(result.historyTimeThresholdSeconds);
+        List<HistoryTier> tiers = HistoryTier.build(effectiveThreshold, result.historyTiersCsv);
 
         assertThat(tiers).extracting(t -> t.minutes).containsExactly(30, 60);
         assertThat(tiers.get(0).thresholdSeconds).isEqualTo(10800L);

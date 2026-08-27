@@ -37,6 +37,18 @@ public final class HistoryTier
     }
 
     /**
+     * Sentinel for {@code finestTierThresholdSeconds}: "the catalog explicitly expressed
+     * its finest tier as a minutes:seconds pair, already folded into additionalTiersCsv —
+     * do not add the hardcoded 15m entry." NOT {@code null}: callers upstream of this
+     * method (QwUtil.select()) substitute a system default whenever they see a null
+     * Long, which would silently resurrect the very entry this sentinel exists to
+     * suppress — a real bug found live on 2026-08-27 (duplicate "15m@10800s" tier from
+     * the substituted default, conflicting with a catalog-configured "15m@3600s"). A
+     * negative value survives a plain {@code != null} check unchanged.
+     */
+    public static final long FINEST_TIER_SUPPRESSED = -1L;
+
+    /**
      * Builds the full, ascending-by-minutes tier list from the classic single
      * {@code history-time-threshold-seconds} value plus an optional {@code history-tiers}
      * CSV of additional {@code minutes:thresholdSeconds} pairs, e.g.
@@ -44,15 +56,15 @@ public final class HistoryTier
      * be the 15m tier (today's implicit default) UNLESS the catalog config expressed
      * {@code history-time-threshold-seconds} itself as an explicit {@code minutes:seconds}
      * pair — {@link UlakQuickwitConnectorFactory} folds that case straight into
-     * {@code additionalTiersCsv} instead and passes {@code null} here, so this hardcoded
-     * 15m entry is skipped rather than conflicting with the catalog's own choice. A
-     * malformed entry is logged and skipped, never thrown — one bad config value can't
-     * take history routing down.
+     * {@code additionalTiersCsv} instead and passes {@link #FINEST_TIER_SUPPRESSED} here,
+     * so this hardcoded 15m entry is skipped rather than conflicting with the catalog's
+     * own choice. A malformed entry is logged and skipped, never thrown — one bad config
+     * value can't take history routing down.
      */
     public static List<HistoryTier> build(Long finestTierThresholdSeconds, String additionalTiersCsv)
     {
         List<HistoryTier> tiers = new ArrayList<>();
-        if (finestTierThresholdSeconds != null) {
+        if (finestTierThresholdSeconds != null && finestTierThresholdSeconds >= 0) {
             tiers.add(new HistoryTier(15, finestTierThresholdSeconds));
         }
         if (additionalTiersCsv != null && !additionalTiersCsv.trim().isEmpty()) {

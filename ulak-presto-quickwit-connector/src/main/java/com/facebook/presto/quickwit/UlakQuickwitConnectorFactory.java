@@ -85,15 +85,21 @@ public class UlakQuickwitConnectorFactory
                         throw new IllegalArgumentException("minutes and thresholdSeconds must be positive");
                     }
                     historyTiersCsv = trimmed + (StringUtils.isBlank(historyTiersCsv) ? "" : "," + historyTiersCsv);
+                    // NOT left as null: QwUtil.select() substitutes its own system
+                    // default (10800s) for a null Long before HistoryTier.build() ever
+                    // sees it, which would silently resurrect a hardcoded 15m entry
+                    // conflicting with the one just folded in above. The sentinel
+                    // survives that substitution unchanged (it's a real, non-null Long).
+                    historyTimeThresholdSeconds = HistoryTier.FINEST_TIER_SUPPRESSED;
                     logger.info("Configured finest history tier as {}m@{}s for catalog '{}' (folded into history-tiers)",
                             minutes, seconds, catalogName);
                 } catch (RuntimeException e) {
                     logger.error("Unable to parse history-time-threshold-seconds '{}' as minutes:thresholdSeconds: {}",
                             trimmed, e.getMessage());
+                    // historyTimeThresholdSeconds stays null here: malformed pair falls
+                    // back to QwUtil.select()'s normal default-threshold behavior rather
+                    // than leaving history routing entirely unconfigured.
                 }
-                // historyTimeThresholdSeconds stays null: HistoryTier.build()'s hardcoded
-                // 15m finest-tier entry is suppressed since this catalog defined its own
-                // finest tier explicitly above instead.
             } else {
                 try {
                     historyTimeThresholdSeconds = Long.parseLong(trimmed);
