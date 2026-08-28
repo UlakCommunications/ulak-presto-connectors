@@ -1,0 +1,1921 @@
+[
+  {
+    "name": "memory_15m",
+    "intervals": [
+      15,
+      60
+    ],
+    "delay_minutes": 2,
+    "source_index": "metrics3",
+    "dest_index": "metrics3_15",
+    "date_histogram": "15min_window",
+    "static_attributes": {
+      "p": "memory"
+    },
+    "dimensions": [
+      [
+        "by_h",
+        "h"
+      ],
+      [
+        "by_pi",
+        "pi"
+      ],
+      [
+        "by_t",
+        "t"
+      ],
+      [
+        "by_ti",
+        "ti"
+      ]
+    ],
+    "metrics": {
+      "value": "value",
+      "value_avg": "value_avg",
+      "value_max": "value_max",
+      "value_min": "value_min",
+      "value_sum": "value_sum",
+      "value_count": "value_count",
+      "timestamp_min": "timestamp_min",
+      "timestamp_max": "timestamp_max"
+    },
+    "query_template": {
+      "query": "span_attributes.p:memory AND span_start_timestamp_nanos:[{start} TO {end}]",
+      "max_hits": 0,
+      "aggs": {
+        "15min_window": {
+          "date_histogram": {
+            "field": "span_start_timestamp_nanos",
+            "fixed_interval": "15m"
+          },
+          "aggs": {
+            "by_h": {
+              "terms": {
+                "field": "span_attributes.h",
+                "size": 9999
+              },
+              "aggs": {
+                "by_pi": {
+                  "terms": {
+                    "field": "span_attributes.pi",
+                    "size": 50
+                  },
+                  "aggs": {
+                    "by_t": {
+                      "terms": {
+                        "field": "span_attributes.t",
+                        "size": 50
+                      },
+                      "aggs": {
+                        "by_ti": {
+                          "terms": {
+                            "field": "span_attributes.ti",
+                            "size": 50
+                          },
+                          "aggs": {
+                            "value": {
+                              "avg": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_avg": {
+                              "avg": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_max": {
+                              "max": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_min": {
+                              "min": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_sum": {
+                              "sum": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_count": {
+                              "value_count": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "timestamp_min": {
+                              "min": {
+                                "field": "span_start_timestamp_nanos"
+                              }
+                            },
+                            "timestamp_max": {
+                              "max": {
+                                "field": "span_start_timestamp_nanos"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "df_15m",
+    "intervals": [
+      15,
+      60
+    ],
+    "delay_minutes": 2,
+    "source_index": "metrics3",
+    "dest_index": "metrics3_15",
+    "date_histogram": "15min_window",
+    "static_attributes": {
+      "p": "df"
+    },
+    "dimensions": [
+      [
+        "by_h",
+        "h"
+      ],
+      [
+        "by_pi",
+        "pi"
+      ],
+      [
+        "by_t",
+        "t"
+      ],
+      [
+        "by_ti",
+        "ti"
+      ]
+    ],
+    "metrics": {
+      "value": "value",
+      "value_avg": "value_avg",
+      "value_max": "value_max",
+      "value_min": "value_min",
+      "value_sum": "value_sum",
+      "value_count": "value_count",
+      "timestamp_min": "timestamp_min",
+      "timestamp_max": "timestamp_max"
+    },
+    "query_template": {
+      "query": "span_attributes.p:df AND span_start_timestamp_nanos:[{start} TO {end}]",
+      "max_hits": 0,
+      "aggs": {
+        "15min_window": {
+          "date_histogram": {
+            "field": "span_start_timestamp_nanos",
+            "fixed_interval": "15m"
+          },
+          "aggs": {
+            "by_h": {
+              "terms": {
+                "field": "span_attributes.h",
+                "size": 9999
+              },
+              "aggs": {
+                "by_pi": {
+                  "terms": {
+                    "field": "span_attributes.pi",
+                    "size": 50
+                  },
+                  "aggs": {
+                    "by_t": {
+                      "terms": {
+                        "field": "span_attributes.t",
+                        "size": 50
+                      },
+                      "aggs": {
+                        "by_ti": {
+                          "terms": {
+                            "field": "span_attributes.ti",
+                            "size": 50
+                          },
+                          "aggs": {
+                            "value": {
+                              "avg": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_avg": {
+                              "avg": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_max": {
+                              "max": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_min": {
+                              "min": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_sum": {
+                              "sum": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_count": {
+                              "value_count": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "timestamp_min": {
+                              "min": {
+                                "field": "span_start_timestamp_nanos"
+                              }
+                            },
+                            "timestamp_max": {
+                              "max": {
+                                "field": "span_start_timestamp_nanos"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "cpu_15m",
+    "intervals": [
+      15,
+      60
+    ],
+    "delay_minutes": 2,
+    "source_index": "metrics3",
+    "dest_index": "metrics3_15",
+    "date_histogram": "15min_window",
+    "static_attributes": {
+      "p": "cpu"
+    },
+    "dimensions": [
+      [
+        "by_h",
+        "h"
+      ],
+      [
+        "by_pi",
+        "pi"
+      ],
+      [
+        "by_t",
+        "t"
+      ],
+      [
+        "by_ti",
+        "ti"
+      ]
+    ],
+    "metrics": {
+      "value": "value",
+      "value_avg": "value_avg",
+      "value_max": "value_max",
+      "value_min": "value_min",
+      "value_sum": "value_sum",
+      "value_count": "value_count",
+      "timestamp_min": "timestamp_min",
+      "timestamp_max": "timestamp_max"
+    },
+    "query_template": {
+      "query": "span_attributes.p:cpu AND span_start_timestamp_nanos:[{start} TO {end}]",
+      "max_hits": 0,
+      "aggs": {
+        "15min_window": {
+          "date_histogram": {
+            "field": "span_start_timestamp_nanos",
+            "fixed_interval": "15m"
+          },
+          "aggs": {
+            "by_h": {
+              "terms": {
+                "field": "span_attributes.h",
+                "size": 9999
+              },
+              "aggs": {
+                "by_pi": {
+                  "terms": {
+                    "field": "span_attributes.pi",
+                    "size": 50
+                  },
+                  "aggs": {
+                    "by_t": {
+                      "terms": {
+                        "field": "span_attributes.t",
+                        "size": 50
+                      },
+                      "aggs": {
+                        "by_ti": {
+                          "terms": {
+                            "field": "span_attributes.ti",
+                            "size": 50
+                          },
+                          "aggs": {
+                            "value": {
+                              "avg": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_avg": {
+                              "avg": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_max": {
+                              "max": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_min": {
+                              "min": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_sum": {
+                              "sum": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_count": {
+                              "value_count": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "timestamp_min": {
+                              "min": {
+                                "field": "span_start_timestamp_nanos"
+                              }
+                            },
+                            "timestamp_max": {
+                              "max": {
+                                "field": "span_start_timestamp_nanos"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "uptime_15m",
+    "intervals": [
+      15,
+      60
+    ],
+    "delay_minutes": 2,
+    "source_index": "metrics3",
+    "dest_index": "metrics3_15",
+    "date_histogram": "15min_window",
+    "static_attributes": {
+      "p": "uptime"
+    },
+    "dimensions": [
+      [
+        "by_h",
+        "h"
+      ],
+      [
+        "by_pi",
+        "pi"
+      ],
+      [
+        "by_t",
+        "t"
+      ],
+      [
+        "by_ti",
+        "ti"
+      ]
+    ],
+    "metrics": {
+      "value": "value",
+      "value_avg": "value_avg",
+      "value_max": "value_max",
+      "value_min": "value_min",
+      "value_sum": "value_sum",
+      "value_count": "value_count",
+      "timestamp_min": "timestamp_min",
+      "timestamp_max": "timestamp_max"
+    },
+    "query_template": {
+      "query": "span_attributes.p:uptime AND span_start_timestamp_nanos:[{start} TO {end}]",
+      "max_hits": 0,
+      "aggs": {
+        "15min_window": {
+          "date_histogram": {
+            "field": "span_start_timestamp_nanos",
+            "fixed_interval": "15m"
+          },
+          "aggs": {
+            "by_h": {
+              "terms": {
+                "field": "span_attributes.h",
+                "size": 9999
+              },
+              "aggs": {
+                "by_pi": {
+                  "terms": {
+                    "field": "span_attributes.pi",
+                    "size": 50
+                  },
+                  "aggs": {
+                    "by_t": {
+                      "terms": {
+                        "field": "span_attributes.t",
+                        "size": 50
+                      },
+                      "aggs": {
+                        "by_ti": {
+                          "terms": {
+                            "field": "span_attributes.ti",
+                            "size": 50
+                          },
+                          "aggs": {
+                            "value": {
+                              "max": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_avg": {
+                              "avg": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_max": {
+                              "max": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_min": {
+                              "min": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_sum": {
+                              "sum": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "value_count": {
+                              "value_count": {
+                                "field": "span_attributes.value"
+                              }
+                            },
+                            "timestamp_min": {
+                              "min": {
+                                "field": "span_start_timestamp_nanos"
+                              }
+                            },
+                            "timestamp_max": {
+                              "max": {
+                                "field": "span_start_timestamp_nanos"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "netlink_15m",
+    "intervals": [
+      15,
+      60
+    ],
+    "delay_minutes": 2,
+    "source_index": "metrics3",
+    "dest_index": "metrics3_15",
+    "date_histogram": "15min_window",
+    "static_attributes": {
+      "p": "netlink"
+    },
+    "dimensions": [
+      [
+        "by_h",
+        "h"
+      ],
+      [
+        "by_pi",
+        "pi"
+      ],
+      [
+        "by_t",
+        "t"
+      ],
+      [
+        "by_ti",
+        "ti"
+      ],
+      [
+        "by_m_site_id",
+        "m_site_id"
+      ],
+      [
+        "by_m_name",
+        "m_name"
+      ],
+      [
+        "by_m_site_name",
+        "m_site_name"
+      ]
+    ],
+    "metrics": {
+      "value": "value",
+      "value_avg": "value_avg",
+      "value_max": "value_max",
+      "value_min": "value_min",
+      "value_sum": "value_sum",
+      "value_count": "value_count",
+      "m_rate": "m_rate",
+      "timestamp_min": "timestamp_min",
+      "timestamp_max": "timestamp_max"
+    },
+    "query_template": {
+      "query": "span_attributes.p:netlink AND span_start_timestamp_nanos:[{start} TO {end}]",
+      "max_hits": 0,
+      "aggs": {
+        "15min_window": {
+          "date_histogram": {
+            "field": "span_start_timestamp_nanos",
+            "fixed_interval": "15m"
+          },
+          "aggs": {
+            "by_h": {
+              "terms": {
+                "field": "span_attributes.h",
+                "size": 9999
+              },
+              "aggs": {
+                "by_pi": {
+                  "terms": {
+                    "field": "span_attributes.pi",
+                    "size": 50
+                  },
+                  "aggs": {
+                    "by_t": {
+                      "terms": {
+                        "field": "span_attributes.t",
+                        "size": 50
+                      },
+                      "aggs": {
+                        "by_ti": {
+                          "terms": {
+                            "field": "span_attributes.ti",
+                            "size": 50
+                          },
+                          "aggs": {
+                            "by_m_site_id": {
+                              "terms": {
+                                "field": "span_attributes.m_site_id",
+                                "size": 50
+                              },
+                              "aggs": {
+                                "by_m_name": {
+                                  "terms": {
+                                    "field": "span_attributes.m_name",
+                                    "size": 50
+                                  },
+                                  "aggs": {
+                                    "by_m_site_name": {
+                                      "terms": {
+                                        "field": "span_attributes.m_site_name",
+                                        "size": 50
+                                      },
+                                      "aggs": {
+                                        "value": {
+                                          "max": {
+                                            "field": "span_attributes.value"
+                                          }
+                                        },
+                                        "value_avg": {
+                                          "avg": {
+                                            "field": "span_attributes.value"
+                                          }
+                                        },
+                                        "value_max": {
+                                          "max": {
+                                            "field": "span_attributes.value"
+                                          }
+                                        },
+                                        "value_min": {
+                                          "min": {
+                                            "field": "span_attributes.value"
+                                          }
+                                        },
+                                        "value_sum": {
+                                          "sum": {
+                                            "field": "span_attributes.value"
+                                          }
+                                        },
+                                        "value_count": {
+                                          "value_count": {
+                                            "field": "span_attributes.value"
+                                          }
+                                        },
+                                        "m_rate": {
+                                          "avg": {
+                                            "field": "span_attributes.m_rate"
+                                          }
+                                        },
+                                        "timestamp_min": {
+                                          "min": {
+                                            "field": "span_start_timestamp_nanos"
+                                          }
+                                        },
+                                        "timestamp_max": {
+                                          "max": {
+                                            "field": "span_start_timestamp_nanos"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "host_prefix_chars": 2,
+    "host_prefix_field": "h"
+  },
+  {
+    "name": "interface_15m",
+    "intervals": [
+      15,
+      60
+    ],
+    "delay_minutes": 2,
+    "source_index": "metrics3",
+    "dest_index": "metrics3_15",
+    "date_histogram": "15min_window",
+    "static_attributes": {
+      "p": "interface"
+    },
+    "dimensions": [
+      [
+        "by_h",
+        "h"
+      ],
+      [
+        "by_pi",
+        "pi"
+      ],
+      [
+        "by_t",
+        "t"
+      ],
+      [
+        "by_ti",
+        "ti"
+      ]
+    ],
+    "metrics": {
+      "rx_avg": "rx_avg",
+      "rx_max": "rx_max",
+      "rx_min": "rx_min",
+      "tx_avg": "tx_avg",
+      "tx_max": "tx_max",
+      "tx_min": "tx_min",
+      "rx_sum": "rx_sum",
+      "rx_count": "rx_count",
+      "tx_sum": "tx_sum",
+      "tx_count": "tx_count",
+      "timestamp_min": "timestamp_min",
+      "timestamp_max": "timestamp_max"
+    },
+    "query_template": {
+      "query": "span_attributes.p:interface AND span_start_timestamp_nanos:[{start} TO {end}]",
+      "max_hits": 0,
+      "aggs": {
+        "15min_window": {
+          "date_histogram": {
+            "field": "span_start_timestamp_nanos",
+            "fixed_interval": "15m"
+          },
+          "aggs": {
+            "by_h": {
+              "terms": {
+                "field": "span_attributes.h",
+                "size": 9999
+              },
+              "aggs": {
+                "by_pi": {
+                  "terms": {
+                    "field": "span_attributes.pi",
+                    "size": 50
+                  },
+                  "aggs": {
+                    "by_t": {
+                      "terms": {
+                        "field": "span_attributes.t",
+                        "size": 50
+                      },
+                      "aggs": {
+                        "by_ti": {
+                          "terms": {
+                            "field": "span_attributes.ti",
+                            "size": 50
+                          },
+                          "aggs": {
+                            "rx_avg": {
+                              "avg": {
+                                "field": "span_attributes.rx"
+                              }
+                            },
+                            "rx_max": {
+                              "max": {
+                                "field": "span_attributes.rx"
+                              }
+                            },
+                            "rx_min": {
+                              "min": {
+                                "field": "span_attributes.rx"
+                              }
+                            },
+                            "tx_avg": {
+                              "avg": {
+                                "field": "span_attributes.tx"
+                              }
+                            },
+                            "tx_max": {
+                              "max": {
+                                "field": "span_attributes.tx"
+                              }
+                            },
+                            "tx_min": {
+                              "min": {
+                                "field": "span_attributes.tx"
+                              }
+                            },
+                            "rx_sum": {
+                              "sum": {
+                                "field": "span_attributes.rx"
+                              }
+                            },
+                            "rx_count": {
+                              "value_count": {
+                                "field": "span_attributes.rx"
+                              }
+                            },
+                            "tx_sum": {
+                              "sum": {
+                                "field": "span_attributes.tx"
+                              }
+                            },
+                            "tx_count": {
+                              "value_count": {
+                                "field": "span_attributes.tx"
+                              }
+                            },
+                            "timestamp_min": {
+                              "min": {
+                                "field": "span_start_timestamp_nanos"
+                              }
+                            },
+                            "timestamp_max": {
+                              "max": {
+                                "field": "span_start_timestamp_nanos"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "maya_system_services_15m",
+    "intervals": [
+      15,
+      60
+    ],
+    "delay_minutes": 2,
+    "source_index": "metrics3",
+    "dest_index": "metrics3_15",
+    "date_histogram": "15min_window",
+    "static_attributes": {
+      "p": "maya_system_services"
+    },
+    "dimensions": [
+      [
+        "by_h",
+        "h"
+      ],
+      [
+        "by_pi",
+        "pi"
+      ],
+      [
+        "by_t",
+        "t"
+      ],
+      [
+        "by_ti",
+        "ti"
+      ],
+      [
+        "by_m_version",
+        "m_version"
+      ]
+    ],
+    "metrics": {
+      "value": "value",
+      "value_avg": "value_avg",
+      "value_max": "value_max",
+      "value_min": "value_min",
+      "value_sum": "value_sum",
+      "value_count": "value_count",
+      "m_last_update": "m_last_update",
+      "timestamp_min": "timestamp_min",
+      "timestamp_max": "timestamp_max"
+    },
+    "query_template": {
+      "query": "span_attributes.p:maya_system_services AND span_start_timestamp_nanos:[{start} TO {end}]",
+      "max_hits": 0,
+      "aggs": {
+        "15min_window": {
+          "date_histogram": {
+            "field": "span_start_timestamp_nanos",
+            "fixed_interval": "15m"
+          },
+          "aggs": {
+            "by_h": {
+              "terms": {
+                "field": "span_attributes.h",
+                "size": 9999
+              },
+              "aggs": {
+                "by_pi": {
+                  "terms": {
+                    "field": "span_attributes.pi",
+                    "size": 50
+                  },
+                  "aggs": {
+                    "by_t": {
+                      "terms": {
+                        "field": "span_attributes.t",
+                        "size": 50
+                      },
+                      "aggs": {
+                        "by_ti": {
+                          "terms": {
+                            "field": "span_attributes.ti",
+                            "size": 50
+                          },
+                          "aggs": {
+                            "by_m_version": {
+                              "terms": {
+                                "field": "span_attributes.m_version",
+                                "size": 10
+                              },
+                              "aggs": {
+                                "value": {
+                                  "avg": {
+                                    "field": "span_attributes.value"
+                                  }
+                                },
+                                "value_avg": {
+                                  "avg": {
+                                    "field": "span_attributes.value"
+                                  }
+                                },
+                                "value_max": {
+                                  "max": {
+                                    "field": "span_attributes.value"
+                                  }
+                                },
+                                "value_min": {
+                                  "min": {
+                                    "field": "span_attributes.value"
+                                  }
+                                },
+                                "value_sum": {
+                                  "sum": {
+                                    "field": "span_attributes.value"
+                                  }
+                                },
+                                "value_count": {
+                                  "value_count": {
+                                    "field": "span_attributes.value"
+                                  }
+                                },
+                                "m_last_update": {
+                                  "max": {
+                                    "field": "span_attributes.m_last_update"
+                                  }
+                                },
+                                "timestamp_min": {
+                                  "min": {
+                                    "field": "span_start_timestamp_nanos"
+                                  }
+                                },
+                                "timestamp_max": {
+                                  "max": {
+                                    "field": "span_start_timestamp_nanos"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "maya_ifstatus_15m",
+    "intervals": [
+      15,
+      60
+    ],
+    "delay_minutes": 2,
+    "source_index": "metrics3",
+    "dest_index": "metrics3_15",
+    "date_histogram": "15min_window",
+    "static_attributes": {
+      "p": "maya_ifstatus"
+    },
+    "dimensions": [
+      [
+        "by_h",
+        "h"
+      ],
+      [
+        "by_pi",
+        "pi"
+      ],
+      [
+        "by_t",
+        "t"
+      ],
+      [
+        "by_ti",
+        "ti"
+      ],
+      [
+        "by_m_ip_addr",
+        "m_ip_addr"
+      ],
+      [
+        "by_m_wg_endpoint",
+        "m_wg_endpoint"
+      ]
+    ],
+    "metrics": {
+      "value": "value",
+      "value_avg": "value_avg",
+      "value_max": "value_max",
+      "value_min": "value_min",
+      "value_sum": "value_sum",
+      "value_count": "value_count",
+      "duplex": "duplex",
+      "link_speed": "link_speed",
+      "timestamp_min": "timestamp_min",
+      "timestamp_max": "timestamp_max"
+    },
+    "query_template": {
+      "query": "span_attributes.p:maya_ifstatus AND span_start_timestamp_nanos:[{start} TO {end}]",
+      "max_hits": 0,
+      "aggs": {
+        "15min_window": {
+          "date_histogram": {
+            "field": "span_start_timestamp_nanos",
+            "fixed_interval": "15m"
+          },
+          "aggs": {
+            "by_h": {
+              "terms": {
+                "field": "span_attributes.h",
+                "size": 9999
+              },
+              "aggs": {
+                "by_pi": {
+                  "terms": {
+                    "field": "span_attributes.pi",
+                    "size": 50
+                  },
+                  "aggs": {
+                    "by_t": {
+                      "terms": {
+                        "field": "span_attributes.t",
+                        "size": 50
+                      },
+                      "aggs": {
+                        "by_ti": {
+                          "terms": {
+                            "field": "span_attributes.ti",
+                            "size": 50
+                          },
+                          "aggs": {
+                            "by_m_ip_addr": {
+                              "terms": {
+                                "field": "span_attributes.m_ip_addr",
+                                "size": 50
+                              },
+                              "aggs": {
+                                "by_m_wg_endpoint": {
+                                  "terms": {
+                                    "field": "span_attributes.m_wg_endpoint",
+                                    "size": 10
+                                  },
+                                  "aggs": {
+                                    "value": {
+                                      "avg": {
+                                        "field": "span_attributes.value"
+                                      }
+                                    },
+                                    "value_avg": {
+                                      "avg": {
+                                        "field": "span_attributes.value"
+                                      }
+                                    },
+                                    "value_max": {
+                                      "max": {
+                                        "field": "span_attributes.value"
+                                      }
+                                    },
+                                    "value_min": {
+                                      "min": {
+                                        "field": "span_attributes.value"
+                                      }
+                                    },
+                                    "value_sum": {
+                                      "sum": {
+                                        "field": "span_attributes.value"
+                                      }
+                                    },
+                                    "value_count": {
+                                      "value_count": {
+                                        "field": "span_attributes.value"
+                                      }
+                                    },
+                                    "duplex": {
+                                      "max": {
+                                        "field": "span_attributes.duplex"
+                                      }
+                                    },
+                                    "link_speed": {
+                                      "max": {
+                                        "field": "span_attributes.link_speed"
+                                      }
+                                    },
+                                    "timestamp_min": {
+                                      "min": {
+                                        "field": "span_start_timestamp_nanos"
+                                      }
+                                    },
+                                    "timestamp_max": {
+                                      "max": {
+                                        "field": "span_start_timestamp_nanos"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "maya_bfd_15m",
+    "intervals": [
+      15,
+      60
+    ],
+    "delay_minutes": 2,
+    "source_index": "metrics3",
+    "dest_index": "metrics3_15",
+    "date_histogram": "15min_window",
+    "static_attributes": {
+      "p": "maya_bfd"
+    },
+    "dimensions": [
+      [
+        "by_h",
+        "h"
+      ],
+      [
+        "by_pi",
+        "pi"
+      ],
+      [
+        "by_t",
+        "t"
+      ],
+      [
+        "by_ti",
+        "ti"
+      ]
+    ],
+    "metrics": {
+      "timestamp_min": "timestamp_min",
+      "timestamp_max": "timestamp_max"
+    },
+    "query_template": {
+      "query": "span_attributes.p:maya_bfd AND span_start_timestamp_nanos:[{start} TO {end}]",
+      "max_hits": 0,
+      "aggs": {
+        "15min_window": {
+          "date_histogram": {
+            "field": "span_start_timestamp_nanos",
+            "fixed_interval": "15m"
+          },
+          "aggs": {
+            "by_h": {
+              "terms": {
+                "field": "span_attributes.h",
+                "size": 9999
+              },
+              "aggs": {
+                "by_pi": {
+                  "terms": {
+                    "field": "span_attributes.pi",
+                    "size": 50
+                  },
+                  "aggs": {
+                    "by_t": {
+                      "terms": {
+                        "field": "span_attributes.t",
+                        "size": 50
+                      },
+                      "aggs": {
+                        "by_ti": {
+                          "terms": {
+                            "field": "span_attributes.ti",
+                            "size": 50
+                          },
+                          "aggs": {
+                            "timestamp_min": {
+                              "min": {
+                                "field": "span_start_timestamp_nanos"
+                              }
+                            },
+                            "timestamp_max": {
+                              "max": {
+                                "field": "span_start_timestamp_nanos"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "flow_rollup_15m_site_app",
+    "intervals": [
+      15,
+      60
+    ],
+    "delay_minutes": 2,
+    "source_index": "flows3",
+    "dest_index": "rollup_15m_site_app",
+    "date_histogram": "15min_window",
+    "static_attributes": {
+      "p": "flow"
+    },
+    "retention_top_n": 100,
+    "dimensions": [
+      [
+        "by_v",
+        "v"
+      ],
+      [
+        "by_n",
+        "n"
+      ]
+    ],
+    "metrics": {
+      "u_sum": "u_sum",
+      "ac_sum": "ac_sum",
+      "ab_sum": "ab_sum",
+      "t_sum": "t_sum",
+      "u_ac_sum": "u_ac_sum",
+      "t_ab_sum": "t_ab_sum"
+    },
+    "query_template": {
+      "query": "span_start_timestamp_nanos:[{start} TO {end}]",
+      "max_hits": 0,
+      "aggs": {
+        "15min_window": {
+          "date_histogram": {
+            "field": "span_start_timestamp_nanos",
+            "fixed_interval": "15m"
+          },
+          "aggs": {
+            "by_v": {
+              "terms": {
+                "field": "span_attributes.v",
+                "size": 9999
+              },
+              "aggs": {
+                "by_n": {
+                  "terms": {
+                    "field": "span_attributes.n",
+                    "size": 50,
+                    "order": {
+                      "u_ac_sum": "desc"
+                    }
+                  },
+                  "aggs": {
+                    "u_sum": {
+                      "sum": {
+                        "field": "span_attributes.u"
+                      }
+                    },
+                    "ac_sum": {
+                      "sum": {
+                        "field": "span_attributes.ac"
+                      }
+                    },
+                    "ab_sum": {
+                      "sum": {
+                        "field": "span_attributes.ab"
+                      }
+                    },
+                    "t_sum": {
+                      "sum": {
+                        "field": "span_attributes.t"
+                      }
+                    },
+                    "u_ac_sum": {
+                      "sum": {
+                        "field": "span_attributes.u_ac"
+                      }
+                    },
+                    "t_ab_sum": {
+                      "sum": {
+                        "field": "span_attributes.t_ab"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "flow_rollup_15m_site_src_ip",
+    "intervals": [
+      15,
+      60
+    ],
+    "delay_minutes": 2,
+    "source_index": "flows3",
+    "dest_index": "rollup_15m_site_src_ip",
+    "date_histogram": "15min_window",
+    "static_attributes": {
+      "p": "flow_src_ip"
+    },
+    "retention_top_n": 100,
+    "dimensions": [
+      [
+        "by_v",
+        "v"
+      ],
+      [
+        "by_i",
+        "i"
+      ]
+    ],
+    "metrics": {
+      "u_sum": "u_sum",
+      "ac_sum": "ac_sum",
+      "ab_sum": "ab_sum",
+      "t_sum": "t_sum",
+      "u_ac_sum": "u_ac_sum",
+      "t_ab_sum": "t_ab_sum"
+    },
+    "query_template": {
+      "query": "span_start_timestamp_nanos:[{start} TO {end}]",
+      "max_hits": 0,
+      "aggs": {
+        "15min_window": {
+          "date_histogram": {
+            "field": "span_start_timestamp_nanos",
+            "fixed_interval": "15m"
+          },
+          "aggs": {
+            "by_v": {
+              "terms": {
+                "field": "span_attributes.v",
+                "size": 9999
+              },
+              "aggs": {
+                "by_i": {
+                  "terms": {
+                    "field": "span_attributes.i",
+                    "size": 50,
+                    "order": {
+                      "u_ac_sum": "desc"
+                    }
+                  },
+                  "aggs": {
+                    "u_sum": {
+                      "sum": {
+                        "field": "span_attributes.u"
+                      }
+                    },
+                    "ac_sum": {
+                      "sum": {
+                        "field": "span_attributes.ac"
+                      }
+                    },
+                    "ab_sum": {
+                      "sum": {
+                        "field": "span_attributes.ab"
+                      }
+                    },
+                    "t_sum": {
+                      "sum": {
+                        "field": "span_attributes.t"
+                      }
+                    },
+                    "u_ac_sum": {
+                      "sum": {
+                        "field": "span_attributes.u_ac"
+                      }
+                    },
+                    "t_ab_sum": {
+                      "sum": {
+                        "field": "span_attributes.t_ab"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "flow_rollup_15m_site_dst_ip",
+    "intervals": [
+      15,
+      60
+    ],
+    "delay_minutes": 2,
+    "source_index": "flows3",
+    "dest_index": "rollup_15m_site_dst_ip",
+    "date_histogram": "15min_window",
+    "static_attributes": {
+      "p": "flow_dst_ip"
+    },
+    "retention_top_n": 100,
+    "dimensions": [
+      [
+        "by_v",
+        "v"
+      ],
+      [
+        "by_j",
+        "j"
+      ]
+    ],
+    "metrics": {
+      "u_sum": "u_sum",
+      "ac_sum": "ac_sum",
+      "ab_sum": "ab_sum",
+      "t_sum": "t_sum",
+      "u_ac_sum": "u_ac_sum",
+      "t_ab_sum": "t_ab_sum"
+    },
+    "query_template": {
+      "query": "span_start_timestamp_nanos:[{start} TO {end}]",
+      "max_hits": 0,
+      "aggs": {
+        "15min_window": {
+          "date_histogram": {
+            "field": "span_start_timestamp_nanos",
+            "fixed_interval": "15m"
+          },
+          "aggs": {
+            "by_v": {
+              "terms": {
+                "field": "span_attributes.v",
+                "size": 9999
+              },
+              "aggs": {
+                "by_j": {
+                  "terms": {
+                    "field": "span_attributes.j",
+                    "size": 50,
+                    "order": {
+                      "u_ac_sum": "desc"
+                    }
+                  },
+                  "aggs": {
+                    "u_sum": {
+                      "sum": {
+                        "field": "span_attributes.u"
+                      }
+                    },
+                    "ac_sum": {
+                      "sum": {
+                        "field": "span_attributes.ac"
+                      }
+                    },
+                    "ab_sum": {
+                      "sum": {
+                        "field": "span_attributes.ab"
+                      }
+                    },
+                    "t_sum": {
+                      "sum": {
+                        "field": "span_attributes.t"
+                      }
+                    },
+                    "u_ac_sum": {
+                      "sum": {
+                        "field": "span_attributes.u_ac"
+                      }
+                    },
+                    "t_ab_sum": {
+                      "sum": {
+                        "field": "span_attributes.t_ab"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "flow_rollup_15m_site_ip_proto",
+    "intervals": [
+      15,
+      60
+    ],
+    "delay_minutes": 2,
+    "source_index": "flows3",
+    "dest_index": "rollup_15m_site_ip_proto",
+    "date_histogram": "15min_window",
+    "static_attributes": {
+      "p": "flow_ip_proto"
+    },
+    "dimensions": [
+      [
+        "by_v",
+        "v"
+      ],
+      [
+        "by_i",
+        "i"
+      ],
+      [
+        "by_j",
+        "j"
+      ],
+      [
+        "by_m",
+        "m"
+      ]
+    ],
+    "metrics": {
+      "u_sum": "u_sum",
+      "ac_sum": "ac_sum",
+      "ab_sum": "ab_sum",
+      "t_sum": "t_sum",
+      "u_ac_sum": "u_ac_sum",
+      "t_ab_sum": "t_ab_sum"
+    },
+    "query_template": {
+      "query": "span_start_timestamp_nanos:[{start} TO {end}]",
+      "max_hits": 0,
+      "aggs": {
+        "15min_window": {
+          "date_histogram": {
+            "field": "span_start_timestamp_nanos",
+            "fixed_interval": "15m"
+          },
+          "aggs": {
+            "by_v": {
+              "terms": {
+                "field": "span_attributes.v",
+                "size": 9999
+              },
+              "aggs": {
+                "by_i": {
+                  "terms": {
+                    "field": "span_attributes.i",
+                    "size": 10
+                  },
+                  "aggs": {
+                    "by_j": {
+                      "terms": {
+                        "field": "span_attributes.j",
+                        "size": 10
+                      },
+                      "aggs": {
+                        "by_m": {
+                          "terms": {
+                            "field": "span_attributes.m",
+                            "size": 5,
+                            "order": {
+                              "u_ac_sum": "desc"
+                            }
+                          },
+                          "aggs": {
+                            "u_sum": {
+                              "sum": {
+                                "field": "span_attributes.u"
+                              }
+                            },
+                            "ac_sum": {
+                              "sum": {
+                                "field": "span_attributes.ac"
+                              }
+                            },
+                            "ab_sum": {
+                              "sum": {
+                                "field": "span_attributes.ab"
+                              }
+                            },
+                            "t_sum": {
+                              "sum": {
+                                "field": "span_attributes.t"
+                              }
+                            },
+                            "u_ac_sum": {
+                              "sum": {
+                                "field": "span_attributes.u_ac"
+                              }
+                            },
+                            "t_ab_sum": {
+                              "sum": {
+                                "field": "span_attributes.t_ab"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "flow_rollup_15m_site_src_dst_ip",
+    "intervals": [
+      15,
+      60
+    ],
+    "delay_minutes": 2,
+    "source_index": "flows3",
+    "dest_index": "rollup_15m_site_src_dst_ip",
+    "date_histogram": "15min_window",
+    "host_prefix_chars": 1,
+    "host_prefix_field": "v",
+    "static_attributes": {
+      "p": "flow_src_dst_ip"
+    },
+    "retention_top_n": 100,
+    "dimensions": [
+      [
+        "by_v",
+        "v"
+      ],
+      [
+        "by_i",
+        "i"
+      ],
+      [
+        "by_j",
+        "j"
+      ]
+    ],
+    "metrics": {
+      "u_sum": "u_sum",
+      "ac_sum": "ac_sum",
+      "ab_sum": "ab_sum",
+      "t_sum": "t_sum",
+      "u_ac_sum": "u_ac_sum",
+      "t_ab_sum": "t_ab_sum"
+    },
+    "query_template": {
+      "query": "span_start_timestamp_nanos:[{start} TO {end}]",
+      "max_hits": 0,
+      "aggs": {
+        "15min_window": {
+          "date_histogram": {
+            "field": "span_start_timestamp_nanos",
+            "fixed_interval": "15m"
+          },
+          "aggs": {
+            "by_v": {
+              "terms": {
+                "field": "span_attributes.v",
+                "size": 9999
+              },
+              "aggs": {
+                "by_i": {
+                  "terms": {
+                    "field": "span_attributes.i",
+                    "size": 50
+                  },
+                  "aggs": {
+                    "by_j": {
+                      "terms": {
+                        "field": "span_attributes.j",
+                        "size": 50,
+                        "order": {
+                          "u_ac_sum": "desc"
+                        }
+                      },
+                      "aggs": {
+                        "u_sum": {
+                          "sum": {
+                            "field": "span_attributes.u"
+                          }
+                        },
+                        "ac_sum": {
+                          "sum": {
+                            "field": "span_attributes.ac"
+                          }
+                        },
+                        "ab_sum": {
+                          "sum": {
+                            "field": "span_attributes.ab"
+                          }
+                        },
+                        "t_sum": {
+                          "sum": {
+                            "field": "span_attributes.t"
+                          }
+                        },
+                        "u_ac_sum": {
+                          "sum": {
+                            "field": "span_attributes.u_ac"
+                          }
+                        },
+                        "t_ab_sum": {
+                          "sum": {
+                            "field": "span_attributes.t_ab"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "maya_probe_15m",
+    "intervals": [
+      15,
+      60
+    ],
+    "delay_minutes": 2,
+    "source_index": "metrics3",
+    "dest_index": "metrics3_15",
+    "date_histogram": "15min_window",
+    "static_attributes": {
+      "p": "maya_probe"
+    },
+    "dimensions": [
+      [
+        "by_h",
+        "h"
+      ],
+      [
+        "by_m_iface",
+        "m_iface"
+      ],
+      [
+        "by_m_overlay",
+        "m_overlay"
+      ],
+      [
+        "by_m_uuid",
+        "m_uuid"
+      ]
+    ],
+    "metrics": {
+      "avg_delay_avg": "avg_delay_avg",
+      "avg_delay_min": "avg_delay_min",
+      "avg_delay_max": "avg_delay_max",
+      "jitter_avg": "jitter_avg",
+      "jitter_min": "jitter_min",
+      "jitter_max": "jitter_max",
+      "loss_percentage_avg": "loss_percentage_avg",
+      "loss_percentage_min": "loss_percentage_min",
+      "loss_percentage_max": "loss_percentage_max",
+      "status_ni_avg": "status_ni_avg",
+      "status_ni_sum": "status_ni_sum",
+      "status_ni_count": "status_ni_count",
+      "timestamp_min": "timestamp_min",
+      "timestamp_max": "timestamp_max"
+    },
+    "query_template": {
+      "query": "span_attributes.p:maya_probe AND span_start_timestamp_nanos:[{start} TO {end}]",
+      "max_hits": 0,
+      "aggs": {
+        "15min_window": {
+          "date_histogram": {
+            "field": "span_start_timestamp_nanos",
+            "fixed_interval": "15m"
+          },
+          "aggs": {
+            "by_h": {
+              "terms": {
+                "field": "span_attributes.h",
+                "size": 9999
+              },
+              "aggs": {
+                "by_m_iface": {
+                  "terms": {
+                    "field": "span_attributes.m_iface",
+                    "size": 100
+                  },
+                  "aggs": {
+                    "by_m_overlay": {
+                      "terms": {
+                        "field": "span_attributes.m_overlay",
+                        "size": 100
+                      },
+                      "aggs": {
+                        "by_m_uuid": {
+                          "terms": {
+                            "field": "span_attributes.m_uuid",
+                            "size": 100
+                          },
+                          "aggs": {
+                            "avg_delay_avg": {
+                              "avg": {
+                                "field": "span_attributes.avg_delay"
+                              }
+                            },
+                            "avg_delay_min": {
+                              "min": {
+                                "field": "span_attributes.avg_delay"
+                              }
+                            },
+                            "avg_delay_max": {
+                              "max": {
+                                "field": "span_attributes.avg_delay"
+                              }
+                            },
+                            "jitter_avg": {
+                              "avg": {
+                                "field": "span_attributes.jitter"
+                              }
+                            },
+                            "jitter_min": {
+                              "min": {
+                                "field": "span_attributes.jitter"
+                              }
+                            },
+                            "jitter_max": {
+                              "max": {
+                                "field": "span_attributes.jitter"
+                              }
+                            },
+                            "loss_percentage_avg": {
+                              "avg": {
+                                "field": "span_attributes.loss_percentage"
+                              }
+                            },
+                            "loss_percentage_min": {
+                              "min": {
+                                "field": "span_attributes.loss_percentage"
+                              }
+                            },
+                            "loss_percentage_max": {
+                              "max": {
+                                "field": "span_attributes.loss_percentage"
+                              }
+                            },
+                            "status_ni_avg": {
+                              "avg": {
+                                "field": "span_attributes.status_ni"
+                              }
+                            },
+                            "status_ni_sum": {
+                              "sum": {
+                                "field": "span_attributes.status_ni"
+                              }
+                            },
+                            "status_ni_count": {
+                              "value_count": {
+                                "field": "span_attributes.status_ni"
+                              }
+                            },
+                            "timestamp_min": {
+                              "min": {
+                                "field": "span_start_timestamp_nanos"
+                              }
+                            },
+                            "timestamp_max": {
+                              "max": {
+                                "field": "span_start_timestamp_nanos"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+]

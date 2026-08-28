@@ -2,6 +2,32 @@
 
 ## Open Decisions
 
+- **OGM containerd `docker.io` mirror — add it, or keep patching per-image?**
+  2026-08-28: confirmed no OGM node has a real mirror for bare `docker.io/*`
+  pulls (see CLAUDE.md/DONE.md) — every fresh pull of a non-`maya-nexus`-
+  prefixed image depends on it already being cached locally, and fails
+  hard once it isn't (master has no outbound internet at all; workers'
+  DNS to `registry-1.docker.io` is separately unreliable). User explicitly
+  declined adding the mirror this session ("kardeş o imajları atsan...")
+  in favor of pulling+retagging each needed image via `ctr` as it comes
+  up. That's fine as a one-off, but the same class of failure will recur
+  for the *next* new/uncached bare image — worth a real decision on
+  whether a `[plugins."...".registry.mirrors."docker.io"]` entry (config-
+  only, no rebuild) is worth doing proactively once things are calmer,
+  vs. continuing to firefight per-image. Also unresolved: whether Nexus's
+  `admin`/`nexus2025!` basic-auth credential (found while investigating
+  this) needs rotating.
+- **Nexus registry migration to worker1 — still wanted, given what it
+  triggered?** Started 2026-08-28 at explicit user request (reduce
+  master's blast radius, since Nexus+Rancher both run as bare Docker
+  containers there). Left incomplete mid-transfer when combined load
+  hung master (see TODO.md 🔴). Worth confirming the goal still stands
+  before resuming — the *reason* (master as single point of failure) is
+  still valid, but the migration mechanism itself (manual tar+netcat,
+  no rollback tooling) is exactly the kind of heavy concurrent operation
+  that caused the hang in the first place; may want a gentler approach
+  (e.g. not running it alongside any other heavy job) next attempt.
+
 - **OGM Redis-pool-exhaustion fix priority.** Root cause has two independent
   contributors (see CLAUDE.md/TODO.md, diagnosed 2026-08-26): Quickwit's
   node-pinning/memory-pressure on `ssb-sdwan-master`, and

@@ -4,6 +4,80 @@ Completed work moved to [`DONE.md`](DONE.md). Connector-base cache/
 architecture items tracked in
 [`ulak-presto-connector-base/TODO.md`](ulak-presto-connector-base/TODO.md).
 
+## 🔴 CRITICAL — check this first (2026-08-28)
+
+- [ ] **OGM's `ssb-sdwan-master` (192.168.109.203) was left completely
+      unresponsive at end of 2026-08-28 session** — SSH times out during
+      banner exchange, all HTTP services (Quickwit :32033, everything
+      else) return connection-failed, but `ping` still succeeds (kernel/
+      network alive, userspace wedged). Caused by running two parallel
+      `replicate_ogm_history.py` instances (each 16-thread concurrent
+      Quickwit fetch+ingest) at the same time as a 30GB same-node
+      `tar czf | nc` data transfer (Nexus migration, see below) — likely
+      too much concurrent CPU/network/disk I/O for this box. Waited
+      15+ minutes with 5-min rechecks, never recovered on its own.
+      **First step next session:** check if it's recovered by now. If
+      not, this needs console/Proxmox access (see DONE.md 23-24 Aug —
+      the same total-unresponsiveness pattern happened once before and
+      needed a VM restart to clear).
+- [ ] **Nexus registry migration to worker1 — started, not finished, final
+      state unknown.** Per user request, was moving the bare-Docker
+      `sonatype/nexus3` container (registry:35000, ~30GB data at
+      `/mnt/nexus-data` on master) from master to worker1 (which has
+      Docker + 56GB free). Sequence so far: `docker stop nexus` on
+      master (so **the registry itself may currently be down** even
+      once master recovers), a `nc -l -p 9999 | tar -xzf - -C /mnt`
+      receiver started on worker1 via a `kubectl debug node` pod, then
+      `tar czf - -C /mnt nexus-data | nc 192.168.109.204 9999` started
+      on master — **completion was never confirmed** (master hung before
+      the transfer's done-marker could be checked). Next session must:
+      (1) check whether `/mnt/nexus-data` on worker1 has the complete
+      ~30GB (compare against master's original), (2) if complete, start
+      a new `docker run` nexus container on worker1 with that data
+      mounted, update `/etc/hosts` on all 3 nodes (`maya-nexus` currently
+      → `192.168.109.203`, needs → `192.168.109.204`), verify registry
+      pulls/pushes still work, then stop/remove the old master container;
+      (3) if incomplete/corrupt, the original `nexus` container on
+      master is still stopped-but-intact (data untouched) — just restart
+      it there (`docker start nexus`) to restore service and reconsider
+      the migration approach.
+- [ ] **OGM `metrics3_15`/`metrics3_60` 7-day synthetic replication —
+      launched, final completion state unknown.** After the full history
+      reset (see DONE.md), natural backfill only recovered ~1-3h of real
+      data (raw `metrics3` retention is that short on OGM specifically —
+      confirmed via the "Metrik Performans-QW" dashboard's 30-day view:
+      flat/zero except a spike at the very end, vs. `flows3`'s ~10+ day
+      real retention showing a full sustained history). Wrote
+      `/tmp/replicate_ogm_history.py` (also copied to OGM at
+      `/tmp/replicate_ogm_history.py`), tile-shifts the current 1h
+      template backward hourly to fill a continuous 7 days (168 shifts).
+      Dry-run (2 shifts) verified correct on both indices. Launched full
+      run via `nohup ... & disown` on OGM (survives SSH disconnect) —
+      was progressing well for `metrics3_15` (~25h of the 168h target
+      shifted in) when a second parallel instance for `metrics3_60` was
+      launched at the user's request, which combined with the Nexus
+      transfer above to hang the node. **Unknown**: did either instance
+      finish, get OOM/killed, or is it still running (nohup'd processes
+      can survive an SSH hang, but not a full node hang)? Check
+      `pgrep -af replicate_ogm_history` and `/tmp/replicate_full.log` /
+      `/tmp/replicate_60only.log` once the node is reachable again. If
+      dead, the script (in this repo's `backups/` — no, it was only ever
+      in `/tmp` locally and on OGM, not committed — re-copy from local
+      `/tmp/claude-1000/.../scratchpad/replicate_ogm_history.py` if that
+      session's scratchpad is gone, the design is documented above and
+      in DONE.md) can just be re-run; it re-derives the template fresh
+      from whatever's currently in the index, no state to corrupt.
+- [ ] **`interfaces_trino` QoS-dashboard variable Bug A — root-caused,
+      NOT fixed.** `span_attributes.m_name:IN [${class_names}]` sends
+      literal `IN [-]` to Quickwit when `class_names` is unselected
+      (confirmed live: Quickwit returns HTTP 400 "failed to parse
+      query" for exactly that string) — unlike sibling filters in the
+      same dashboard, this one has no `'${class_names}' = '-' or ...`
+      guard. Fix not applied (session moved on to Bug B, then the infra
+      incident). See DONE.md for full detail; the fix is a small SQL
+      edit to the `interfaces_trino` variable's Quickwit query, same
+      live-edit process as the QoS dashboard fixes already shipped.
+
 ## Open — infra (OGM, `192.168.109.203`)
 
 - [ ] **yucemonitoring has no `netlink_15m` (or `maya_bfd_15m`/
