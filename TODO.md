@@ -4,69 +4,39 @@ Completed work moved to [`DONE.md`](DONE.md). Connector-base cache/
 architecture items tracked in
 [`ulak-presto-connector-base/TODO.md`](ulak-presto-connector-base/TODO.md).
 
-## 🔴 CRITICAL — check this first (2026-08-28)
+## 🔴 FIRST DECISION NEEDED — metrics3_60 backfill scope (2026-08-28)
 
-- [ ] **OGM's `ssb-sdwan-master` (192.168.109.203) was left completely
-      unresponsive at end of 2026-08-28 session** — SSH times out during
-      banner exchange, all HTTP services (Quickwit :32033, everything
-      else) return connection-failed, but `ping` still succeeds (kernel/
-      network alive, userspace wedged). Caused by running two parallel
-      `replicate_ogm_history.py` instances (each 16-thread concurrent
-      Quickwit fetch+ingest) at the same time as a 30GB same-node
-      `tar czf | nc` data transfer (Nexus migration, see below) — likely
-      too much concurrent CPU/network/disk I/O for this box. Waited
-      15+ minutes with 5-min rechecks, never recovered on its own.
-      **First step next session:** check if it's recovered by now. If
-      not, this needs console/Proxmox access (see DONE.md 23-24 Aug —
-      the same total-unresponsiveness pattern happened once before and
-      needed a VM restart to clear).
-- [ ] **Nexus registry migration to worker1 — started, not finished, final
-      state unknown.** Per user request, was moving the bare-Docker
-      `sonatype/nexus3` container (registry:35000, ~30GB data at
-      `/mnt/nexus-data` on master) from master to worker1 (which has
-      Docker + 56GB free). Sequence so far: `docker stop nexus` on
-      master (so **the registry itself may currently be down** even
-      once master recovers), a `nc -l -p 9999 | tar -xzf - -C /mnt`
-      receiver started on worker1 via a `kubectl debug node` pod, then
-      `tar czf - -C /mnt nexus-data | nc 192.168.109.204 9999` started
-      on master — **completion was never confirmed** (master hung before
-      the transfer's done-marker could be checked). Next session must:
-      (1) check whether `/mnt/nexus-data` on worker1 has the complete
-      ~30GB (compare against master's original), (2) if complete, start
-      a new `docker run` nexus container on worker1 with that data
-      mounted, update `/etc/hosts` on all 3 nodes (`maya-nexus` currently
-      → `192.168.109.203`, needs → `192.168.109.204`), verify registry
-      pulls/pushes still work, then stop/remove the old master container;
-      (3) if incomplete/corrupt, the original `nexus` container on
-      master is still stopped-but-intact (data untouched) — just restart
-      it there (`docker start nexus`) to restore service and reconsider
-      the migration approach.
-- [ ] **OGM `metrics3_15`/`metrics3_60` 7-day synthetic replication —
-      launched, final completion state unknown.** After the full history
-      reset (see DONE.md), natural backfill only recovered ~1-3h of real
-      data (raw `metrics3` retention is that short on OGM specifically —
-      confirmed via the "Metrik Performans-QW" dashboard's 30-day view:
-      flat/zero except a spike at the very end, vs. `flows3`'s ~10+ day
-      real retention showing a full sustained history). Wrote
-      `/tmp/replicate_ogm_history.py` (also copied to OGM at
-      `/tmp/replicate_ogm_history.py`), tile-shifts the current 1h
-      template backward hourly to fill a continuous 7 days (168 shifts).
-      Dry-run (2 shifts) verified correct on both indices. Launched full
-      run via `nohup ... & disown` on OGM (survives SSH disconnect) —
-      was progressing well for `metrics3_15` (~25h of the 168h target
-      shifted in) when a second parallel instance for `metrics3_60` was
-      launched at the user's request, which combined with the Nexus
-      transfer above to hang the node. **Unknown**: did either instance
-      finish, get OOM/killed, or is it still running (nohup'd processes
-      can survive an SSH hang, but not a full node hang)? Check
-      `pgrep -af replicate_ogm_history` and `/tmp/replicate_full.log` /
-      `/tmp/replicate_60only.log` once the node is reachable again. If
-      dead, the script (in this repo's `backups/` — no, it was only ever
-      in `/tmp` locally and on OGM, not committed — re-copy from local
-      `/tmp/claude-1000/.../scratchpad/replicate_ogm_history.py` if that
-      session's scratchpad is gone, the design is documented above and
-      in DONE.md) can just be re-run; it re-derives the template fresh
-      from whatever's currently in the index, no state to corrupt.
+- [ ] **`metrics3_60` backfill from `metrics3_15` — scoped, not started, needs
+      a scope decision before running.** `metrics3_60` only has ~7h of real
+      data (from today); `metrics3_15` has ~34h. Plan (per user, this
+      session): take a template window from `metrics3_15`, tile-shift it
+      backward from `metrics3_60`'s own earliest real timestamp, **site-by-
+      site sequentially** (deliberately no concurrency — the prior session's
+      parallel version of this exact class of job is what hung master, see
+      DONE.md "Session 28 August 2026"). Measured before running anything:
+      one 1-hour template window from `metrics3_15` = **1,378,156 docs**; a
+      full 7-day/168-shift backfill at that rate = **~231M docs**, ~60x
+      `metrics3_60`'s current size, likely many hours end-to-end fully
+      sequential. Presented to user as full-scope-but-slow vs. a smaller
+      template window (e.g. 15min instead of 1h, cuts total volume ~4x) —
+      **conversation ended before a decision was made.** Next session: get
+      the decision, then write the script (source=`metrics3_15`,
+      target=`metrics3_60`, one site at a time, minimal/no concurrency
+      within a site too) and run it via `nohup...&disown` natively on OGM,
+      not foreground from the local session. See TOBEDECIDED.md.
+
+## Open — resolved this session, see DONE.md for full detail (2026-08-28)
+
+The prior session's 🔴 CRITICAL items (OGM master unresponsive, Nexus
+migration to worker1, `data-gen`/`otelcontribcol` resource limits, 2 new
+post-recovery `ImagePullBackOff`s) were all resolved this session — full
+narrative in DONE.md "Session 28 August 2026 (continued again)". Nothing
+carried forward from that block except the backfill decision above and the
+old (now-superseded) synthetic-replication item removed below — its
+process/script check came back clean (no lingering process, `/tmp` script
+gone with the reboot, re-copied from a prior session's scratchpad), so
+there's nothing to resume from that attempt specifically.
+
 - [ ] **`interfaces_trino` QoS-dashboard variable Bug A — root-caused,
       NOT fixed.** `span_attributes.m_name:IN [${class_names}]` sends
       literal `IN [-]` to Quickwit when `class_names` is unselected
@@ -140,6 +110,17 @@ architecture items tracked in
       Needs someone with access to the `.254` gateway/firewall to check
       why master's source IP can't reach the internet while the worker
       nodes can.
+      **Correction 2026-08-28: worker nodes don't have internet either.**
+      That last claim was wrong — re-tested this session (`coredns`
+      ImagePullBackOff on `worker1`, DNS to `registry.k8s.io` timed out
+      there too; `worker2` failed the same way). **None of the 3 OGM
+      nodes have real outbound internet.** The reliable mirroring path
+      going forward: run `skopeo copy` (or `docker pull`+`save`+`ssh...
+      load`) from *outside* the OGM network entirely — e.g. from
+      wherever Claude's own session runs, which has both internet and a
+      direct network path to `maya-nexus:35000` — straight into the
+      local registry, rather than trying to find a node that can reach
+      the source.
 - [ ] **Possible dev-vs-OGM gap: `anomaly-events-*` alert rules paused,
       root cause (missing Quickwit indexes) never actually fixed.** Found
       2026-08-24 while answering a user question about OGM-only dashboard
@@ -582,3 +563,18 @@ architecture items tracked in
       the history index and can time out. Not touched since discovery —
       needs the `maya_global_settings` macro definitions updated, or the
       `qw_agg` plugin changed to append the header automatically.
+
+## Housekeeping — pre-existing, not from any recent session
+
+- [ ] **~90 untracked scratch files + 5 pre-existing modified files
+      (`docker-compose.yml`, 4 `trino/etc/catalog/*.properties`) sitting
+      in the working tree, unrelated to any session's actual work.**
+      Noticed 2026-08-28 while preparing a handover — these were already
+      present (`git status`) before that session's first action, last
+      real commit touching `docker-compose.yml` is from 12 May 2026, and
+      none of it was investigated or touched this session (out of scope,
+      not this session's to clean up blind). Mix of debug scripts
+      (`Test*.java`/`.class`, `patch_*.py`, `extract_*.py`, etc.) and the
+      5 small property-file diffs. Worth a deliberate pass sometime to
+      decide what's still needed vs. safe to `git checkout --`/delete —
+      just don't `git add -A`/`git add .` in the meantime.
