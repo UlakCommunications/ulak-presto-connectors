@@ -172,7 +172,7 @@ public class QwUtil {
                                            Integer connectTimeout,
                                            Integer readTimeout,
                                            Integer writeTimeout ) throws ApiException {
-        return select(queryParameters, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout, null);
+        return select(queryParameters, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout, null, null);
     }
 
     public static List<UlakRow> select(QueryParameters queryParameters,
@@ -182,6 +182,17 @@ public class QwUtil {
                                            Integer readTimeout,
                                            Integer writeTimeout,
                                            Long catalogHistoryTimeThresholdSeconds ) throws ApiException {
+        return select(queryParameters, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout, catalogHistoryTimeThresholdSeconds, null);
+    }
+
+    public static List<UlakRow> select(QueryParameters queryParameters,
+                                           String qwUrl,
+                                           String qwIndex,
+                                           Integer connectTimeout,
+                                           Integer readTimeout,
+                                           Integer writeTimeout,
+                                           Long catalogHistoryTimeThresholdSeconds,
+                                           String historyTiersCsv ) throws ApiException {
         queryParameters.setQuery(replaceTrinoQWVars(queryParameters.getQuery()));
         queryParameters.setDbType(DBType.QW);
         if(StringUtils.isBlank(queryParameters.getQwUrl())) {
@@ -194,30 +205,46 @@ public class QwUtil {
         long effectiveThreshold = catalogHistoryTimeThresholdSeconds != null
                 ? catalogHistoryTimeThresholdSeconds
                 : DEFAULT_HISTORY_TIME_THRESHOLD_SECONDS;
+        List<HistoryTier> historyTiers = HistoryTier.build(effectiveThreshold, historyTiersCsv);
 
-        logger.warn("DEBUG HISTORY: isHistoryEnabled={}, historyIndex={}, from={}, to={}, range={}, qwIndex={}, threshold={}",
+        logger.warn("DEBUG HISTORY: isHistoryEnabled={}, historyIndex={}, from={}, to={}, range={}, qwIndex={}, tiers={}",
                 queryParameters.isHistoryEnabled(),
                 queryParameters.getHistoryIndex(),
                 queryParameters.getFrom(),
                 queryParameters.getTo(),
                 (queryParameters.getTo() - queryParameters.getFrom()),
                 queryParameters.getQwIndex(),
-                effectiveThreshold);
+                historyTiers);
 
-        // Switch to history index if enable_history is true and time range exceeds threshold
+        // Escalate to the coarsest history tier the query's date range clears — driven by
+        // range, not by the query's own requested bucket width (resolution_in_seconds):
+        // a dashboard's bucket width says nothing about how much data the query scans.
+        boolean historyIndexActive = false;
         if (StringUtils.isNotBlank(queryParameters.getHistoryIndex())) {
             long from = queryParameters.getFrom();
             long to = queryParameters.getTo();
             long range = to - from;
+            boolean rangeIsValid = (from > 0 && to > 0);
 
-            boolean rangeExceedsThreshold = (from > 0 && to > 0 && range > effectiveThreshold);
-            if (queryParameters.isHistoryEnabled() && rangeExceedsThreshold) {
-                logger.warn("Switching to history index '{}' (isHistoryEnabled=true, range {}s > threshold {}s)",
-                        queryParameters.getHistoryIndex(), range, effectiveThreshold);
-                queryParameters.setQwIndex(queryParameters.getHistoryIndex());
+            HistoryTier chosen = rangeIsValid ? HistoryTier.select(historyTiers, range) : null;
+
+            if (queryParameters.isHistoryEnabled() && chosen != null) {
+                String candidate = HistoryIndexResolver.resolve(queryParameters.getHistoryIndex(), chosen.minutes);
+                if (historyIndexExists(candidate, queryParameters.getQwUrl(), connectTimeout, readTimeout, writeTimeout)) {
+                    logger.warn("Switching to history index '{}' (tier {}, range {}s)", candidate, chosen, range);
+                    queryParameters.setQwIndex(candidate);
+                } else {
+                    logger.warn("Derived history index '{}' (tier {}) not found in Quickwit yet; falling back to configured historyIndex '{}'",
+                            candidate, chosen, queryParameters.getHistoryIndex());
+                    queryParameters.setQwIndex(queryParameters.getHistoryIndex());
+                }
+                // Either branch above points qwIndex at a rollup/history index (the
+                // tier-derived one, or the fallback literal historyIndex) — both need
+                // the field-name rewrite (tx -> tx_max etc.) in executeOneQuery below.
+                historyIndexActive = true;
             } else {
-                logger.warn("Staying on raw index '{}' (isHistoryEnabled={}, rangeExceedsThreshold={})",
-                        queryParameters.getQwIndex(), queryParameters.isHistoryEnabled(), rangeExceedsThreshold);
+                logger.warn("Staying on raw index '{}' (isHistoryEnabled={}, tierChosen={})",
+                        queryParameters.getQwIndex(), queryParameters.isHistoryEnabled(), chosen);
             }
         }
 
@@ -233,7 +260,8 @@ public class QwUtil {
         return executeOneQuery( queryParameters,queryParameters.getQuery(),
                   connectTimeout,
                   readTimeout,
-                  writeTimeout);
+                  writeTimeout,
+                  historyIndexActive);
     }
     public static String executeQueryScript(String query) {
         long unixTime = System.currentTimeMillis() / 1000L;
@@ -269,7 +297,8 @@ public class QwUtil {
                                                      String query,
                                                      Integer connectTimeout,
                                                      Integer readTimeout,
-                                                     Integer writeTimeout) throws ApiException {
+                                                     Integer writeTimeout,
+                                                     boolean historyIndexActive) throws ApiException {
 
         queryParameters.setQuery(replaceTrinoQWVars(queryParameters.getQuery()));
         if (queryParameters.getHasJs()) {
@@ -290,9 +319,13 @@ public class QwUtil {
             }
         }
 
-        if (queryParameters.isHistoryEnabled() &&
-                queryParameters.getHistoryIndex() != null &&
-                queryParameters.getHistoryIndex().equals(queryParameters.getQwIndex())) {
+        if (historyIndexActive) {
+            // historyIndexActive is set by select() at the point it actually points
+            // qwIndex at a rollup index — do NOT re-derive this via
+            // historyIndex.equals(qwIndex): once multi-tier routing can send qwIndex to
+            // a *derived* index (e.g. historyIndex="metrics3_15" but tier escalation
+            // switches to "metrics3_60"), that equality silently goes false and this
+            // rewrite gets skipped even though qwIndex is still a rollup index.
             logger.debug("Rewriting query for history index '{}'", queryParameters.getQwIndex());
             query = QwQueryRewriter.rewriteQueryForHistory(query);
         }
@@ -704,10 +737,19 @@ public class QwUtil {
 
 
         Object value = aggValue.getOrDefault(VALUE, null);
-        if (value != null) {
+        Object buckets = aggValue.getOrDefault(BUCKETS, null);
+        if (buckets == null) {
+            // Leaf metric node (min/max/avg/sum/value_count) — propagate ancestor
+            // bucket context (key, doc_count, ...) down into it unconditionally.
+            // Previously this only happened when value != null: a metric that
+            // legitimately has no matching value (empty bucket, or a field that
+            // doesn't exist for this index) silently lost its own row's identity
+            // (which bucket/key it belonged to) instead of just having a null
+            // value — flatten() then produced only a bare ".../value" column with
+            // no key alongside it, and any query referencing the key column
+            // (e.g. via replacefromcolumns) failed to resolve it entirely.
             aggValue.putAll(currentValues);
         }
-        Object buckets = aggValue.getOrDefault(BUCKETS, null);
         if (buckets != null) {
             if(value!=null) {
                 currentValues.put(prefix +  VALUE, value);
@@ -960,6 +1002,58 @@ public class QwUtil {
             logger.warn("Failed to check timestamp field for index '{}' at {}: {}", indexName, qwUrl, e.getMessage());
         }
         return false;
+    }
+
+    private static final Map<String, Set<String>> historyIndexNameCache = new ConcurrentHashMap<>();
+    private static final Map<String, Long> historyIndexNameCacheStamp = new ConcurrentHashMap<>();
+    private static final long HISTORY_INDEX_NAME_CACHE_TTL_MILLIS = 30_000L;
+
+    /**
+     * Whether {@code indexName} currently exists in the Quickwit cluster at {@code qwUrl} —
+     * a query-count-independent backstop so a derived-but-not-yet-backfilled history tier
+     * (see {@link HistoryTier}, {@link HistoryIndexResolver}) never gets queried before it's
+     * real. The index-name list is cached per {@code qwUrl} for {@link
+     * #HISTORY_INDEX_NAME_CACHE_TTL_MILLIS} so this doesn't add a metastore round trip to
+     * every single history-eligible query. Any failure to confirm returns false (caller
+     * should fall back to a known-good index), never throws.
+     */
+    public static boolean historyIndexExists(String indexName, String qwUrl,
+                                              Integer connectTimeout,
+                                              Integer readTimeout,
+                                              Integer writeTimeout) {
+        if (StringUtils.isBlank(indexName) || StringUtils.isBlank(qwUrl)) {
+            return false;
+        }
+        try {
+            long now = System.currentTimeMillis();
+            Long stamp = historyIndexNameCacheStamp.get(qwUrl);
+            Set<String> names = historyIndexNameCache.get(qwUrl);
+            if (names == null || stamp == null || (now - stamp) > HISTORY_INDEX_NAME_CACHE_TTL_MILLIS) {
+                ApiClient client = defaultClients.computeIfAbsent(qwUrl, url -> {
+                    ApiClient c = Configuration.getDefaultApiClient();
+                    c.setBasePath(url);
+                    if (connectTimeout != null) c.setConnectTimeout(connectTimeout * 1000);
+                    if (readTimeout != null) c.setReadTimeout(readTimeout * 1000);
+                    if (writeTimeout != null) c.setWriteTimeout(writeTimeout * 1000);
+                    return c;
+                });
+                IndexesApi indexesApi = new IndexesApi(client);
+                List<VersionedIndexMetadata> metas = indexesApi.getIndexesMetadatas();
+                Set<String> fresh = new HashSet<>();
+                for (VersionedIndexMetadata meta : metas) {
+                    com.quickwit.javaclient.models.VersionedIndexConfigOneOf cfg =
+                            meta.getVersionedIndexMetadataOneOf().getIndexConfig().getVersionedIndexConfigOneOf();
+                    fresh.add(cfg.getIndexId());
+                }
+                names = fresh;
+                historyIndexNameCache.put(qwUrl, names);
+                historyIndexNameCacheStamp.put(qwUrl, now);
+            }
+            return names.contains(indexName);
+        } catch (Exception e) {
+            logger.warn("Failed to check index existence for '{}' at {}: {}", indexName, qwUrl, e.getMessage());
+            return false;
+        }
     }
 
     public static String rewriteQueryForHistory(String queryJson) {

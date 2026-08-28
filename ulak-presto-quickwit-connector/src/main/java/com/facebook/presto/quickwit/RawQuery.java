@@ -126,6 +126,8 @@ public class RawQuery
             String dbtype = getOptionalVarchar(arguments, "dbtype").orElse("");
             String replacefromcolumns = getOptionalVarchar(arguments, "replacefromcolumns").orElse("");
             String enableHistory = getOptionalVarchar(arguments, "enable_history").orElse("false");
+            // Tier selection (which rollup granularity, if any) happens later in
+            // QwUtil.select() from the query's actual date range — see HistoryTier.
             String historyIndex = getOptionalVarchar(arguments, "history_index").orElse("");
 
             boolean timestampEnabled = QwUtil.hasTimestampField(
@@ -169,7 +171,8 @@ public class RawQuery
                          metadata.getConnectTimeout(),
                          metadata.getReadTimeout(),
                          metadata.getWriteTimeout(),
-                         metadata.getHistoryTimeThresholdSeconds()).stream().map(t -> t.getName()).collect(Collectors.toList()));
+                         metadata.getHistoryTimeThresholdSeconds(),
+                         metadata.getHistoryTiersCsv()).stream().map(t -> t.getName()).collect(Collectors.toList()));
             } catch (IOException e) {
                 tmpCls = columns;
             }

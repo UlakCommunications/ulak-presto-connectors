@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.*;
 
 /**
  * Unit tests for QwUtil helper methods covering code-review fixes
- * R06, R08, R09, R11, R12, R13, R14.
+ * R06, R08, R09, R11, R12, R13, R14, R15, R16.
  *
  * NOTE: Tests in this class must NOT instantiate Trino SPI types
  * (ConnectorTableHandle, ConnectorSession, etc.) directly because
@@ -507,5 +507,230 @@ class QwUtilParseTest {
         Long catalogThreshold2 = null;
         long resolved2 = catalogThreshold2 != null ? catalogThreshold2 : 10800L;
         assertThat(resolved2).isEqualTo(10800L);
+    }
+
+    // -----------------------------------------------------------------------
+    // R15 — arrangeAggregation() dropped bucket key/doc_count when the leaf
+    // metric's own value was null (2026-08-27, live yucemonitoring bug)
+    // -----------------------------------------------------------------------
+
+    /**
+     * R15: arrangeAggregation() only merged ancestor bucket context (key,
+     * doc_count) into a leaf metric node when that leaf's own "value" was
+     * non-null. A metric with no matching value (e.g. min() on a field that
+     * doesn't exist for this index, or an empty bucket) silently lost its
+     * row's entire identity instead of just having a null value — flatten()
+     * then produced a bare ".../value" column with no key alongside it, so
+     * any query referencing the key column (via replacefromcolumns, as the
+     * "Host Interface" Grafana variable does) failed to resolve it at all.
+     * Mirrors the exact merge condition changed in arrangeAggregation() —
+     * see the class-level NOTE above for why QwUtil can't be loaded directly
+     * in this test JVM.
+     */
+    @Test
+    @DisplayName("R15: buggy merge (value != null gate) drops key when leaf value is null")
+    void arrangeAggregation_buggyMerge_dropsKeyWhenValueNull() {
+        Map<String, Object> currentValues = new java.util.HashMap<>();
+        currentValues.put("6/key", "eth1");
+        currentValues.put("6/doc_count", 1520L);
+
+        Map<String, Object> leaf = new java.util.HashMap<>();
+        leaf.put("value", null); // min(tx) found nothing for this bucket
+
+        // BUGGY: original condition, gated on value != null
+        Object value = leaf.getOrDefault("value", null);
+        if (value != null) {
+            leaf.putAll(currentValues);
+        }
+
+        assertThat(leaf).as("buggy: leaf never receives ancestor key/doc_count")
+                .doesNotContainKey("6/key")
+                .doesNotContainKey("6/doc_count");
+    }
+
+    @Test
+    @DisplayName("R15: fixed merge (buckets == null gate) preserves key when leaf value is null")
+    void arrangeAggregation_fixedMerge_preservesKeyWhenValueNull() {
+        Map<String, Object> currentValues = new java.util.HashMap<>();
+        currentValues.put("6/key", "eth1");
+        currentValues.put("6/doc_count", 1520L);
+
+        Map<String, Object> leaf = new java.util.HashMap<>();
+        leaf.put("value", null); // min(tx) found nothing for this bucket
+
+        // FIXED: merge is unconditional for leaf nodes (no sub-buckets)
+        Object buckets = leaf.getOrDefault("buckets", null);
+        if (buckets == null) {
+            leaf.putAll(currentValues);
+        }
+
+        assertThat(leaf)
+                .as("fixed: leaf keeps its ancestor identity even with a null metric value")
+                .containsEntry("6/key", "eth1")
+                .containsEntry("6/doc_count", 1520L)
+                .containsEntry("value", null);
+    }
+
+    @Test
+    @DisplayName("R15: fixed merge still skips bucket-container nodes (has its own buckets)")
+    void arrangeAggregation_fixedMerge_skipsBucketContainerNodes() {
+        Map<String, Object> currentValues = new java.util.HashMap<>();
+        currentValues.put("parent/key", "someKey");
+
+        Map<String, Object> bucketContainer = new java.util.HashMap<>();
+        bucketContainer.put("buckets", java.util.Collections.emptyList());
+
+        Object buckets = bucketContainer.getOrDefault("buckets", null);
+        if (buckets == null) {
+            bucketContainer.putAll(currentValues);
+        }
+
+        assertThat(bucketContainer)
+                .as("a bucket-container node (has buckets) must not get ancestor context merged directly into it")
+                .doesNotContainKey("parent/key");
+    }
+
+    // -----------------------------------------------------------------------
+    // R16 — UlakQuickwitConnectorFactory: history-time-threshold-seconds
+    // accepts an explicit "minutes:seconds" pair, not just a bare number
+    // -----------------------------------------------------------------------
+
+    /**
+     * R16: history-time-threshold-seconds was always treated as a bare
+     * seconds number, with HistoryTier.build() silently hardcoding its
+     * minutes to 15. A catalog can now instead write it as "minutes:seconds"
+     * (same shape as a history-tiers entry) to state its finest tier's
+     * granularity explicitly. Mirrors the exact parsing/folding logic added
+     * to UlakQuickwitConnectorFactory.create() — see the class-level NOTE
+     * above for why that class can't be instantiated directly in this test
+     * JVM (it implements io.trino.spi.connector.ConnectorFactory).
+     */
+    private static final class ParsedThreshold {
+        Long historyTimeThresholdSeconds;
+        String historyTiersCsv;
+    }
+
+    private static ParsedThreshold parseHistoryThreshold(String historyThreshold, String historyTiersCsv) {
+        ParsedThreshold result = new ParsedThreshold();
+        result.historyTiersCsv = historyTiersCsv;
+        if (historyThreshold != null && !historyThreshold.trim().isEmpty()) {
+            String trimmed = historyThreshold.trim();
+            if (trimmed.contains(":")) {
+                String[] parts = trimmed.split(":", 2);
+                try {
+                    int minutes = Integer.parseInt(parts[0].trim());
+                    long seconds = Long.parseLong(parts[1].trim());
+                    if (minutes <= 0 || seconds < 0) {
+                        throw new IllegalArgumentException("minutes and thresholdSeconds must be positive");
+                    }
+                    result.historyTiersCsv = trimmed + (org.apache.commons.lang3.StringUtils.isBlank(historyTiersCsv) ? "" : "," + historyTiersCsv);
+                    result.historyTimeThresholdSeconds = HistoryTier.FINEST_TIER_SUPPRESSED;
+                } catch (RuntimeException e) {
+                    // malformed: leave historyTimeThresholdSeconds null, historyTiersCsv untouched
+                }
+            } else {
+                try {
+                    result.historyTimeThresholdSeconds = Long.parseLong(trimmed);
+                } catch (Exception e) {
+                    // malformed: leave null
+                }
+            }
+        }
+        return result;
+    }
+
+    /** Mirrors QwUtil.select()'s exact effectiveThreshold fallback line. */
+    private static long resolveEffectiveThreshold(Long catalogHistoryTimeThresholdSeconds) {
+        return catalogHistoryTimeThresholdSeconds != null
+                ? catalogHistoryTimeThresholdSeconds
+                : 10800L; // DEFAULT_HISTORY_TIME_THRESHOLD_SECONDS
+    }
+
+    @Test
+    @DisplayName("R16: bare number keeps existing Long-threshold behaviour (yucemonitoring/OGM back-compat)")
+    void historyThreshold_bareNumber_backwardCompatible() {
+        ParsedThreshold result = parseHistoryThreshold("10800", "60:604800");
+
+        assertThat(result.historyTimeThresholdSeconds).isEqualTo(10800L);
+        assertThat(result.historyTiersCsv).isEqualTo("60:604800"); // untouched
+    }
+
+    @Test
+    @DisplayName("R16: minutes:seconds pair folds into historyTiersCsv and returns the suppression sentinel")
+    void historyThreshold_pair_foldsIntoTiersCsv() {
+        ParsedThreshold result = parseHistoryThreshold("30:10800", "60:604800");
+
+        assertThat(result.historyTimeThresholdSeconds).isEqualTo(HistoryTier.FINEST_TIER_SUPPRESSED);
+        assertThat(result.historyTiersCsv).isEqualTo("30:10800,60:604800");
+    }
+
+    @Test
+    @DisplayName("R16: minutes:seconds pair with no pre-existing history-tiers CSV")
+    void historyThreshold_pair_noExistingTiersCsv() {
+        ParsedThreshold result = parseHistoryThreshold("15:10800", null);
+
+        assertThat(result.historyTimeThresholdSeconds).isEqualTo(HistoryTier.FINEST_TIER_SUPPRESSED);
+        assertThat(result.historyTiersCsv).isEqualTo("15:10800");
+    }
+
+    @Test
+    @DisplayName("R16: malformed pair is logged and skipped, not thrown")
+    void historyThreshold_malformedPair_skipped() {
+        ParsedThreshold result = parseHistoryThreshold("garbage:notanumber", "60:604800");
+
+        assertThat(result.historyTimeThresholdSeconds).isNull(); // genuinely unset, NOT the sentinel
+        assertThat(result.historyTiersCsv).isEqualTo("60:604800"); // untouched by the malformed entry
+    }
+
+    @Test
+    @DisplayName("R16: malformed pair falls back to QwUtil.select()'s normal default threshold, not FINEST_TIER_SUPPRESSED")
+    void historyThreshold_malformedPair_fallsBackToDefault() {
+        ParsedThreshold result = parseHistoryThreshold("garbage:notanumber", null);
+
+        long effectiveThreshold = resolveEffectiveThreshold(result.historyTimeThresholdSeconds);
+        List<HistoryTier> tiers = HistoryTier.build(effectiveThreshold, result.historyTiersCsv);
+
+        assertThat(tiers).extracting(t -> t.minutes).containsExactly(15);
+        assertThat(tiers.get(0).thresholdSeconds).isEqualTo(10800L); // system default, not suppressed
+    }
+
+    @Test
+    @DisplayName("R16 regression (2026-08-27 live OGM bug): pair survives QwUtil.select()'s effectiveThreshold "
+            + "fallback without resurrecting a duplicate/conflicting default-15m tier")
+    void historyThreshold_pair_survivesEffectiveThresholdFallback() {
+        // This is the exact bug: build() called with the RAW parsed Long (which was
+        // plain null in the pre-fix code) skips the sentinel check entirely and never
+        // exercises QwUtil.select()'s own null -> DEFAULT_HISTORY_TIME_THRESHOLD_SECONDS
+        // substitution — so a naive test of build() alone stays green even though the
+        // real call chain (factory -> select()'s effectiveThreshold line -> build())
+        // was broken. Live symptom on OGM: catalog configured "15:3600", but the
+        // resolved tier list came back as [15m@10800s, 15m@10800s, 60m@86400s] — a
+        // phantom default-15m entry (from the wrongly-substituted 10800 default)
+        // duplicating and conflicting with the catalog's real 15m@3600s choice.
+        ParsedThreshold result = parseHistoryThreshold("15:3600", "60:86400");
+
+        long effectiveThreshold = resolveEffectiveThreshold(result.historyTimeThresholdSeconds);
+        List<HistoryTier> tiers = HistoryTier.build(effectiveThreshold, result.historyTiersCsv);
+
+        assertThat(tiers).extracting(t -> t.minutes).containsExactly(15, 60);
+        assertThat(tiers.get(0).thresholdSeconds).isEqualTo(3600L); // the catalog's real value, not 10800
+        assertThat(tiers.get(1).thresholdSeconds).isEqualTo(86400L);
+    }
+
+    @Test
+    @DisplayName("R16: end-to-end through effectiveThreshold — folded pair still composes with HistoryTier.build()'s clamping (R15)")
+    void historyThreshold_pair_endToEndWithClamping() {
+        // Catalog states its own finest tier as 30m@10800s explicitly, plus a
+        // (deliberately under-configured) coarser 60m@3600s tier — same live
+        // misconfiguration shape as the yucemonitoring bug, just at 30m/60m
+        // instead of 15m/60m, to prove the fold-in composes with clamping.
+        ParsedThreshold result = parseHistoryThreshold("30:10800", "60:3600");
+
+        long effectiveThreshold = resolveEffectiveThreshold(result.historyTimeThresholdSeconds);
+        List<HistoryTier> tiers = HistoryTier.build(effectiveThreshold, result.historyTiersCsv);
+
+        assertThat(tiers).extracting(t -> t.minutes).containsExactly(30, 60);
+        assertThat(tiers.get(0).thresholdSeconds).isEqualTo(10800L);
+        assertThat(tiers.get(1).thresholdSeconds).isEqualTo(10800L); // clamped up from 3600, same as R15
     }
 }

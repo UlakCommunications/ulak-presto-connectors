@@ -101,6 +101,27 @@ public class UlakQuickwitConnector
                                  Integer writeTimeout,
                                  String allowedUrls,
                                  Long historyTimeThresholdSeconds) {
+        this(url, catalogName, redisUrl, keywords, runInCoordinatorOnly, workerId,
+             workerIndexToRunIn, isCoordinator, numThreads, qwIndex,
+             connectTimeout, readTimeout, writeTimeout, allowedUrls, historyTimeThresholdSeconds, null);
+    }
+
+    public UlakQuickwitConnector(String url,
+                                 String catalogName,
+                                 String redisUrl,
+                                 String keywords,
+                                 boolean runInCoordinatorOnly,
+                                 String workerId,
+                                 String workerIndexToRunIn,
+                                 boolean isCoordinator,
+                                 int numThreads,
+                                 String qwIndex,
+                                 Integer connectTimeout,
+                                 Integer readTimeout,
+                                 Integer writeTimeout,
+                                 String allowedUrls,
+                                 Long historyTimeThresholdSeconds,
+                                 String historyTiersCsv) {
         // need to get database connection here
         logger.debug("Connector by url: {}", url);
 
@@ -112,13 +133,13 @@ public class UlakQuickwitConnector
         }
 
         this.setQwIndex(qwIndex);
-        this.metadata = new UlakQuickwitMetadata(catalogName, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout, allowedUrls, historyTimeThresholdSeconds);
+        this.metadata = new UlakQuickwitMetadata(catalogName, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout, allowedUrls, historyTimeThresholdSeconds, historyTiersCsv);
         tableFunctions = new RawQuery.RawQueryFunction(metadata);
         this.splitManager = new QuickwitSplitManager();
         this.recordSetProvider = new QuickwitRecordSetProvider(((q,s)-> {
             try {
                 q.setConnectionId(qwUrl);
-                java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q,s[0],s[1], connectTimeout, readTimeout, writeTimeout, historyTimeThresholdSeconds);
+                java.util.List<com.facebook.presto.ulak.UlakRow> ret =  QwUtil.select(q,s[0],s[1], connectTimeout, readTimeout, writeTimeout, historyTimeThresholdSeconds, historyTiersCsv);
                 return ret;
             } catch (ApiException e) {
                 logger.error("Connector by url: {}", url, e);
@@ -135,7 +156,7 @@ public class UlakQuickwitConnector
                 redisCacheWorker = new RedisCacheWorker((q,s)-> {
                     try {
                         q.setConnectionId(qwUrl);
-                        java.util.List<com.facebook.presto.ulak.UlakRow> ret = QwUtil.select(q, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout, historyTimeThresholdSeconds) ;
+                        java.util.List<com.facebook.presto.ulak.UlakRow> ret = QwUtil.select(q, qwUrl, qwIndex, connectTimeout, readTimeout, writeTimeout, historyTimeThresholdSeconds, historyTiersCsv) ;
                         return ret;
                     } catch (ApiException e) {
                         logger.error("InfluxdbConnector", e);
