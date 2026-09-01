@@ -30,15 +30,93 @@ architecture items tracked in
          CLAUDE.md) and care around the paired `aggregation_memory_limit`
          (OOM risk).
       See TOBEDECIDED.md.
-- [ ] **Decide whether/when to commit the qw-rollup-engine working-tree
-      changes** (60m dropped from `tasks.json`, the
-      `max_concurrent_tasks`/partition-semaphore fix — see DONE.md
-      2026-09-01 #4/#5). Currently uncommitted on `master`.
-- [ ] **Decide whether/when to push+deploy `qw-rollup-engine:3.1.4-20260901-OGM`**
-      (staged at `~/Downloads/omg_rollup/images/`, not pushed anywhere) to
-      OGM and/or yucemonitoring — both clusters still run the
+- [x] **Committed 2026-09-01** — `f92ea65` (partition-semaphore fix) +
+      `ca6f931` (60m OOM mitigation), pushed to `origin/master`. See
+      DONE.md 2026-09-01 #8.
+- [ ] **Push+deploy `qw-rollup-engine:3.1.4-20260901-OGM` — still not live
+      anywhere.** Decided 2026-09-01: build via Jenkins
+      (`maya-anomaly-platform`, `type=rollup`) going forward, not another
+      manual local build like the one this tar came from (see DONE.md
+      2026-09-01 #6/#9) — confirmed live via the Jenkins API that `rollup`
+      is a valid `type` choice, no dedicated job needed. A real trigger
+      (`branch_name=master`, `version=3.1.4-20260901-OGM`, `platform=both`,
+      `prod=true`, `prod_ip=192.168.109.203`) was attempted but blocked by
+      this session's own auto-mode permission classifier before it ever
+      reached Jenkins — script staged in the session scratchpad (see
+      DONE.md #9), needs the user to run it directly (`!`-prefixed) or
+      grant a Bash permission rule. Both clusters still run the
       pre-2026-08-28 image with none of this quarter's fixes live except
       the ConfigMap-only `missing:N/A` one.
+- [ ] **`qw-rollup-engine`'s health check is broken (2026-09-01, reported
+      by user, not yet diagnosed).** No symptom detail captured yet (pod
+      restarts? readiness flapping? probe command failing?) — needed
+      before real root-causing. Working hypothesis only, from reading the
+      code: `task_loop.rs:278`'s `let _ = std::fs::File::create("/tmp/
+      healthy")` silently swallows any write error — the exact same
+      swallowed-error pattern `748893a` (checkpoint-logging) just fixed
+      for the Redis checkpoint path. If whatever k8s liveness/readiness
+      probe reads this file (existence or mtime), a silent write failure
+      would explain it — candidates: `readOnlyRootFilesystem` without a
+      `/tmp` emptyDir mount, or an fsGroup/permission mismatch (this
+      project has hit that exact class of bug before, see the
+      `persistence.type: emptyDir`/`fsGroup` note in CLAUDE.md). Not
+      verified against the live probe config on either cluster. Next
+      step: get the actual symptom from the user, then check the
+      Deployment's `livenessProbe`/`readinessProbe` definition and pod
+      filesystem permissions on whichever cluster shows it.
+- [ ] **Redis checkpoints not created automatically — re-flagged 2026-09-01,
+      still unresolved from 2026-08-31.** Prod qw-rollup-engine pod restart
+      found zero Redis checkpoints for all 30 tasks (`Ok(Ok(None))` — a
+      clean GET returning nil, not a connection error) despite `redis.url`
+      being set and Redis reachable — every task fell back to "First run,
+      starting from today 00:00". Not yet root-caused: could be genuinely
+      the first-ever restart since `redis.url` was correctly wired for
+      that pod (no real mystery), a DB-index/key-prefix mismatch, or
+      something else — see the full account in memory
+      (`qw-rollup-engine-checkpoint-mystery-todo`). The existing workaround
+      (`~/Downloads/omg_rollup/seed_redis_checkpoints.py`/`.sh` — seeds
+      forward=now/today and backfill=`BACKFILL_PENDING` only where backfill
+      is still untouched, read-before-write so real progress is never
+      clobbered) treats the symptom, not the cause, and still only lives
+      under `~/Downloads/`, not committed anywhere durable — also now
+      stale re: today's 60m-removal fix (its `TASKS` list still has 30
+      entries incl. `_60m` variants a fresh process no longer expands).
+      Needs: confirm whether checkpoints have EVER been successfully read
+      back on the affected pod (not just written) before assuming this is
+      a bug rather than a first-restart artifact.
+      **Stopgap added 2026-09-01** (`ai/anomaly/deploy/helm/qw-rollup-engine`
+      chart, v0.2.0): `seed_redis_checkpoints.py` (extended with a `--url`
+      flag so it can reuse the same `REDIS_URL` the main container already
+      gets, from `.Values.redis.url`/secret) now ships as a ConfigMap key
+      and runs as a `checkpointSeed`-gated `initContainer` on every pod
+      (re)creation — backfill → `BACKFILL_PENDING` only where still
+      untouched (unchanged). **Caught and fixed same session (by code
+      review, not a live deploy):** the first version of this wired
+      `--today` into the initContainer unconditionally, and forward had no
+      read-before-write guard at all (unlike backfill) — as written, every
+      pod restart would have forced *every* task's forward checkpoint back
+      to today 00:00, reprocessing all of today even for healthy tasks.
+      (User's "restart sırasında sanki sıfırdan başladı" observation that
+      prompted this review was NOT actually caused by this initContainer —
+      confirmed after the fact that prod has never had this chart deployed
+      — it was the manual `--today --apply` run itself landing on the
+      original script's unconditional 30-task `SET`, the exact "affects 25
+      unrelated tasks too" risk already flagged before that command ran.
+      Don't attribute an observed symptom to a repo change without
+      confirming a deploy actually happened.) Fixed regardless, since the
+      gap was real: forward now gets the same read-before-write guard as
+      backfill (only seeded if genuinely 0/missing) and the initContainer
+      dropped `--today` (defaults to "now" when it does have to seed, to
+      avoid a today-reprocess/duplicate risk rather than recreating what
+      the engine's own first-run fallback already does).
+      This masks the symptom on every pod recreation going forward; it
+      does not explain or fix the underlying non-persistence. Remove the
+      `checkpointSeed` block once the real cause is found. Confirmed live
+      during this session: prod's chart-bundled `tasks.json`/`config.json`
+      are separately stale too (still `[15, 60]` intervals — see the
+      pre-existing "Nexus chart missing the missing:N/A fix" item) — a
+      `helm upgrade` on this chart right now would regress today's
+      60m-removal fix even though it delivers this new stopgap.
 - [ ] **Add a request timeout to qw-rollup-engine's `reqwest::Client`**
       (`src/main.rs` — only `tcp_keepalive` is set, no `.timeout()`). Low
       risk today since `max_concurrent_tasks` isn't deployed yet, but once
