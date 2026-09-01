@@ -2,6 +2,32 @@
 
 ## Open Decisions
 
+- **qw-rollup-engine bucket-limit-exceeded fix: `host_prefix_chars` vs.
+  cascading rollups vs. raising Quickwit's limit?** 2026-09-01:
+  `maya_ifstatus_15m`/`_60m` and `flow_rollup_60m_site_ip_proto` fail
+  backward-backfill windows on Quickwit's `aggregation_bucket_limit`
+  (default 65000, ~77-88k actual) — confirmed baked into OGM's Quickwit
+  image, not ConfigMap-adjustable. Three options, not compared against each
+  other in detail: (a) turn on `host_prefix_chars` for the 2-3 failing
+  tasks — cheapest, already-built/tested mechanism (and, as of today,
+  correctly bound by `max_concurrent_tasks` — see DONE.md), pure
+  `tasks.json` change; (b) cascade 60m (and other coarse intervals) from an
+  already-rolled-up finer index instead of querying raw each time — real
+  complication: 19 `avg` metrics in `tasks.json` don't cascade via simple
+  re-averaging (avg-of-avg is wrong unless sample counts match across the
+  sub-windows), which is exactly why the original 60m implementation
+  (`1b79c85`) deliberately stayed raw-only; correct cascading needs either a
+  write-schema change (store `sum`+`count`, divide at read time — has
+  downstream blast radius on whatever reads the `_avg` fields today) or an
+  accepted-approximation via bucket `doc_count` weighting; (c) raise
+  `aggregation_bucket_limit` itself — fixes every task at the root, but
+  needs a Quickwit image rebuild (not a config patch) and a considered
+  value against the paired `aggregation_memory_limit` (OOM risk, same class
+  of problem the 60m-disable mitigation below was responding to).
+  **Session ended mid-discussion, before any of these were chosen or ruled
+  out.** In the meantime, all 60m tasks were disabled entirely
+  (`tasks.json`, not yet deployed) as a blunter, faster mitigation for the
+  OOM risk — see TODO.md 🔴 and DONE.md 2026-09-01.
 - **OGM containerd/docker `docker.io`/`registry.k8s.io` mirror — add it, or
   keep mirroring per-image via skopeo?** Confirmed 2026-08-28 (twice, on a
   fresh incident): no OGM node has real internet at all (not just master

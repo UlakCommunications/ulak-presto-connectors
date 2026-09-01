@@ -4,6 +4,48 @@ Completed work moved to [`DONE.md`](DONE.md). Connector-base cache/
 architecture items tracked in
 [`ulak-presto-connector-base/TODO.md`](ulak-presto-connector-base/TODO.md).
 
+## 🔴 FIRST DECISION NEEDED — qw-rollup-engine bucket-limit root cause (2026-09-01)
+
+- [ ] **Pick how to actually fix `aggregation_bucket_limit` exceeded (not just
+      the 60m shed below) for `maya_ifstatus`/`flow_rollup_*_ip_proto`.**
+      Three options surfaced, none chosen — **conversation ended before a
+      decision was made**:
+      1. **`host_prefix_chars` on the 2-3 failing tasks** — cheapest, reuses
+         the existing (and now correctly `max_concurrent_tasks`-bound, see
+         DONE.md) partitioning mechanism, `tasks.json`-only change.
+         `maya_ifstatus` is at ~77-78k buckets vs. the 65k limit;
+         `host_prefix_chars: 1` (16-way split) already clears it with margin.
+      2. **Cascade 60m (and potentially other coarse intervals) from an
+         already-rolled-up finer index instead of raw** — bigger: 19 `avg`
+         metrics in `tasks.json` don't cascade correctly via simple
+         re-averaging (avg-of-avg ≠ true avg unless sample counts match),
+         which is exactly why `1b79c85` chose raw-only in the first place.
+         Doing this right needs either a write-schema change (store
+         `sum`+`count`, divide at read time — touches what the Trino
+         connector/Grafana read) or an accepted-approximation via bucket
+         `doc_count` weighting.
+      3. **Raise Quickwit's own `aggregation_bucket_limit`** — fixes it at
+         the source for every task, but needs a Quickwit image rebuild
+         (baked into the image on OGM, not ConfigMap-adjustable, see
+         CLAUDE.md) and care around the paired `aggregation_memory_limit`
+         (OOM risk).
+      See TOBEDECIDED.md.
+- [ ] **Decide whether/when to commit the qw-rollup-engine working-tree
+      changes** (60m dropped from `tasks.json`, the
+      `max_concurrent_tasks`/partition-semaphore fix — see DONE.md
+      2026-09-01 #4/#5). Currently uncommitted on `master`.
+- [ ] **Decide whether/when to push+deploy `qw-rollup-engine:3.1.4-20260901-OGM`**
+      (staged at `~/Downloads/omg_rollup/images/`, not pushed anywhere) to
+      OGM and/or yucemonitoring — both clusters still run the
+      pre-2026-08-28 image with none of this quarter's fixes live except
+      the ConfigMap-only `missing:N/A` one.
+- [ ] **Add a request timeout to qw-rollup-engine's `reqwest::Client`**
+      (`src/main.rs` — only `tcp_keepalive` is set, no `.timeout()`). Low
+      risk today since `max_concurrent_tasks` isn't deployed yet, but once
+      it is, one genuinely hung Quickwit/Trino request would permanently
+      exhaust the shared semaphore and stall the whole engine — no other
+      task could ever acquire a permit again.
+
 ## 🔴 FIRST DECISION NEEDED — metrics3_60 backfill scope (2026-08-28)
 
 - [ ] **`metrics3_60` backfill from `metrics3_15` — scoped, not started, needs
