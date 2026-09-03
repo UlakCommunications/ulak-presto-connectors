@@ -135,12 +135,32 @@ architecture items tracked in
       backfill, plus a `--url` flag), the other two are earlier snapshots.
       Worth reconciling to one canonical copy; not done this session (out
       of scope for what was asked).
+- [ ] **OGM's LIVE `qw-rollup-engine-config` ConfigMap still ships `intervals:
+      [15, 60]` for all 15 tasks — confirmed 2026-09-03, not just chart-file
+      drift.** `ca6f931` (2026-09-01, "drop 60m interval... to mitigate OGM
+      Quickwit OOM risk") is committed on repo `master` (local checkout's
+      `tasks.json` correctly shows `intervals: [15]`, and `task_expand.rs`'s
+      own test asserts this) but was **never applied to OGM's live
+      ConfigMap** — fetched directly via `kubectl get configmap
+      qw-rollup-engine-config -o jsonpath='{.data.tasks\.json}'`, still
+      `[15, 60]` everywhere. This means OGM is running the exact OOM-risk
+      config the fix was written to eliminate, right now, on all 15 tasks
+      (`metrics3_60`, `rollup_60m_site_*`, etc. all still actively being
+      written). Separately confirmed: `metrics3_60`'s Quickwit `index_uri`
+      is misconfigured — `file:///quickwit/qwdata/indexes/metrics3_15`
+      (points at `metrics3_15`'s directory, not its own `metrics3_60`),
+      confirmed via `/api/v1/indexes/metrics3_60/describe`; likely a
+      copy-paste at index-creation time, worth a fix independent of the
+      OOM item. **Action offered to user 2026-09-03, not yet confirmed:**
+      patch `intervals` back to `[15]` in the live ConfigMap (same pattern
+      as the tasks.json fix) + restart the `qw-rollup-engine` pod.
 - [ ] **`ai/anomaly`/`helm_repo1` rollup chart & datagen dedup — done
       2026-09-02/03, two loose ends.** Full account in DONE.md. (1)
       `helm_repo1/qw-rollup-engine/files/tasks.json` still has `[15, 60]`
       per-task intervals even though `qw-rollup-engine` itself dropped 60m
       entirely (`ca6f931`, OOM mitigation) — pre-existing drift, not
-      touched (a content decision, not a structural one). (2) `master`'s
+      touched (a content decision, not a structural one), see the live-OGM
+      version of this same gap directly above. (2) `master`'s
       old `data_gen_cyclic.py` had a `SCENARIOS`-cycling anomaly-type-
       variety feature (varies which metric/flow-type gets anomalized each
       cycle) not present in the now-canonical `monitoring_temp` copy —
@@ -247,11 +267,27 @@ architecture items tracked in
       exhaust the shared semaphore and stall the whole engine — no other
       task could ever acquire a permit again.
 
-## 🔴 FIRST DECISION NEEDED — metrics3_60 backfill scope (2026-08-28)
+## 🔴 FIRST DECISION NEEDED — metrics3_60 backfill scope (2026-08-28, data refreshed 2026-09-03)
 
+- [ ] **Live-checked 2026-09-03 via `/api/v1/indexes/{id}/describe`:
+      `metrics3_60` now covers 2026-08-28 07:00 → 2026-09-03 11:00 UTC
+      (~6.17 days, 22 splits, 57.4M docs); `metrics3_15` covers 2026-08-27
+      ~05:30 → same end (~6.9 days, 40 splits, 254.7M docs).** Both grew
+      purely by running forward since task creation — **the backfill
+      mechanism (`c99300c`) never actually ran for either**, because both
+      are pre-existing production tasks whose forward checkpoint was
+      already non-zero the first time that code executed (permanently
+      inert by design, see CLAUDE.md). Raw `metrics3` itself currently
+      retains only ~1.8h (`min`≈`max`-6590s) — so even a working backfill
+      could only ever pull a couple of hours deeper than "now" at any given
+      run, not real historical depth; the ~6-7 day figures above are simply
+      how long these tasks have been running, not a backfill result. This
+      changes the framing of the item below: there is no shallow-raw
+      shortcut to a deep `metrics3_60` history — any real backfill has to
+      synthesize/tile from `metrics3_15` as originally planned, not lean on
+      the engine's own backfill-on-first-run path.
 - [ ] **`metrics3_60` backfill from `metrics3_15` — scoped, not started, needs
-      a scope decision before running.** `metrics3_60` only has ~7h of real
-      data (from today); `metrics3_15` has ~34h. Plan (per user, this
+      a scope decision before running.** Plan (per user, earlier
       session): take a template window from `metrics3_15`, tile-shift it
       backward from `metrics3_60`'s own earliest real timestamp, **site-by-
       site sequentially** (deliberately no concurrency — the prior session's
@@ -267,6 +303,83 @@ architecture items tracked in
       target=`metrics3_60`, one site at a time, minimal/no concurrency
       within a site too) and run it via `nohup...&disown` natively on OGM,
       not foreground from the local session. See TOBEDECIDED.md.
+
+## Open — from 2026-09-03 session (OGM history-tier revert, alert_rule SQL, maya-monitoring-works)
+
+- [ ] **OGM Trino coordinator restart — pending, not confirmed by user.**
+      `maya-trino-configmap` (OGM, `maya3`) was patched 2026-09-03: removed
+      `history-tiers=60:86400`, `history-time-threshold-seconds` changed
+      `15:3600` → `10800` (reverts to pre-multi-tier behavior — raw ≤3h,
+      then the classic hardcoded 15m tier, no 60m routing — done because
+      `metrics3_60` has known coverage/`index_uri` problems, see above).
+      Backup of the pre-patch ConfigMap saved to the session scratchpad
+      (not durable — re-fetch live and re-save if actually needed later).
+      **Trino only reads catalog properties at startup — this patch is
+      inert until `maya-trino-single-coordinator` is restarted**
+      (`kubectl rollout restart deployment/maya-trino-single-coordinator -n
+      maya3`), which briefly interrupts live OGM Grafana queries. User was
+      asked whether/when to run this restart; no answer given before the
+      session ended.
+- [ ] **yucemonitoring parity decision.** yucemonitoring's
+      `maya-trino-configmap` still has the original multi-tier config
+      (`history-time-threshold-seconds=15:10800` + `history-tiers=
+      60:86400`, i.e. correctly on a 3h raw window, unlike OGM's now-fixed
+      1h one) — **not touched this session**, since the ask was scoped to
+      OGM only. Needs a decision: revert yucemonitoring the same way (drop
+      `history-tiers`, keep `10800`), or leave its 60m tier live there.
+- [ ] **`maya-postgres-single`/pgWorks upgrade (cfg + image) — investigated,
+      not executed.** User's actual ask ("sadece cfg ve imaj değiştirmeyi
+      planlıyorum") is scoped narrowly, but 3 things are still needed before
+      touching anything: (1) exact new `pgWorksImage.tag` and which `cfg`
+      keys change — not specified yet; (2) which branch of `monitoring_temp`
+      (source repo for Jenkins job `postgres-monitoring-works-platform`,
+      `JENKINS_JOB_POSTGRES` in `.env`) actually has the intended change —
+      currently on `develop`, matches the job's default `branch_name`, not
+      independently verified to contain the target change; (3) how the Helm
+      side is actually deployed on OGM today — `helm_repo`'s local checkout
+      is on unmerged branch `mr-369` (never merged to `master`/`develop`)
+      with a `pgWorksImage.repository` mismatch vs. what's actually live
+      (`maya/maya-monitoring-jobs` locally vs. `maya/monitoring-jobs` live,
+      confirmed via `helm get values -a`) — don't apply that local
+      `values.yaml` wholesale; use `helm upgrade --reuse-values --set
+      pgWorksImage.tag=... --set pgWorks.<KEY>=...` instead, or confirm the
+      real deploy path first. Along the way, found and confirmed the
+      user's separately-pasted `postgres-monitoring-works` CronJob (old tag
+      `3.0.8-12122025-ST`, suspended) was a **stale orphaned duplicate** of
+      the real, already-current `maya-postgres-single-cronjob`
+      (`3.1.4-20260810-OGM`, deployed via Helm since 2026-08-18, healthy) —
+      it was deleted (by the user or their own tooling) mid-session; nothing
+      to do about it, just don't confuse it with the live cronjob again.
+- [ ] **Grafana `generic_alert` split (`cpe_eval_group`) — SQL built and
+      query-tested, not yet applied to any database.** From
+      `~/Downloads/ogm_grafana_20260903.sql.gz` (a full `grafana` DB dump):
+      11 new `generic_alert_*` rules (df, temperature, maya_ifstatus, bfd,
+      cpu, memory, maya_probe, maya_system_services, maya_dhcp_relay,
+      maya_dhcp, maya_bgp — all unpaused, versions 8-18, created
+      2026-08-19) plus a corrected `generic_alert` parent (id=7): its query
+      had drifted to `m_notif_plugin:df` only (same as `generic_alert_df`,
+      paused) — rebuilt from the pre-drift broad query (`span_attributes.p:
+      maya_alarm`, last seen intact at v320/2026-05-22) with an explicit
+      `AND NOT (...)` exclusion for the 11 split-off `m_notif_plugin`
+      values, unpaused, bumped to v347. The exclusion query's syntax was
+      verified by running it live against OGM Quickwit's `/search` (parses
+      cleanly, `errors: []`; 0 hits is expected — no alarm data in the
+      currently-retained raw window, not a query problem). All 12
+      `alert_rule` + 12 matching `alert_rule_version` rows are `INSERT ...
+      ON CONFLICT (id) DO UPDATE` (idempotent — safe whether the target
+      already has these exact rows or not), saved to
+      `~/Downloads/generic_alert_perf_rules.sql` and
+      `~/Downloads/generic_alert_perf_rule_versions.sql` (copied out of the
+      session scratchpad so they survive). **User said they'd review the
+      new `generic_alert` query before applying** — not yet confirmed
+      applied to OGM's `grafana` Postgres DB. Apply order: `alert_rule`
+      before `alert_rule_version` by convention (no FK enforces it either
+      way, confirmed — `alert_rule_version` only has a PK on its own `id`).
+      No need to stop Grafana first (both files are atomic per-statement
+      upserts; this project's own `OGM_DEMO_INSTALL_DONE.md` did similar
+      direct-SQL fixes against a live Grafana before, Bölüm 6/F) — if
+      worried about the new rules firing immediately, insert with
+      `is_paused='t'` first and unpause via UI instead of a full stop.
 
 ## Open — resolved this session, see DONE.md for full detail (2026-08-28)
 

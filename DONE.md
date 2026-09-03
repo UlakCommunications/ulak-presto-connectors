@@ -1,5 +1,72 @@
 # DONE.md — Completed Work
 
+## Session 3 September 2026 (afternoon/evening): OGM Trino history-tier reverted+verified live; qw-rollup-engine OOM-mitigation-not-deployed and metrics3_60 index_uri bugs found; Grafana `generic_alert` split rebuilt as tested, ready-to-apply SQL; maya-postgres-single confirmed already current
+
+### 1. OGM `quickwit.properties` history-tier config reverted to pre-multi-tier, live-verified
+Patched `maya-trino-configmap` (OGM, `maya3`) via `kubectl patch --type merge
+--patch-file` per CLAUDE.md's rule (not `sed`): removed `history-tiers=
+60:86400`, changed `history-time-threshold-seconds` from `15:3600` to
+`10800`. Traced the resulting behavior precisely through
+`HistoryTier.build()`/`UlakQuickwitConnectorFactory` before and after: old
+config routed raw≤1h→15m(1h-24h)→60m(>24h); new config is a single hardcoded
+15m tier at 10800s (raw≤3h, then 15m forever after, no 60m). Backed up the
+pre-patch ConfigMap first. Reason: `metrics3_60` has real problems (see #3
+below) that make routing to it unsafe right now. Coordinator restart to
+actually activate this is still pending user go-ahead — see TODO.md.
+
+### 2. `maya-postgres-single`/pgWorks — confirmed already upgraded, stale duplicate CronJob resolved
+User pasted a `postgres-monitoring-works` CronJob (old tag
+`3.0.8-12122025-ST`, suspended) asking how to upgrade it. Turned out to be a
+stale orphaned leftover from before a chart rename — the real, actively
+running cronjob is `maya-postgres-single-cronjob`, already on
+`3.1.4-20260810-OGM` via Helm release `postgres-cluster-maya-single`
+(deployed 2026-08-18, healthy, running every 5 min). The stale duplicate got
+deleted mid-session (by the user or their own tooling). Also confirmed
+`postgres-monitoring-works-platform`'s real Jenkins params via the API
+(`branch_name` default `develop`, `version`, `platform`, `prod`/`prod_ip`,
+`Jenkins_pipeline_branch`, `TAG` pattern `grafana_init-<version>`) and found
+`helm_repo`'s local checkout (branch `mr-369`, never merged) has a
+`pgWorksImage.repository` mismatch vs. what's actually live — flagged, not
+fixed (out of scope; the user's actual cfg+image change wasn't started this
+session, see TODO.md).
+
+### 3. Two new qw-rollup-engine/Quickwit bugs found on OGM
+(a) OGM's live `qw-rollup-engine-config` ConfigMap still has `intervals:
+[15, 60]` for all 15 tasks — the committed-but-never-deployed `ca6f931` fix
+(2026-09-01, OOM mitigation) never made it past the repo. (b)
+`metrics3_60`'s Quickwit `index_uri` is `file:///quickwit/qwdata/indexes/
+metrics3_15` — pointing at `metrics3_15`'s directory instead of its own,
+confirmed via `/api/v1/indexes/metrics3_60/describe`. Neither fixed yet
+(both offered to the user, see TODO.md). Also root-caused *why*
+`metrics3_60`/`metrics3_15` never got deep history despite the backward-
+backfill feature (`c99300c`) existing in code: both are pre-existing
+production tasks whose forward checkpoint was already non-zero the first
+time that code ran, which the code explicitly treats as "permanently
+inert" for backfill — confirmed by reading `task_loop.rs`'s exact branch
+logic, not guessed. Live `/describe` calls gave real current coverage for
+`metrics3`, `metrics3_15`, `metrics3_60` (now in TODO.md, replacing stale
+2026-08-28 numbers).
+
+### 4. Grafana `generic_alert` (cpe_eval_group) split — rebuilt correctly, tested, ready to apply
+From a full `grafana` Postgres dump (`~/Downloads/ogm_grafana_20260903.sql.gz`),
+extracted the 11 already-created `generic_alert_*` rules (split off
+2026-08-19 for perf) plus rebuilt the `generic_alert` parent rule, whose
+query had drifted to matching only `df` (same as `generic_alert_df`, and
+paused as a result). Found the last intact "broad" query in
+`alert_rule_version` history (v320, 2026-05-22, `span_attributes.p:
+maya_alarm` with no plugin filter — versions since v192 only ever showed
+either that broad form or the narrowed-to-df form, never an exclusion
+list), then added an explicit `AND NOT (...)` exclusion for the 11 split
+plugin values, unpaused it, version 347. **Verified the exclusion query's
+Quickwit syntax by running it live against OGM** (`NOT (field:v1 OR
+field:v2 OR ...)` form — the naive `NOT field:(...)` form was tried first
+and failed to parse) rather than handing over untested syntax for a
+production alert. All 12 rows (+ 12 matching `alert_rule_version` rows) are
+idempotent `ON CONFLICT (id) DO UPDATE` inserts, saved to
+`~/Downloads/generic_alert_perf_rules.sql` / `_rule_versions.sql` (copied
+out of the ephemeral session scratchpad). Not yet applied — user wanted to
+review the rebuilt query first.
+
 ## Session 2-3 September 2026: Redis-only checkpoint rework shipped+built+verified; found and fixed a real stale-source Jenkins bug; `ai/anomaly`+`helm_repo1` branch hygiene and rollup-chart/datagen dedup across 3 repos
 
 ### 1. qw-rollup-engine checkpoint architecture: Redis-only, no silent fallback
