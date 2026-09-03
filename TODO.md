@@ -64,8 +64,90 @@ architecture items tracked in
       step: get the actual symptom from the user, then check the
       Deployment's `livenessProbe`/`readinessProbe` definition and pod
       filesystem permissions on whichever cluster shows it.
-- [ ] **Redis checkpoints not created automatically — re-flagged 2026-09-01,
-      still unresolved from 2026-08-31.** Prod qw-rollup-engine pod restart
+- [x] **RESOLVED (the masking mechanism, not the original prod incident) —
+      2026-09-02: `qw-rollup-engine` checkpoint code rewritten directly on
+      `master`** (`src/checkpoint.rs`, `main.rs`, `task_loop.rs`,
+      `types.rs`, `README.md` — working tree only, not committed/pushed
+      yet, user's call). Two changes, independent of `feat/checkpoint-
+      refactor`/MR !4 (which still has its own compile bug and
+      ConfigMap-rollout risk, see the entry below — unchanged, untouched):
+      1. **Checkpoint backend is a resolved-once `CheckpointBackend` enum
+         (`Redis(MultiplexedConnection)` or `File`)** driven by a new
+         `checkpoint_type` config field — no more automatic runtime
+         fallback from Redis to file on any GET/SET outcome. On a Redis
+         error/timeout the *same* backend retries every 60s, logged loudly
+         (`error!`), forever — it no longer silently drops to the file
+         path (which is what let a transient blip, or a clean "not found",
+         get masked as "first run" and reprocess every task from today).
+         `checkpoint_type` unset defaults to `"redis"` when `redis_url`/
+         `REDIS_URL` is configured (else `"file"`), so existing ConfigMaps
+         that never heard of this field keep behaving exactly as before —
+         this is the exact deployment-regression risk found in MR !4,
+         fixed here.
+      2. **A missing checkpoint is persisted immediately** (today 00:00),
+         not deferred to the first successful rollup window — closes the
+         gap where a pod crash-looping before that first window ever
+         completes would see "no checkpoint" on every single restart and
+         never actually create one, indistinguishable from a real Redis
+         bug.
+      Single shared `MultiplexedConnection` (was: a new raw connection per
+      GET/SET call) and a `backfill_enabled` on/off toggle also carried
+      over from MR !4's design. All of the above verified end-to-end
+      against a throwaway local Redis container and a `checkpoint_type:
+      "file"` run (real 15-task `tasks.json`): single "Redis connection
+      established" log line total, all 15 forward+backfill keys/files
+      created immediately with the correct value, `backfill_enabled:
+      false` skips backfill entirely with zero probes/keys, Redis-
+      unreachable blocks+retries every 60s without ever creating
+      `checkpoints/`. **Still NOT actually explained:** why the specific
+      2026-08-31 prod incident's Redis GET came back clean-nil for all 30
+      tasks in the first place — this fix stops that class of event from
+      ever being *masked* again, it doesn't retroactively diagnose that
+      one incident. See [[qw-rollup-engine-checkpoint-refactor-branch]] in
+      memory for the ranked list of un-checked hypotheses (Redis itself
+      has no persistence and restarted; `tasks.json` naming drift left
+      stale keys; wrong DB index/instance; maxmemory eviction; or simply
+      the pod's first-ever correctly-wired restart) if that's worth
+      pursuing later.
+      Separately, user copied `reset_redis_checkpoints.py` and
+      `seed_redis_checkpoints.py`/`.sh` into `scripts/checkpoints/` in this
+      same repo (staged, `indexes/` also reorganized to `scripts/indexes/`)
+      — closes the pre-existing "not committed anywhere durable" gap noted
+      below and in memory.
+      **2026-09-02/03 follow-up:** the fix was built, pushed to the dev
+      registry (`192.168.57.202:35000/maya/qw-rollup-engine:3.1.4-20260902`,
+      verified via `grep -a` on the shipped binary to actually contain the
+      new checkpoint code — see DONE.md) but **not yet rolled out to OGM or
+      yucemonitoring** — both clusters' live Deployments still run their old
+      image. Actually deploying it needs the same `checkpoint_type: "redis"`
+      ConfigMap addition flagged above for MR `!4` (unset defaults to
+      `"redis"` automatically when `redis_url` is already set, so this is
+      likely a no-op in practice, but confirm before rollout). MR `!4`
+      itself (mustafa.simsek's branch) is superseded by this fix but was
+      left untouched/not closed — worth a conversation with him rather than
+      unilaterally closing it.
+      **Also found while porting the chart's `checkpointSeed` stopgap to
+      `helm_repo1` (see below):** there are now 3 different versions of
+      `seed_redis_checkpoints.py` in the project (`~/Downloads/omg_rollup/`,
+      `qw-rollup-engine/scripts/checkpoints/`, and `helm_repo1/qw-rollup-
+      engine/files/`) — the `helm_repo1` one is the most advanced (adds a
+      read-before-write guard on the *forward* checkpoint too, not just
+      backfill, plus a `--url` flag), the other two are earlier snapshots.
+      Worth reconciling to one canonical copy; not done this session (out
+      of scope for what was asked).
+- [ ] **`ai/anomaly`/`helm_repo1` rollup chart & datagen dedup — done
+      2026-09-02/03, two loose ends.** Full account in DONE.md. (1)
+      `helm_repo1/qw-rollup-engine/files/tasks.json` still has `[15, 60]`
+      per-task intervals even though `qw-rollup-engine` itself dropped 60m
+      entirely (`ca6f931`, OOM mitigation) — pre-existing drift, not
+      touched (a content decision, not a structural one). (2) `master`'s
+      old `data_gen_cyclic.py` had a `SCENARIOS`-cycling anomaly-type-
+      variety feature (varies which metric/flow-type gets anomalized each
+      cycle) not present in the now-canonical `monitoring_temp` copy —
+      flagged as a possible enhancement, not implemented (real feature
+      work, not cleanup).
+- [ ] **Original item, kept for the full incident record (2026-09-01,
+      2026-08-31).** Prod qw-rollup-engine pod restart
       found zero Redis checkpoints for all 30 tasks (`Ok(Ok(None))` — a
       clean GET returning nil, not a connection error) despite `redis.url`
       being set and Redis reachable — every task fell back to "First run,
@@ -117,6 +199,47 @@ architecture items tracked in
       pre-existing "Nexus chart missing the missing:N/A fix" item) — a
       `helm upgrade` on this chart right now would regress today's
       60m-removal fix even though it delivers this new stopgap.
+      **2026-09-02: teammate (mustafa.simsek) pushed `qw-rollup-engine`
+      branch `feat/checkpoint-refactor` (commit `5b43a0c`, unmerged)
+      attempting a real fix** — `MultiplexedConnection` established once
+      at startup and shared/cloned per task (replaces the old code's
+      wasteful one-new-connection-per-`get`/`set`-call pattern), a new
+      `checkpoint_type`/`backfill_enabled` config toggle, `get_last_checkpoint`
+      now returns `Option<i64>` instead of overloading `0` for both "file
+      fallback used" and "genuinely never checkpointed", and the old silent
+      Redis-error→file fallback is replaced with an infinite 60s-interval
+      retry (no cap) on both the Redis and file paths. **Does not compile
+      as pushed** — `cargo check` (verified in an isolated worktree):
+      `error[E0425]: cannot find value 'redis_client' in this scope` at
+      `src/task_loop.rs:85`, a leftover from the `redis_client`→`redis_conn`
+      rename (13 of 14 call sites were renamed, this one wasn't). **Bigger
+      risk once fixed:** `main.rs` now only initializes Redis at all when
+      `config.checkpoint_type.as_deref() == Some("redis")` — `redis_url`/
+      `REDIS_URL` alone is no longer sufficient. None of the 3 live
+      environments' ConfigMaps have `checkpoint_type` set today (the field
+      is new), so deploying this branch as-is would silently switch
+      **every** environment from Redis-backed checkpoints to the
+      already-known-fragile file fallback (the `emptyDir`/`fsGroup` bug
+      documented in CLAUDE.md) — needs `checkpoint_type: "redis"` added to
+      every ConfigMap in the same rollout, not after. README.md:123 and
+      the repo's own `config.json` still describe/model the old
+      always-try-Redis-then-file-fallback behavior — neither updated on
+      this branch. Not merged, not reviewed with the author yet. See
+      [[qw-rollup-engine-checkpoint-mystery-todo]] in memory — this branch
+      does not, on its own, explain the original clean-nil-GET mystery
+      (that's a `None` either way under the new code), only changes the
+      failure mode around it.
+      **Also 2026-09-02:** wrote `~/Downloads/omg_rollup/
+      reset_redis_checkpoints.py` (same dir/dependency-free-RESP style as
+      `seed_redis_checkpoints.py`) — an explicit-task-only DELETE/SET tool
+      for forcibly resetting one task's checkpoint (and/or its `_backfill`
+      companion) to a chosen state, distinct from `seed`'s fill-only-if-
+      empty semantics. Requires `--task` (no implicit "all"), defaults to
+      dry-run, defaults to DELETE unless `--set`/`--set-today`/`--set-now`/
+      `--set-pending`/`--set-done` is given. Smoke-tested end-to-end
+      against a throwaway local Redis container (AUTH, GET, SET, DEL,
+      wrong-password handling, `--url` parsing) — not yet run against any
+      live cluster.
 - [ ] **Add a request timeout to qw-rollup-engine's `reqwest::Client`**
       (`src/main.rs` — only `tcp_keepalive` is set, no `.timeout()`). Low
       risk today since `max_concurrent_tasks` isn't deployed yet, but once
