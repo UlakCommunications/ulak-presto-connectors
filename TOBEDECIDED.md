@@ -41,11 +41,15 @@
   skopeo path. Also still unresolved: whether Nexus's `admin`/`nexus2025!`
   basic-auth credential (still in active use) needs rotating.
 - **`metrics3_60` backfill scope — full 7-day/~231M-doc run, or a smaller
-  template window?** 2026-08-28: user wants `metrics3_60` (only ~7h of
-  real data) backfilled from a `metrics3_15` template (has ~34h), tile-
+  template window?** 2026-08-28: user wants `metrics3_60` backfilled from a
+  `metrics3_15` template, tile-
   shifted backward site-by-site sequentially (deliberately no concurrency,
   learned from the incident this exact class of job caused earlier the
-  same day — see DONE.md). Measured before running anything: a 1-hour
+  same day — see DONE.md). **Numbers refreshed 2026-09-03 via live
+  `/describe`:** `metrics3_60` now covers ~6.17 days (2026-08-28 07:00 →
+  2026-09-03 11:00 UTC), `metrics3_15` ~6.9 days — both grew purely by
+  running forward since task creation, not backfill (confirmed inert for
+  both, see CLAUDE.md/TODO.md). Measured before running anything: a 1-hour
   template window = 1,378,156 docs; a full 7-day/168-shift run at that
   rate = ~231M docs, ~60x `metrics3_60`'s current size, likely many hours
   fully sequential. Options: (a) run the full scope anyway, slow but
