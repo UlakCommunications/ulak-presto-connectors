@@ -93,7 +93,7 @@ public final class AggsDslCompiler {
             Terms t = termsList.get(i);
             if (isBlank(t.id)) {
                 termsList.set(i, new Terms(
-                        ids.claim(fieldToId(t.field)), t.field, t.size, t.orderMetricId, t.orderDir, t.minDocCount
+                        ids.claim(fieldToId(t.field)), t.field, t.size, t.orderMetricId, t.orderDir, t.minDocCount, t.missing, t.orderByKey
                 ));
             }
         }
@@ -175,6 +175,9 @@ public final class AggsDslCompiler {
             ObjectNode termsObj = MAPPER.createObjectNode();
 
             termsObj.put("field", t.field);
+            if (t.missing != null) {
+                termsObj.put("missing", t.missing);
+            }
             termsObj.put("size", t.size);
             termsObj.put("min_doc_count", t.minDocCount);
 
@@ -188,6 +191,14 @@ public final class AggsDslCompiler {
                 }
                 ObjectNode ord = MAPPER.createObjectNode();
                 ord.put(mid, dir);
+                termsObj.set("order", ord);
+            } else if (t.orderByKey) {
+                String dir = isBlank(t.orderDir) ? "desc" : t.orderDir.trim().toLowerCase(Locale.ROOT);
+                if (!"asc".equals(dir) && !"desc".equals(dir)) {
+                    throw new IllegalArgumentException("Invalid order direction: " + dir);
+                }
+                ObjectNode ord = MAPPER.createObjectNode();
+                ord.put("_key", dir);
                 termsObj.set("order", ord);
             }
 
@@ -262,12 +273,15 @@ public final class AggsDslCompiler {
     }
 
     private static final class Terms {
-        final String id, field, orderMetricId, orderDir;
+        final String id, field, orderMetricId, orderDir, missing;
         final int size, minDocCount;
-        Terms(String id, String field, int size, String orderMetricId, String orderDir, int minDocCount) {
+        final boolean orderByKey;
+        Terms(String id, String field, int size, String orderMetricId, String orderDir, int minDocCount, String missing, boolean orderByKey) {
             this.id = id; this.field = field; this.size = size;
             this.orderMetricId = orderMetricId; this.orderDir = orderDir;
             this.minDocCount = minDocCount;
+            this.missing = missing;
+            this.orderByKey = orderByKey;
         }
     }
 
@@ -295,24 +309,31 @@ public final class AggsDslCompiler {
         int size = parseIntOrDefault(args.get("size"), 10);
         String id = args.get("id");
         int min = parseIntOrDefault(args.get("min"), 1);
+        String missing = args.get("missing");
 
-        // order=id:11:desc
+        // order=id:11:desc  or  order=key:desc (order by the bucket's own term value)
         String order = args.get("order");
         String orderMetricId = null;
         String orderDir = "desc";
+        boolean orderByKey = false;
         if (order != null && !order.trim().isEmpty()) {
             String o = order.trim();
-            if (!o.startsWith("id:")) {
-                throw new IllegalArgumentException("terms.order must be like order=id:11 or order=id:11:asc");
+            if (o.equals("key") || o.startsWith("key:")) {
+                orderByKey = true;
+                String[] parts = o.split(":", 2);
+                if (parts.length >= 2) orderDir = parts[1].trim();
+            } else if (o.startsWith("id:")) {
+                String[] parts = o.split(":", 3);
+                if (parts.length < 2) throw new IllegalArgumentException("terms.order missing metric id (order=id:11)");
+                orderMetricId = parts[1].trim();
+                if (orderMetricId.isEmpty()) throw new IllegalArgumentException("terms.order metric id is empty");
+                if (parts.length >= 3) orderDir = parts[2].trim();
+            } else {
+                throw new IllegalArgumentException("terms.order must be like order=id:11, order=id:11:asc, order=key or order=key:asc");
             }
-            String[] parts = o.split(":", 3);
-            if (parts.length < 2) throw new IllegalArgumentException("terms.order missing metric id (order=id:11)");
-            orderMetricId = parts[1].trim();
-            if (orderMetricId.isEmpty()) throw new IllegalArgumentException("terms.order metric id is empty");
-            if (parts.length >= 3) orderDir = parts[2].trim();
         }
 
-        return new Terms(id, field, size, orderMetricId, orderDir, min);
+        return new Terms(id, field, size, orderMetricId, orderDir, min, missing, orderByKey);
     }
 
     private static Metric parseMetric(String kind, Map<String, String> args) {
