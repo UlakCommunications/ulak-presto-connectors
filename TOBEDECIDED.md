@@ -2,6 +2,7 @@
 
 ## Open Decisions
 
+- **`generic_alert` TVF conversion — apply the raw-JSON variant or the DSL variant?** 2026-09-04: both are ready and proven equivalent to the current live query on real data (see DONE.md/TODO.md) — raw-JSON is byte-identical to today's `aggs` body (lowest risk, but keeps the same illegible ~170-line blob), DSL is a ~10-line human-readable equivalent that depends on this session's brand-new `missing=`/`order=key` compiler support (less battle-tested in production, though it passed the same live equivalence check). Applies to both yucemonitoring's `generic_alert` and, once converted, OGM's own.
 - **qw-rollup-engine bucket-limit-exceeded fix: `host_prefix_chars` vs.
   cascading rollups vs. raising Quickwit's limit?** 2026-09-01:
   `maya_ifstatus_15m`/`_60m` and `flow_rollup_60m_site_ip_proto` fail
