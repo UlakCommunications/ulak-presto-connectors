@@ -22,7 +22,7 @@ System-wide architecture doc lives in `backend/anomaly/CLAUDE.md` (cross-repo ob
 
 ## Query surfaces
 
-1. **TVF** (primary): `SELECT * FROM TABLE(quickwit.system.raw_query(qwindex=>'idx', ...))`
+1. **TVF** (primary): `SELECT * FROM TABLE(quickwit.system.raw_query("qwindex"=>'idx', ...))` — argument names must be double-quoted, see gotcha below
 2. **Plain table** (J56): `SELECT * FROM quickwit.default."<index-name>"` — no `//params` required; schema from `DocMapping.fieldMappings`; filter/limit pushed down to Quickwit
 
 ## Security
@@ -47,8 +47,10 @@ Connector uses `quickwit-java-client` (generated from QW 0.7.1 spec). Cluster ru
 - **L04b** `ConnectorBaseUtil` per-catalog state — gated on customer need (two catalogs with different Redis URLs)
 - **R22** Credential history rewrite — `master` branch still has old credential blobs; will be cleaned when `develop` is merged via MR
 
-## Recent completions (2026-05-15)
+## Recent completions (upd. 2026-09-04)
 
+- **DSL `missing=`/`order=key`** (2026-09-04) — `AggsDslCompiler.parseTerms()`/build loop now support `missing="<v>"` (ES bucket-for-missing-field) and `order=key[:asc|desc]` (order by the bucket's own term value, alongside the existing `order=id:<metricId>[:dir]`), matching the two ES `terms` options hand-written aggs JSON used that the DSL couldn't express before. Verified against the real fixture suite (91/91 `AggsDslCompilerTest` cases, 0 regressions) and against a real dashboard's aggs JSON (compiled DSL output now byte-identical to the hand-written blob it replaces). Commit `b6ebb49` on `1h_rollup`, merged to `develop` (`fa2ed94`).
+- **Gotcha confirmed 2026-09-04:** `raw_query(...)` TVF calls need double-quoted argument names (`"qwindex" => 'metrics3'`) — Trino uppercases unquoted ones (`QWINDEX`) and the call fails with `Unexpected argument name`. Fixed the "Query surfaces" example below, which was unquoted. Every live dashboard/alert checked this session still used the legacy `quickwit.metrics4."..."` hack, not the TVF, so this hadn't surfaced in practice yet.
 - **QW10** (2026-05-15) — `parseResponseHits()` all-null row filter restored. Commit `9c22330`, Jenkins #359.
 - **QW9-03** (2026-05-14) — base32 decode in `getTableHandle()` via `PlainTableQuery.decodeIfBase32Encoded()`. Commit `2d712eb`, Jenkins #357.
 - **QW9-01/02** (2026-05-14) — COLUMN_NOT_FOUND fixes for sqlversion=0.1 and empty-schema. Jenkins #355/#356.
