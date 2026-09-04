@@ -4,6 +4,406 @@ Completed work moved to [`DONE.md`](DONE.md). Connector-base cache/
 architecture items tracked in
 [`ulak-presto-connector-base/TODO.md`](ulak-presto-connector-base/TODO.md).
 
+## 🔴 FIRST DECISION NEEDED — qw-rollup-engine bucket-limit root cause (2026-09-01)
+
+- [ ] **Pick how to actually fix `aggregation_bucket_limit` exceeded (not just
+      the 60m shed below) for `maya_ifstatus`/`flow_rollup_*_ip_proto`.**
+      Three options surfaced, none chosen — **conversation ended before a
+      decision was made**:
+      1. **`host_prefix_chars` on the 2-3 failing tasks** — cheapest, reuses
+         the existing (and now correctly `max_concurrent_tasks`-bound, see
+         DONE.md) partitioning mechanism, `tasks.json`-only change.
+         `maya_ifstatus` is at ~77-78k buckets vs. the 65k limit;
+         `host_prefix_chars: 1` (16-way split) already clears it with margin.
+      2. **Cascade 60m (and potentially other coarse intervals) from an
+         already-rolled-up finer index instead of raw** — bigger: 19 `avg`
+         metrics in `tasks.json` don't cascade correctly via simple
+         re-averaging (avg-of-avg ≠ true avg unless sample counts match),
+         which is exactly why `1b79c85` chose raw-only in the first place.
+         Doing this right needs either a write-schema change (store
+         `sum`+`count`, divide at read time — touches what the Trino
+         connector/Grafana read) or an accepted-approximation via bucket
+         `doc_count` weighting.
+      3. **Raise Quickwit's own `aggregation_bucket_limit`** — fixes it at
+         the source for every task, but needs a Quickwit image rebuild
+         (baked into the image on OGM, not ConfigMap-adjustable, see
+         CLAUDE.md) and care around the paired `aggregation_memory_limit`
+         (OOM risk).
+      See TOBEDECIDED.md.
+- [x] **Committed 2026-09-01** — `f92ea65` (partition-semaphore fix) +
+      `ca6f931` (60m OOM mitigation), pushed to `origin/master`. See
+      DONE.md 2026-09-01 #8.
+- [ ] **Push+deploy `qw-rollup-engine:3.1.4-20260901-OGM` — still not live
+      anywhere.** Decided 2026-09-01: build via Jenkins
+      (`maya-anomaly-platform`, `type=rollup`) going forward, not another
+      manual local build like the one this tar came from (see DONE.md
+      2026-09-01 #6/#9) — confirmed live via the Jenkins API that `rollup`
+      is a valid `type` choice, no dedicated job needed. A real trigger
+      (`branch_name=master`, `version=3.1.4-20260901-OGM`, `platform=both`,
+      `prod=true`, `prod_ip=192.168.109.203`) was attempted but blocked by
+      this session's own auto-mode permission classifier before it ever
+      reached Jenkins — script staged in the session scratchpad (see
+      DONE.md #9), needs the user to run it directly (`!`-prefixed) or
+      grant a Bash permission rule. Both clusters still run the
+      pre-2026-08-28 image with none of this quarter's fixes live except
+      the ConfigMap-only `missing:N/A` one.
+- [ ] **`qw-rollup-engine`'s health check is broken (2026-09-01, reported
+      by user, not yet diagnosed).** No symptom detail captured yet (pod
+      restarts? readiness flapping? probe command failing?) — needed
+      before real root-causing. Working hypothesis only, from reading the
+      code: `task_loop.rs:278`'s `let _ = std::fs::File::create("/tmp/
+      healthy")` silently swallows any write error — the exact same
+      swallowed-error pattern `748893a` (checkpoint-logging) just fixed
+      for the Redis checkpoint path. If whatever k8s liveness/readiness
+      probe reads this file (existence or mtime), a silent write failure
+      would explain it — candidates: `readOnlyRootFilesystem` without a
+      `/tmp` emptyDir mount, or an fsGroup/permission mismatch (this
+      project has hit that exact class of bug before, see the
+      `persistence.type: emptyDir`/`fsGroup` note in CLAUDE.md). Not
+      verified against the live probe config on either cluster. Next
+      step: get the actual symptom from the user, then check the
+      Deployment's `livenessProbe`/`readinessProbe` definition and pod
+      filesystem permissions on whichever cluster shows it.
+- [x] **RESOLVED (the masking mechanism, not the original prod incident) —
+      2026-09-02: `qw-rollup-engine` checkpoint code rewritten directly on
+      `master`** (`src/checkpoint.rs`, `main.rs`, `task_loop.rs`,
+      `types.rs`, `README.md` — working tree only, not committed/pushed
+      yet, user's call). Two changes, independent of `feat/checkpoint-
+      refactor`/MR !4 (which still has its own compile bug and
+      ConfigMap-rollout risk, see the entry below — unchanged, untouched):
+      1. **Checkpoint backend is a resolved-once `CheckpointBackend` enum
+         (`Redis(MultiplexedConnection)` or `File`)** driven by a new
+         `checkpoint_type` config field — no more automatic runtime
+         fallback from Redis to file on any GET/SET outcome. On a Redis
+         error/timeout the *same* backend retries every 60s, logged loudly
+         (`error!`), forever — it no longer silently drops to the file
+         path (which is what let a transient blip, or a clean "not found",
+         get masked as "first run" and reprocess every task from today).
+         `checkpoint_type` unset defaults to `"redis"` when `redis_url`/
+         `REDIS_URL` is configured (else `"file"`), so existing ConfigMaps
+         that never heard of this field keep behaving exactly as before —
+         this is the exact deployment-regression risk found in MR !4,
+         fixed here.
+      2. **A missing checkpoint is persisted immediately** (today 00:00),
+         not deferred to the first successful rollup window — closes the
+         gap where a pod crash-looping before that first window ever
+         completes would see "no checkpoint" on every single restart and
+         never actually create one, indistinguishable from a real Redis
+         bug.
+      Single shared `MultiplexedConnection` (was: a new raw connection per
+      GET/SET call) and a `backfill_enabled` on/off toggle also carried
+      over from MR !4's design. All of the above verified end-to-end
+      against a throwaway local Redis container and a `checkpoint_type:
+      "file"` run (real 15-task `tasks.json`): single "Redis connection
+      established" log line total, all 15 forward+backfill keys/files
+      created immediately with the correct value, `backfill_enabled:
+      false` skips backfill entirely with zero probes/keys, Redis-
+      unreachable blocks+retries every 60s without ever creating
+      `checkpoints/`. **Still NOT actually explained:** why the specific
+      2026-08-31 prod incident's Redis GET came back clean-nil for all 30
+      tasks in the first place — this fix stops that class of event from
+      ever being *masked* again, it doesn't retroactively diagnose that
+      one incident. See [[qw-rollup-engine-checkpoint-refactor-branch]] in
+      memory for the ranked list of un-checked hypotheses (Redis itself
+      has no persistence and restarted; `tasks.json` naming drift left
+      stale keys; wrong DB index/instance; maxmemory eviction; or simply
+      the pod's first-ever correctly-wired restart) if that's worth
+      pursuing later.
+      Separately, user copied `reset_redis_checkpoints.py` and
+      `seed_redis_checkpoints.py`/`.sh` into `scripts/checkpoints/` in this
+      same repo (staged, `indexes/` also reorganized to `scripts/indexes/`)
+      — closes the pre-existing "not committed anywhere durable" gap noted
+      below and in memory.
+      **2026-09-02/03 follow-up:** the fix was built, pushed to the dev
+      registry (`192.168.57.202:35000/maya/qw-rollup-engine:3.1.4-20260902`,
+      verified via `grep -a` on the shipped binary to actually contain the
+      new checkpoint code — see DONE.md) but **not yet rolled out to OGM or
+      yucemonitoring** — both clusters' live Deployments still run their old
+      image. Actually deploying it needs the same `checkpoint_type: "redis"`
+      ConfigMap addition flagged above for MR `!4` (unset defaults to
+      `"redis"` automatically when `redis_url` is already set, so this is
+      likely a no-op in practice, but confirm before rollout). MR `!4`
+      itself (mustafa.simsek's branch) is superseded by this fix but was
+      left untouched/not closed — worth a conversation with him rather than
+      unilaterally closing it.
+      **Also found while porting the chart's `checkpointSeed` stopgap to
+      `helm_repo1` (see below):** there are now 3 different versions of
+      `seed_redis_checkpoints.py` in the project (`~/Downloads/omg_rollup/`,
+      `qw-rollup-engine/scripts/checkpoints/`, and `helm_repo1/qw-rollup-
+      engine/files/`) — the `helm_repo1` one is the most advanced (adds a
+      read-before-write guard on the *forward* checkpoint too, not just
+      backfill, plus a `--url` flag), the other two are earlier snapshots.
+      Worth reconciling to one canonical copy; not done this session (out
+      of scope for what was asked).
+- [ ] **OGM's LIVE `qw-rollup-engine-config` ConfigMap still ships `intervals:
+      [15, 60]` for all 15 tasks — confirmed 2026-09-03, not just chart-file
+      drift.** `ca6f931` (2026-09-01, "drop 60m interval... to mitigate OGM
+      Quickwit OOM risk") is committed on repo `master` (local checkout's
+      `tasks.json` correctly shows `intervals: [15]`, and `task_expand.rs`'s
+      own test asserts this) but was **never applied to OGM's live
+      ConfigMap** — fetched directly via `kubectl get configmap
+      qw-rollup-engine-config -o jsonpath='{.data.tasks\.json}'`, still
+      `[15, 60]` everywhere. This means OGM is running the exact OOM-risk
+      config the fix was written to eliminate, right now, on all 15 tasks
+      (`metrics3_60`, `rollup_60m_site_*`, etc. all still actively being
+      written). Separately confirmed: `metrics3_60`'s Quickwit `index_uri`
+      is misconfigured — `file:///quickwit/qwdata/indexes/metrics3_15`
+      (points at `metrics3_15`'s directory, not its own `metrics3_60`),
+      confirmed via `/api/v1/indexes/metrics3_60/describe`; likely a
+      copy-paste at index-creation time, worth a fix independent of the
+      OOM item. **Action offered to user 2026-09-03, not yet confirmed:**
+      patch `intervals` back to `[15]` in the live ConfigMap (same pattern
+      as the tasks.json fix) + restart the `qw-rollup-engine` pod.
+- [ ] **`ai/anomaly`/`helm_repo1` rollup chart & datagen dedup — done
+      2026-09-02/03, two loose ends.** Full account in DONE.md. (1)
+      `helm_repo1/qw-rollup-engine/files/tasks.json` still has `[15, 60]`
+      per-task intervals even though `qw-rollup-engine` itself dropped 60m
+      entirely (`ca6f931`, OOM mitigation) — pre-existing drift, not
+      touched (a content decision, not a structural one), see the live-OGM
+      version of this same gap directly above. (2) `master`'s
+      old `data_gen_cyclic.py` had a `SCENARIOS`-cycling anomaly-type-
+      variety feature (varies which metric/flow-type gets anomalized each
+      cycle) not present in the now-canonical `monitoring_temp` copy —
+      flagged as a possible enhancement, not implemented (real feature
+      work, not cleanup).
+- [ ] **Original item, kept for the full incident record (2026-09-01,
+      2026-08-31).** Prod qw-rollup-engine pod restart
+      found zero Redis checkpoints for all 30 tasks (`Ok(Ok(None))` — a
+      clean GET returning nil, not a connection error) despite `redis.url`
+      being set and Redis reachable — every task fell back to "First run,
+      starting from today 00:00". Not yet root-caused: could be genuinely
+      the first-ever restart since `redis.url` was correctly wired for
+      that pod (no real mystery), a DB-index/key-prefix mismatch, or
+      something else — see the full account in memory
+      (`qw-rollup-engine-checkpoint-mystery-todo`). The existing workaround
+      (`~/Downloads/omg_rollup/seed_redis_checkpoints.py`/`.sh` — seeds
+      forward=now/today and backfill=`BACKFILL_PENDING` only where backfill
+      is still untouched, read-before-write so real progress is never
+      clobbered) treats the symptom, not the cause, and still only lives
+      under `~/Downloads/`, not committed anywhere durable — also now
+      stale re: today's 60m-removal fix (its `TASKS` list still has 30
+      entries incl. `_60m` variants a fresh process no longer expands).
+      Needs: confirm whether checkpoints have EVER been successfully read
+      back on the affected pod (not just written) before assuming this is
+      a bug rather than a first-restart artifact.
+      **Stopgap added 2026-09-01** (`ai/anomaly/deploy/helm/qw-rollup-engine`
+      chart, v0.2.0): `seed_redis_checkpoints.py` (extended with a `--url`
+      flag so it can reuse the same `REDIS_URL` the main container already
+      gets, from `.Values.redis.url`/secret) now ships as a ConfigMap key
+      and runs as a `checkpointSeed`-gated `initContainer` on every pod
+      (re)creation — backfill → `BACKFILL_PENDING` only where still
+      untouched (unchanged). **Caught and fixed same session (by code
+      review, not a live deploy):** the first version of this wired
+      `--today` into the initContainer unconditionally, and forward had no
+      read-before-write guard at all (unlike backfill) — as written, every
+      pod restart would have forced *every* task's forward checkpoint back
+      to today 00:00, reprocessing all of today even for healthy tasks.
+      (User's "restart sırasında sanki sıfırdan başladı" observation that
+      prompted this review was NOT actually caused by this initContainer —
+      confirmed after the fact that prod has never had this chart deployed
+      — it was the manual `--today --apply` run itself landing on the
+      original script's unconditional 30-task `SET`, the exact "affects 25
+      unrelated tasks too" risk already flagged before that command ran.
+      Don't attribute an observed symptom to a repo change without
+      confirming a deploy actually happened.) Fixed regardless, since the
+      gap was real: forward now gets the same read-before-write guard as
+      backfill (only seeded if genuinely 0/missing) and the initContainer
+      dropped `--today` (defaults to "now" when it does have to seed, to
+      avoid a today-reprocess/duplicate risk rather than recreating what
+      the engine's own first-run fallback already does).
+      This masks the symptom on every pod recreation going forward; it
+      does not explain or fix the underlying non-persistence. Remove the
+      `checkpointSeed` block once the real cause is found. Confirmed live
+      during this session: prod's chart-bundled `tasks.json`/`config.json`
+      are separately stale too (still `[15, 60]` intervals — see the
+      pre-existing "Nexus chart missing the missing:N/A fix" item) — a
+      `helm upgrade` on this chart right now would regress today's
+      60m-removal fix even though it delivers this new stopgap.
+      **2026-09-02: teammate (mustafa.simsek) pushed `qw-rollup-engine`
+      branch `feat/checkpoint-refactor` (commit `5b43a0c`, unmerged)
+      attempting a real fix** — `MultiplexedConnection` established once
+      at startup and shared/cloned per task (replaces the old code's
+      wasteful one-new-connection-per-`get`/`set`-call pattern), a new
+      `checkpoint_type`/`backfill_enabled` config toggle, `get_last_checkpoint`
+      now returns `Option<i64>` instead of overloading `0` for both "file
+      fallback used" and "genuinely never checkpointed", and the old silent
+      Redis-error→file fallback is replaced with an infinite 60s-interval
+      retry (no cap) on both the Redis and file paths. **Does not compile
+      as pushed** — `cargo check` (verified in an isolated worktree):
+      `error[E0425]: cannot find value 'redis_client' in this scope` at
+      `src/task_loop.rs:85`, a leftover from the `redis_client`→`redis_conn`
+      rename (13 of 14 call sites were renamed, this one wasn't). **Bigger
+      risk once fixed:** `main.rs` now only initializes Redis at all when
+      `config.checkpoint_type.as_deref() == Some("redis")` — `redis_url`/
+      `REDIS_URL` alone is no longer sufficient. None of the 3 live
+      environments' ConfigMaps have `checkpoint_type` set today (the field
+      is new), so deploying this branch as-is would silently switch
+      **every** environment from Redis-backed checkpoints to the
+      already-known-fragile file fallback (the `emptyDir`/`fsGroup` bug
+      documented in CLAUDE.md) — needs `checkpoint_type: "redis"` added to
+      every ConfigMap in the same rollout, not after. README.md:123 and
+      the repo's own `config.json` still describe/model the old
+      always-try-Redis-then-file-fallback behavior — neither updated on
+      this branch. Not merged, not reviewed with the author yet. See
+      [[qw-rollup-engine-checkpoint-mystery-todo]] in memory — this branch
+      does not, on its own, explain the original clean-nil-GET mystery
+      (that's a `None` either way under the new code), only changes the
+      failure mode around it.
+      **Also 2026-09-02:** wrote `~/Downloads/omg_rollup/
+      reset_redis_checkpoints.py` (same dir/dependency-free-RESP style as
+      `seed_redis_checkpoints.py`) — an explicit-task-only DELETE/SET tool
+      for forcibly resetting one task's checkpoint (and/or its `_backfill`
+      companion) to a chosen state, distinct from `seed`'s fill-only-if-
+      empty semantics. Requires `--task` (no implicit "all"), defaults to
+      dry-run, defaults to DELETE unless `--set`/`--set-today`/`--set-now`/
+      `--set-pending`/`--set-done` is given. Smoke-tested end-to-end
+      against a throwaway local Redis container (AUTH, GET, SET, DEL,
+      wrong-password handling, `--url` parsing) — not yet run against any
+      live cluster.
+- [ ] **Add a request timeout to qw-rollup-engine's `reqwest::Client`**
+      (`src/main.rs` — only `tcp_keepalive` is set, no `.timeout()`). Low
+      risk today since `max_concurrent_tasks` isn't deployed yet, but once
+      it is, one genuinely hung Quickwit/Trino request would permanently
+      exhaust the shared semaphore and stall the whole engine — no other
+      task could ever acquire a permit again.
+
+## 🔴 FIRST DECISION NEEDED — metrics3_60 backfill scope (2026-08-28, data refreshed 2026-09-03)
+
+- [ ] **Live-checked 2026-09-03 via `/api/v1/indexes/{id}/describe`:
+      `metrics3_60` now covers 2026-08-28 07:00 → 2026-09-03 11:00 UTC
+      (~6.17 days, 22 splits, 57.4M docs); `metrics3_15` covers 2026-08-27
+      ~05:30 → same end (~6.9 days, 40 splits, 254.7M docs).** Both grew
+      purely by running forward since task creation — **the backfill
+      mechanism (`c99300c`) never actually ran for either**, because both
+      are pre-existing production tasks whose forward checkpoint was
+      already non-zero the first time that code executed (permanently
+      inert by design, see CLAUDE.md). Raw `metrics3` itself currently
+      retains only ~1.8h (`min`≈`max`-6590s) — so even a working backfill
+      could only ever pull a couple of hours deeper than "now" at any given
+      run, not real historical depth; the ~6-7 day figures above are simply
+      how long these tasks have been running, not a backfill result. This
+      changes the framing of the item below: there is no shallow-raw
+      shortcut to a deep `metrics3_60` history — any real backfill has to
+      synthesize/tile from `metrics3_15` as originally planned, not lean on
+      the engine's own backfill-on-first-run path.
+- [ ] **`metrics3_60` backfill from `metrics3_15` — scoped, not started, needs
+      a scope decision before running.** Plan (per user, earlier
+      session): take a template window from `metrics3_15`, tile-shift it
+      backward from `metrics3_60`'s own earliest real timestamp, **site-by-
+      site sequentially** (deliberately no concurrency — the prior session's
+      parallel version of this exact class of job is what hung master, see
+      DONE.md "Session 28 August 2026"). Measured before running anything:
+      one 1-hour template window from `metrics3_15` = **1,378,156 docs**; a
+      full 7-day/168-shift backfill at that rate = **~231M docs**, ~60x
+      `metrics3_60`'s current size, likely many hours end-to-end fully
+      sequential. Presented to user as full-scope-but-slow vs. a smaller
+      template window (e.g. 15min instead of 1h, cuts total volume ~4x) —
+      **conversation ended before a decision was made.** Next session: get
+      the decision, then write the script (source=`metrics3_15`,
+      target=`metrics3_60`, one site at a time, minimal/no concurrency
+      within a site too) and run it via `nohup...&disown` natively on OGM,
+      not foreground from the local session. See TOBEDECIDED.md.
+
+## Open — from 2026-09-03 session (OGM history-tier revert, alert_rule SQL, maya-monitoring-works)
+
+- [ ] **OGM Trino coordinator restart — pending, not confirmed by user.**
+      `maya-trino-configmap` (OGM, `maya3`) was patched 2026-09-03: removed
+      `history-tiers=60:86400`, `history-time-threshold-seconds` changed
+      `15:3600` → `10800` (reverts to pre-multi-tier behavior — raw ≤3h,
+      then the classic hardcoded 15m tier, no 60m routing — done because
+      `metrics3_60` has known coverage/`index_uri` problems, see above).
+      Backup of the pre-patch ConfigMap saved to the session scratchpad
+      (not durable — re-fetch live and re-save if actually needed later).
+      **Trino only reads catalog properties at startup — this patch is
+      inert until `maya-trino-single-coordinator` is restarted**
+      (`kubectl rollout restart deployment/maya-trino-single-coordinator -n
+      maya3`), which briefly interrupts live OGM Grafana queries. User was
+      asked whether/when to run this restart; no answer given before the
+      session ended.
+- [ ] **yucemonitoring parity decision.** yucemonitoring's
+      `maya-trino-configmap` still has the original multi-tier config
+      (`history-time-threshold-seconds=15:10800` + `history-tiers=
+      60:86400`, i.e. correctly on a 3h raw window, unlike OGM's now-fixed
+      1h one) — **not touched this session**, since the ask was scoped to
+      OGM only. Needs a decision: revert yucemonitoring the same way (drop
+      `history-tiers`, keep `10800`), or leave its 60m tier live there.
+- [ ] **`maya-postgres-single`/pgWorks upgrade (cfg + image) — investigated,
+      not executed.** User's actual ask ("sadece cfg ve imaj değiştirmeyi
+      planlıyorum") is scoped narrowly, but 3 things are still needed before
+      touching anything: (1) exact new `pgWorksImage.tag` and which `cfg`
+      keys change — not specified yet; (2) which branch of `monitoring_temp`
+      (source repo for Jenkins job `postgres-monitoring-works-platform`,
+      `JENKINS_JOB_POSTGRES` in `.env`) actually has the intended change —
+      currently on `develop`, matches the job's default `branch_name`, not
+      independently verified to contain the target change; (3) how the Helm
+      side is actually deployed on OGM today — `helm_repo`'s local checkout
+      is on unmerged branch `mr-369` (never merged to `master`/`develop`)
+      with a `pgWorksImage.repository` mismatch vs. what's actually live
+      (`maya/maya-monitoring-jobs` locally vs. `maya/monitoring-jobs` live,
+      confirmed via `helm get values -a`) — don't apply that local
+      `values.yaml` wholesale; use `helm upgrade --reuse-values --set
+      pgWorksImage.tag=... --set pgWorks.<KEY>=...` instead, or confirm the
+      real deploy path first. Along the way, found and confirmed the
+      user's separately-pasted `postgres-monitoring-works` CronJob (old tag
+      `3.0.8-12122025-ST`, suspended) was a **stale orphaned duplicate** of
+      the real, already-current `maya-postgres-single-cronjob`
+      (`3.1.4-20260810-OGM`, deployed via Helm since 2026-08-18, healthy) —
+      it was deleted (by the user or their own tooling) mid-session; nothing
+      to do about it, just don't confuse it with the live cronjob again.
+- [ ] **Grafana `generic_alert` split (`cpe_eval_group`) — SQL built and
+      query-tested, not yet applied to any database.** From
+      `~/Downloads/ogm_grafana_20260903.sql.gz` (a full `grafana` DB dump):
+      11 new `generic_alert_*` rules (df, temperature, maya_ifstatus, bfd,
+      cpu, memory, maya_probe, maya_system_services, maya_dhcp_relay,
+      maya_dhcp, maya_bgp — all unpaused, versions 8-18, created
+      2026-08-19) plus a corrected `generic_alert` parent (id=7): its query
+      had drifted to `m_notif_plugin:df` only (same as `generic_alert_df`,
+      paused) — rebuilt from the pre-drift broad query (`span_attributes.p:
+      maya_alarm`, last seen intact at v320/2026-05-22) with an explicit
+      `AND NOT (...)` exclusion for the 11 split-off `m_notif_plugin`
+      values, unpaused, bumped to v347. The exclusion query's syntax was
+      verified by running it live against OGM Quickwit's `/search` (parses
+      cleanly, `errors: []`; 0 hits is expected — no alarm data in the
+      currently-retained raw window, not a query problem). All 12
+      `alert_rule` + 12 matching `alert_rule_version` rows are `INSERT ...
+      ON CONFLICT (id) DO UPDATE` (idempotent — safe whether the target
+      already has these exact rows or not), saved to
+      `~/Downloads/generic_alert_perf_rules.sql` and
+      `~/Downloads/generic_alert_perf_rule_versions.sql` (copied out of the
+      session scratchpad so they survive). **User said they'd review the
+      new `generic_alert` query before applying** — not yet confirmed
+      applied to OGM's `grafana` Postgres DB. Apply order: `alert_rule`
+      before `alert_rule_version` by convention (no FK enforces it either
+      way, confirmed — `alert_rule_version` only has a PK on its own `id`).
+      No need to stop Grafana first (both files are atomic per-statement
+      upserts; this project's own `OGM_DEMO_INSTALL_DONE.md` did similar
+      direct-SQL fixes against a live Grafana before, Bölüm 6/F) — if
+      worried about the new rules firing immediately, insert with
+      `is_paused='t'` first and unpause via UI instead of a full stop.
+
+## Open — resolved this session, see DONE.md for full detail (2026-08-28)
+
+The prior session's 🔴 CRITICAL items (OGM master unresponsive, Nexus
+migration to worker1, `data-gen`/`otelcontribcol` resource limits, 2 new
+post-recovery `ImagePullBackOff`s) were all resolved this session — full
+narrative in DONE.md "Session 28 August 2026 (continued again)". Nothing
+carried forward from that block except the backfill decision above and the
+old (now-superseded) synthetic-replication item removed below — its
+process/script check came back clean (no lingering process, `/tmp` script
+gone with the reboot, re-copied from a prior session's scratchpad), so
+there's nothing to resume from that attempt specifically.
+
+- [ ] **`interfaces_trino` QoS-dashboard variable Bug A — root-caused,
+      NOT fixed.** `span_attributes.m_name:IN [${class_names}]` sends
+      literal `IN [-]` to Quickwit when `class_names` is unselected
+      (confirmed live: Quickwit returns HTTP 400 "failed to parse
+      query" for exactly that string) — unlike sibling filters in the
+      same dashboard, this one has no `'${class_names}' = '-' or ...`
+      guard. Fix not applied (session moved on to Bug B, then the infra
+      incident). See DONE.md for full detail; the fix is a small SQL
+      edit to the `interfaces_trino` variable's Quickwit query, same
+      live-edit process as the QoS dashboard fixes already shipped.
+
 ## Open — infra (OGM, `192.168.109.203`)
 
 - [ ] **yucemonitoring has no `netlink_15m` (or `maya_bfd_15m`/
@@ -66,6 +466,17 @@ architecture items tracked in
       Needs someone with access to the `.254` gateway/firewall to check
       why master's source IP can't reach the internet while the worker
       nodes can.
+      **Correction 2026-08-28: worker nodes don't have internet either.**
+      That last claim was wrong — re-tested this session (`coredns`
+      ImagePullBackOff on `worker1`, DNS to `registry.k8s.io` timed out
+      there too; `worker2` failed the same way). **None of the 3 OGM
+      nodes have real outbound internet.** The reliable mirroring path
+      going forward: run `skopeo copy` (or `docker pull`+`save`+`ssh...
+      load`) from *outside* the OGM network entirely — e.g. from
+      wherever Claude's own session runs, which has both internet and a
+      direct network path to `maya-nexus:35000` — straight into the
+      local registry, rather than trying to find a node that can reach
+      the source.
 - [ ] **Possible dev-vs-OGM gap: `anomaly-events-*` alert rules paused,
       root cause (missing Quickwit indexes) never actually fixed.** Found
       2026-08-24 while answering a user question about OGM-only dashboard
@@ -508,3 +919,18 @@ architecture items tracked in
       the history index and can time out. Not touched since discovery —
       needs the `maya_global_settings` macro definitions updated, or the
       `qw_agg` plugin changed to append the header automatically.
+
+## Housekeeping — pre-existing, not from any recent session
+
+- [ ] **~90 untracked scratch files + 5 pre-existing modified files
+      (`docker-compose.yml`, 4 `trino/etc/catalog/*.properties`) sitting
+      in the working tree, unrelated to any session's actual work.**
+      Noticed 2026-08-28 while preparing a handover — these were already
+      present (`git status`) before that session's first action, last
+      real commit touching `docker-compose.yml` is from 12 May 2026, and
+      none of it was investigated or touched this session (out of scope,
+      not this session's to clean up blind). Mix of debug scripts
+      (`Test*.java`/`.class`, `patch_*.py`, `extract_*.py`, etc.) and the
+      5 small property-file diffs. Worth a deliberate pass sometime to
+      decide what's still needed vs. safe to `git checkout --`/delete —
+      just don't `git add -A`/`git add .` in the meantime.
