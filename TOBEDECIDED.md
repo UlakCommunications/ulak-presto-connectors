@@ -2,6 +2,7 @@
 
 ## Open Decisions
 
+- **TODO eritme taraması (2026-11-11, değnekçi): tüm açık TODO maddeleri sahip kararı / canlı sistem / silme gerektiriyor, otonom kapatılabilir madde yok.** Atlananlar: generic_alert SQL uygulama (raw vs DSL, yukarıda), OGM coordinator restart + `3.1.4-20260904-OGM` deploy, yucemonitoring history-tier paritesi, `alertingSaveStatePeriodic` toggle, qw-rollup-engine MR !5 merge, bucket-limit kökü, metrics3_60 backfill kapsamı, `UlakQuickwitMetadata` boş-sonuç fallback tasarımı, ~90 untracked scratch dosyanın silinmesi (silme sahibe ait). Yapılmış-işaretlenmemiş veya tekrar madde bulunamadı.
 - **`generic_alert` TVF conversion — apply the raw-JSON variant or the DSL variant?** 2026-09-04: both are ready and proven equivalent to the current live query on real data (see DONE.md/TODO.md) — raw-JSON is byte-identical to today's `aggs` body (lowest risk, but keeps the same illegible ~170-line blob), DSL is a ~10-line human-readable equivalent that depends on this session's brand-new `missing=`/`order=key` compiler support (less battle-tested in production, though it passed the same live equivalence check). Applies to both yucemonitoring's `generic_alert` and, once converted, OGM's own.
 - **qw-rollup-engine bucket-limit-exceeded fix: `host_prefix_chars` vs.
   cascading rollups vs. raising Quickwit's limit?** 2026-09-01:
