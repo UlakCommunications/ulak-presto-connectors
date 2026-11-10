@@ -589,3 +589,4 @@ Wrote `ogm_replicate_60m_7days.py` (scratchpad only, not committed anywhere — 
 - **Problem:** `JFlat` library parsing and recursive mapping caused a severe performance bottleneck during object instantiation and tree traversal, increasing query times by 10-20 seconds on large datasets.
 - **Fix:** Wrote a highly performant native `flattenJsonNode` method inside `QwUtil.java` to recursively flatten JSON trees into maps, exactly matching `JFlat`'s column naming conventions (e.g., `/span_attributes/x`). `JFlat` object initialization and imports were completely removed.
 - **Verification:** Ran a comprehensive regression test using Playwright to extract 219 production queries from 79 Grafana dashboards. The native flattener passed all backward compatibility tests, and queries completed in 0.56 seconds on average.
+- 2026-11-11: TODO eritme taraması, otonom kapatılabilir madde yok, TOBEDECIDED'a kaydedildi
