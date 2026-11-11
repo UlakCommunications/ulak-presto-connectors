@@ -304,6 +304,12 @@ architecture items tracked in
       within a site too) and run it via `nohup...&disown` natively on OGM,
       not foreground from the local session. See TOBEDECIDED.md.
 
+## ⏸ Sahip kararı bekliyor (2026-11-11, proje değnekçiden çıkarıldı)
+
+- [ ] **[sahip kararı bekliyor]** yucemonitoring `generic_alert`: ham-JSON mu DSL mi (bkz. TOBEDECIDED.md).
+- [ ] **[sahip kararı bekliyor]** OGM Trino coordinator restart + `3.1.4-20260904-OGM` deploy. OGM'ye şimdilik DOKUNMA (sahip talimatı 2026-11-11).
+- [ ] **[sahip kararı bekliyor]** ~90 untracked scratch dosyanın arşivlenmesi/silinmesi; silme yok, `git add -A` yok.
+
 ## Open — from 2026-09-04 session (Aggs DSL, `generic_alert` TVF conversion, Grafana alerting toggle, qw-rollup-engine MR !5)
 
 - [ ] **Apply the converted `generic_alert` SQL to yucemonitoring — ready and equivalence-proven, not applied.** See DONE.md item 3. Backup at `~/Downloads/generic_alert_backup_20260904_124004/` (all 26 alert rules + `generic_alert` alone, plus both converted variants and the equivalence-proof CSVs). Needs a decision: apply the raw-JSON variant (byte-identical to the current legacy query, lowest risk) or the DSL variant (shorter, human-editable, relies on this session's new `missing=`/`order=key` support), and via which path (Grafana provisioning API PUT, or direct `alert_rule`/`alert_rule_version` SQL like the 2026-09-03 `generic_alert` split used).
